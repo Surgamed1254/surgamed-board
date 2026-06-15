@@ -229,4 +229,20 @@ function celebrate(o){
   document.getElementById('toastTxt').textContent=o[0]+' — '+money(o[3]);
   const tEl=document.getElementById('toast'); tEl.classList.add('show');
   fireConfetti(); chime();
-  setTimeout(()=>tEl.classList.remove('show'), 
+  setTimeout(()=>tEl.classList.remove('show'), 6000);
+}
+try{
+  const key='surgamed_lastdeal';
+  const newest=S.recent && S.recent[0];
+  if(newest){
+    const sig=newest.join('|'); const prev=localStorage.getItem(key);
+    if(prev!==sig && Number(newest[3])>=200) setTimeout(()=>celebrate(newest), 1200);
+    localStorage.setItem(key, sig);
+  }
+}catch(e){}
+
+setTimeout(()=>location.reload(), 15*60*1000);
+})();
+</script>
+</body>
+</html>
