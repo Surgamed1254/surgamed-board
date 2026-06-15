@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SurgaMed Sales — Live Wallboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{ color-scheme:dark; --bg:#0a0e1a; --panel:#121829; --panel2:#161d33; --line:#243049; --txt:#eef2ff; --mut:#8c9bbd; --green:#22c55e; --amber:#f59e0b; --gold:#fde047; }
+*{box-sizing:border-box; margin:0; padding:0}
+html,body{height:100%}
+body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg) 55%); color:var(--txt); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; overflow:hidden; }
+.board{ height:100vh; display:flex; flex-direction:column; padding:1.3vw 1.5vw; gap:1vw; }
+.top{ display:flex; align-items:center; justify-content:space-between; }
+.brand{ display:flex; align-items:center; gap:.7vw; }
+.brand .mk{ font-size:2.0vw; font-weight:800; letter-spacing:.5px; background:linear-gradient(90deg,#60a5fa,#22d3ee); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.brand .sub{ font-size:.95vw; color:var(--mut); font-weight:600; letter-spacing:3px; text-transform:uppercase; }
+.live{ display:flex; align-items:center; gap:1.3vw; }
+.cd{ text-align:center; background:linear-gradient(180deg,#1c2742,#141b30); border:1px solid var(--line); border-radius:12px; padding:.5vw .9vw; }
+.cd .n{ font-size:1.5vw; font-weight:800; color:var(--amber); line-height:1; }
+.cd .l{ font-size:.7vw; color:var(--mut); text-transform:uppercase; letter-spacing:1px; margin-top:.2vw;}
+.livedot{ display:flex; align-items:center; gap:.5vw; font-size:1vw; font-weight:700; color:var(--green); }
+.livedot i{ width:.9vw; height:.9vw; border-radius:50%; background:var(--green); box-shadow:0 0 0 0 rgba(34,197,94,.7); animation:pulse 1.8s infinite; }
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 .9vw rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.clock{ font-size:1.4vw; font-weight:700; font-variant-numeric:tabular-nums; }
+.upd{ font-size:.8vw; color:var(--mut); text-align:right; }
+.kpis{ display:grid; grid-template-columns:repeat(5,1fr); gap:.9vw; }
+.kpi{ background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-radius:16px; padding:1vw 1.2vw; position:relative; overflow:hidden; }
+.kpi::after{ content:""; position:absolute; top:0; left:0; width:100%; height:4px; background:var(--accent); }
+.kpi .lab{ font-size:.82vw; color:var(--mut); text-transform:uppercase; letter-spacing:1.5px; font-weight:700; }
+.kpi .val{ font-size:2.2vw; font-weight:800; margin-top:.25vw; font-variant-numeric:tabular-nums; letter-spacing:-1px; }
+.kpi .meta{ font-size:.78vw; color:var(--mut); margin-top:.15vw; }
+.main{ flex:1; display:grid; grid-template-columns:1.35fr 1fr; gap:1vw; min-height:0; }
+.col{ display:flex; flex-direction:column; gap:1vw; min-height:0; }
+.panel{ background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-radius:16px; padding:1vw 1.2vw; display:flex; flex-direction:column; min-height:0; }
+.panel h3{ font-size:.95vw; color:var(--mut); text-transform:uppercase; letter-spacing:2px; margin-bottom:.7vw; font-weight:700; display:flex; justify-content:space-between; align-items:center;}
+.race{ flex:1; display:flex; flex-direction:column; justify-content:space-around; gap:.5vw; }
+.row{ display:grid; grid-template-columns:2.6vw 1fr; align-items:center; gap:.8vw; }
+.rank{ width:2.4vw; height:2.4vw; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.1vw; color:#0a0e1a; }
+.r1{ background:linear-gradient(135deg,#fde047,#f59e0b);} .r2{ background:linear-gradient(135deg,#e5e7eb,#9ca3af);} .r3{ background:linear-gradient(135deg,#f0a675,#b4793f);} .r4{ background:#2a3550; color:var(--mut);}
+.bhead{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.3vw; }
+.bname{ font-size:1.4vw; font-weight:800; }
+.bsub{ font-size:.82vw; color:var(--mut); margin-left:.6vw; font-weight:600;}
+.bval{ font-size:1.45vw; font-weight:800; font-variant-numeric:tabular-nums; }
+.track{ height:1.4vw; background:#0c1426; border-radius:10px; overflow:hidden; }
+.fill{ height:100%; width:0; border-radius:10px; transition:width 1.6s cubic-bezier(.22,1,.36,1); }
+.goal{ display:flex; flex-direction:column; gap:.6vw; }
+.goalbar{ height:2vw; background:#0c1426; border-radius:14px; overflow:hidden; position:relative; border:1px solid var(--line); }
+.goalfill{ height:100%; width:0; background:linear-gradient(90deg,#22c55e,#22d3ee); border-radius:14px; transition:width 1.8s cubic-bezier(.22,1,.36,1); }
+.goalrow{ display:flex; justify-content:space-between; align-items:baseline; }
+.goalpct{ font-size:2.2vw; font-weight:800; }
+.goaltxt{ font-size:.9vw; color:var(--mut); }
+.daysleft{ font-size:.82vw; color:var(--amber); font-weight:700; }
+.duo{ display:grid; grid-template-columns:1fr 1fr; gap:1vw; }
+.spot{ display:flex; flex-direction:column; gap:.3vw; }
+.spot .who{ font-size:1.6vw; font-weight:800; }
+.spot .amt{ font-size:1.3vw; font-weight:800; font-variant-numeric:tabular-nums; }
+.spot .cap{ font-size:.78vw; color:var(--mut); }
+.donutwrap{ display:flex; align-items:center; gap:1vw; }
+.donutbox{ position:relative; width:8vw; height:8vw; }
+.legend{ display:flex; flex-direction:column; gap:.4vw; font-size:.9vw; }
+.legend div{ display:flex; align-items:center; gap:.5vw; }
+.legend i{ width:.9vw; height:.9vw; border-radius:3px; }
+.chartbox{ position:relative; flex:1; min-height:0; }
+.ticker{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:.65vw 0; overflow:hidden; white-space:nowrap; }
+.ticker .move{ display:inline-block; padding-left:100%; animation:scroll 38s linear infinite; font-size:1.02vw; font-weight:600;}
+.ticker .item{ margin:0 2.2vw; } .ticker .item .amt{ color:var(--green); font-weight:800; }
+@keyframes scroll{ from{transform:translateX(0)} to{transform:translateX(-100%)} }
+.dot{ width:.8vw; height:.8vw; border-radius:50%; display:inline-block; margin-right:.4vw; vertical-align:middle;}
+#confetti{ position:fixed; inset:0; pointer-events:none; z-index:50; }
+#toast{ position:fixed; top:-25vh; left:50%; transform:translateX(-50%); z-index:60; background:linear-gradient(180deg,#1d2945,#131b30); border:1px solid var(--gold); border-radius:16px; padding:1vw 1.8vw; display:flex; align-items:center; gap:1vw; box-shadow:0 10px 40px rgba(0,0,0,.5); transition:top .6s cubic-bezier(.22,1,.36,1); }
+#toast.show{ top:2vh; }
+#toast .bell{ width:2.2vw; height:2.2vw; animation:ring .6s ease-in-out 3; }
+@keyframes ring{ 0%,100%{transform:rotate(0)} 25%{transform:rotate(16deg)} 75%{transform:rotate(-16deg)} }
+#toast .t1{ font-size:1.1vw; color:var(--gold); font-weight:800; letter-spacing:1px; }
+#toast .t2{ font-size:1.5vw; font-weight:800; }
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div id="toast">
+  <svg class="bell" viewBox="0 0 24 24" fill="none" stroke="#fde047" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+  <div><div class="t1">NEW DEAL CLOSED</div><div class="t2" id="toastTxt"></div></div>
+</div>
+
+<div class="board">
+  <div class="top">
+    <div class="brand"><div class="mk">SURGAMED</div><div class="sub">Sales Floor • Live</div></div>
+    <div class="live">
+      <div class="cd"><div class="n" id="cdDays">--</div><div class="l">days left in <span id="cdMon">month</span></div></div>
+      <div class="livedot"><i></i>LIVE</div>
+      <div><div class="clock" id="clock">--:--</div><div class="upd">Rolling 30 days · updated <span id="upd"></span></div></div>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="main">
+    <div class="col">
+      <div class="panel" style="flex:1">
+        <h3>Rep Leaderboard — last 30 days <span style="color:var(--mut);font-size:.8vw">revenue race</span></h3>
+        <div class="race" id="race"></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="panel">
+        <h3>Team Goal · 30-Day Pace</h3>
+        <div class="goal">
+          <div class="goalrow"><div class="goalpct" id="goalpct">0%</div><div style="text-align:right"><div class="goaltxt" id="goaltxt"></div><div class="daysleft" id="goalDays"></div></div></div>
+          <div class="goalbar"><div class="goalfill" id="goalfill"></div></div>
+        </div>
+      </div>
+      <div class="duo">
+        <div class="panel spot">
+          <h3>Weekly Winner</h3>
+          <div class="who" id="winWho" style="color:var(--gold)"></div>
+          <div class="amt" id="winAmt" style="color:var(--gold)"></div>
+          <div class="cap">most revenue · last 7 days</div>
+        </div>
+        <div class="panel spot">
+          <h3>Biggest Deal</h3>
+          <div class="amt" id="dealAmt" style="color:var(--amber); font-size:2vw"></div>
+          <div class="cap" id="dealWho"></div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1">
+        <h3>Revenue Share</h3>
+        <div class="donutwrap"><div class="donutbox"><canvas id="donut"></canvas></div><div class="legend" id="legend"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="height:22vh; padding-bottom:.5vw">
+    <h3>Daily Revenue &amp; Orders</h3>
+    <div class="chartbox"><canvas id="trend"></canvas></div>
+  </div>
+
+  <div class="ticker"><div class="move" id="ticker"></div></div>
+</div>
+
+<script id="snapshot-data" type="application/json">
+{"asOf":"2026-06-15T14:19:44.142Z","cutoff":"2026-05-17","today":"2026-06-15","mtd":{"revenue":94138,"orders":105,"units":1640},"goal30d":150000,"biggest":{"rep":"Miri","amount":17005,"date":"2026-06-10"},"weekTop":{"rep":"Miri","revenue":23504},"totals":{"revenue":130208.6,"orders":172,"units":2996,"aov":757.03},"reps":[["Miri",56401,28,876],["Jennifer",42577.1,82,1330],["Tehila",17602.5,26,256],["Deysi",13628,36,534]],"dailyRev":[0,2306,2270,1494.1,908.5,0,0,0,0,17064.5,6527,4335.5,1055,0,110,13593,3777,13574,2318,1090,0,0,6305,12250,21008,10344,9879,0,0,0],"dailyOrd":[0,8,6,8,9,0,0,0,0,12,8,11,4,0,1,12,9,15,8,5,0,0,13,12,11,11,9,0,0,0],"recent":[["Miri","Yehoshua Tashman","2026-06-12",4239],["Miri","Ricardo Reyes Ur","2026-06-12",1320],["Jennifer","Oleh Luhovyi","2026-06-12",1215],["Miri","Marcos Zapata","2026-06-12",850],["Jennifer","Dimehos S de RL","2026-06-12",795],["Jennifer","Roman Kreps","2026-06-12",540],["Jennifer","Oswaldo mendez r","2026-06-12",435],["Deysi","ARTEM BOIKO","2026-06-12",318],["Deysi","KIM CO","2026-06-12",167],["Tehila","Mamadou Diallo","2026-06-11",107]]}
+</script>
+
+<script>
+(async () => {
+let S;
+try { const r = await fetch('data.json',{cache:'no-store'}); if(!r.ok) throw 0; S = await r.json(); }
+catch(e){ S = JSON.parse(document.getElementById('snapshot-data').textContent); }
+
+const C = { Miri:'#3b82f6', Jennifer:'#22c55e', Tehila:'#f59e0b', Deysi:'#a855f7' };
+const ACC = ['#3b82f6','#22d3ee','#f59e0b','#22c55e'];
+const money = n => '$'+Math.round(n).toLocaleString('en-US');
+const MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function tick(){ document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
+tick(); setInterval(tick,10000);
+document.getElementById('upd').textContent=new Date(S.asOf).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+
+const now=new Date();
+const endMonth=new Date(now.getFullYear(), now.getMonth()+1, 0);
+const daysLeft=Math.max(0, Math.ceil((endMonth - now)/86400000));
+document.getElementById('cdDays').textContent=daysLeft;
+document.getElementById('cdMon').textContent=MON[now.getMonth()];
+document.getElementById('goalDays').textContent=daysLeft+' days left in '+MON[now.getMonth()];
+
+function countUp(el,to,fmt,dur){ const t0=performance.now(); function f(t){ let p=Math.min(1,(t-t0)/dur); p=1-Math.pow(1-p,3); el.textContent=fmt(to*p); if(p<1)requestAnimationFrame(f);} requestAnimationFrame(f); }
+
+const T=S.totals; const MTD=S.mtd||{revenue:0,orders:0};
+const cards=[
+  {lab:'MTD Revenue', val:MTD.revenue, fmt:money, acc:'#fde047', meta:MTD.orders+' orders · month to date'},
+  {lab:'30-Day Revenue', val:T.revenue, fmt:money, acc:ACC[0], meta:'trailing 30 days'},
+  {lab:'Orders', val:T.orders, fmt:v=>Math.round(v).toLocaleString(), acc:ACC[1], meta:'trailing 30 days'},
+  {lab:'Units Sold', val:T.units, fmt:v=>Math.round(v).toLocaleString(), acc:ACC[2], meta:'trailing 30 days'},
+  {lab:'Avg Order', val:T.aov, fmt:money, acc:ACC[3], meta:'trailing 30 days'}
+];
+document.getElementById('kpis').innerHTML=cards.map((k,i)=>`<div class="kpi" style="--accent:${k.acc}"><div class="lab">${k.lab}</div><div class="val" id="kpi${i}">0</div><div class="meta">${k.meta}</div></div>`).join('');
+cards.forEach((k,i)=>countUp(document.getElementById('kpi'+i),k.val,k.fmt,1400));
+
+const maxRev=Math.max(...S.reps.map(r=>r[1]));
+document.getElementById('race').innerHTML=S.reps.map((r,i)=>{
+  const c=C[r[0]]||'#64748b';
+  return `<div class="row"><div class="rank r${i+1}">${i+1}</div><div><div class="bhead"><div><span class="bname">${r[0]}</span><span class="bsub">${r[2]} orders · ${r[3].toLocaleString()} units</span></div><div class="bval" style="color:${c}">${money(r[1])}</div></div><div class="track"><div class="fill" id="fill${i}" style="background:linear-gradient(90deg,${c},${c}cc)"></div></div></div></div>`;
+}).join('');
+setTimeout(()=>S.reps.forEach((r,i)=>{document.getElementById('fill'+i).style.width=(r[1]/maxRev*100)+'%';}),200);
+
+const pct=Math.min(100, S.totals.revenue/S.goal30d*100);
+setTimeout(()=>{document.getElementById('goalfill').style.width=pct+'%';},300);
+countUp(document.getElementById('goalpct'),pct,v=>Math.round(v)+'%',1500);
+document.getElementById('goaltxt').innerHTML=`${money(S.totals.revenue)} of <b style="color:var(--txt)">${money(S.goal30d)}</b>`;
+
+if(S.weekTop && S.weekTop.rep){
+  document.getElementById('winWho').textContent=S.weekTop.rep;
+  document.getElementById('winWho').style.color=C[S.weekTop.rep]||'var(--gold)';
+  document.getElementById('winAmt').textContent=money(S.weekTop.revenue);
+} else { document.getElementById('winWho').textContent='—'; }
+
+document.getElementById('dealAmt').textContent=money(S.biggest.amount);
+document.getElementById('dealWho').innerHTML=`by <b style="color:${C[S.biggest.rep]}">${S.biggest.rep}</b> · ${new Date(S.biggest.date+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})}`;
+
+new Chart(document.getElementById('donut'),{type:'doughnut',data:{labels:S.reps.map(r=>r[0]),datasets:[{data:S.reps.map(r=>r[1]),backgroundColor:S.reps.map(r=>C[r[0]]),borderColor:'#121829',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
+const tot=S.reps.reduce((a,r)=>a+r[1],0);
+document.getElementById('legend').innerHTML=S.reps.map(r=>`<div><i style="background:${C[r[0]]}"></i>${r[0]} <span style="color:var(--mut);margin-left:.3vw">${Math.round(r[1]/tot*100)}%</span></div>`).join('');
+
+function addDays(iso,d){const t=new Date(iso+'T00:00:00Z');t.setUTCDate(t.getUTCDate()+d);return t;}
+const labels=S.dailyRev.map((_,i)=>addDays(S.cutoff,i).toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}));
+new Chart(document.getElementById('trend'),{data:{labels,datasets:[
+  {type:'bar',label:'Revenue',data:S.dailyRev,backgroundColor:'#3b82f6',borderRadius:4,yAxisID:'y'},
+  {type:'line',label:'Orders',data:S.dailyOrd,borderColor:'#f59e0b',backgroundColor:'#f59e0b',borderWidth:3,pointRadius:0,tension:.35,yAxisID:'y1'}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8c9bbd',boxWidth:12,font:{size:13}}}},scales:{
+  y:{position:'left',beginAtZero:true,ticks:{color:'#8c9bbd',callback:v=>'$'+(v/1000)+'k'},grid:{color:'#1b2336'}},
+  y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},ticks:{color:'#8c9bbd'}},
+  x:{ticks:{color:'#6b7794',maxTicksLimit:12,maxRotation:0},grid:{display:false}}}}});
+
+document.getElementById('ticker').innerHTML=S.recent.concat(S.recent).map(o=>`<span class="item"><span class="dot" style="background:${C[o[0]]}"></span><span style="color:${C[o[0]]};font-weight:800">${o[0]}</span> — ${o[1]} <span class="amt">${money(o[3])}</span></span>`).join('');
+
+/* deal bell + confetti */
+const cvs=document.getElementById('confetti'), ctx=cvs.getContext('2d');
+function size(){ cvs.width=innerWidth; cvs.height=innerHeight; } size(); addEventListener('resize',size);
+function fireConfetti(){
+  const cols=['#fde047','#3b82f6','#22c55e','#f59e0b','#ec4899','#22d3ee'];
+  const P=Array.from({length:170},()=>({x:innerWidth/2+(Math.random()-.5)*innerWidth*.4, y:innerHeight*.2, vx:(Math.random()-.5)*14, vy:Math.random()*-12-4, g:.4+Math.random()*.3, s:6+Math.random()*8, c:cols[Math.random()*cols.length|0], r:Math.random()*6, vr:(Math.random()-.5)*.4}));
+  const t0=performance.now();
+  (function anim(t){ const el=t-t0; ctx.clearRect(0,0,cvs.width,cvs.height);
+    P.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.r+=p.vr; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r); ctx.fillStyle=p.c; ctx.globalAlpha=Math.max(0,1-el/3000); ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6); ctx.restore(); });
+    if(el<3000) requestAnimationFrame(anim); else ctx.clearRect(0,0,cvs.width,cvs.height);
+  })(t0);
+}
+function chime(){ try{ const a=new (window.AudioContext||window.webkitAudioContext)(); [880,1320,1760].forEach((f,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type='sine'; o.frequency.value=f; o.connect(g); g.connect(a.destination); const ts=a.currentTime+i*.12; g.gain.setValueAtTime(0,ts); g.gain.linearRampToValueAtTime(.3,ts+.02); g.gain.exponentialRampToValueAtTime(.001,ts+.35); o.start(ts); o.stop(ts+.36); }); }catch(e){} }
+function celebrate(o){
+  document.getElementById('toastTxt').textContent=o[0]+' — '+money(o[3]);
+  const tEl=document.getElementById('toast'); tEl.classList.add('show');
+  fireConfetti(); chime();
+  setTimeout(()=>tEl.classList.remove('show'), 
