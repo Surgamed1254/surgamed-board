@@ -1,0 +1,29 @@
+name: refresh-dashboard
+on:
+  schedule:
+    # Every 15 minutes, around the clock (timezone/DST-proof; matches the page's 15-min reload).
+    # To limit to business hours instead, use e.g. '*/15 13-22 * * *' (~9am-6pm US Eastern, EDT).
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: node refresh.mjs
+        env:
+          MS_TENANT_ID: ${{ secrets.MS_TENANT_ID }}
+          MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
+          MS_CLIENT_SECRET: ${{ secrets.MS_CLIENT_SECRET }}
+      - run: |
+          git config user.name "dashboard-bot"
+          git config user.email "dashboard-bot@users.noreply.github.com"
+          git add data.json
+          git commit -m "refresh $(date -u +%FT%TZ)" || echo "no change"
+          git push
