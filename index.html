@@ -139,14 +139,12 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 </div>
 
 <script id="snapshot-data" type="application/json">
-{"asOf":"2026-06-15T14:19:44.142Z","cutoff":"2026-05-17","today":"2026-06-15","mtd":{"revenue":94138,"orders":105,"units":1640},"goal30d":150000,"biggest":{"rep":"Miri","amount":17005,"date":"2026-06-10"},"weekTop":{"rep":"Miri","revenue":23504},"totals":{"revenue":130208.6,"orders":172,"units":2996,"aov":757.03},"reps":[["Miri",56401,28,876],["Jennifer",42577.1,82,1330],["Tehila",17602.5,26,256],["Deysi",13628,36,534]],"dailyRev":[0,2306,2270,1494.1,908.5,0,0,0,0,17064.5,6527,4335.5,1055,0,110,13593,3777,13574,2318,1090,0,0,6305,12250,21008,10344,9879,0,0,0],"dailyOrd":[0,8,6,8,9,0,0,0,0,12,8,11,4,0,1,12,9,15,8,5,0,0,13,12,11,11,9,0,0,0],"recent":[["Miri","Yehoshua Tashman","2026-06-12",4239],["Miri","Ricardo Reyes Ur","2026-06-12",1320],["Jennifer","Oleh Luhovyi","2026-06-12",1215],["Miri","Marcos Zapata","2026-06-12",850],["Jennifer","Dimehos S de RL","2026-06-12",795],["Jennifer","Roman Kreps","2026-06-12",540],["Jennifer","Oswaldo mendez r","2026-06-12",435],["Deysi","ARTEM BOIKO","2026-06-12",318],["Deysi","KIM CO","2026-06-12",167],["Tehila","Mamadou Diallo","2026-06-11",107]]}
+{"asOf":"2026-06-15T17:24:47.684Z","cutoff":"2026-05-17","today":"2026-06-15","goal30d":150000,"biggest":{"rep":"Miri","amount":17005,"date":"2026-06-10"},"totals":{"revenue":134410.6,"orders":182,"units":3116,"aov":738.52},"mtd":{"revenue":98340,"orders":115,"units":2124},"reps":[["Miri",59731,34,950],["Jennifer",43449.1,86,1376],["Tehila",17602.5,26,256],["Deysi",13628,36,534]],"weekTop":{"rep":"Miri","revenue":31469},"dailyRev":[0,2306,2270,1494.1,908.5,0,0,0,0,17064.5,6527,4335.5,1055,0,110,13593,3777,13574,2318,1090,0,0,6305,12250,21008,10344,10759,880,0,2442],"dailyOrd":[0,8,6,8,9,0,0,0,0,12,8,11,4,0,1,12,9,15,8,5,0,0,13,12,11,11,10,1,0,8],"recent":[["Miri","Monostryk Alexsa","2026-06-15",225],["Miri","Nestor Sanchez","2026-06-15",1095],["Miri","Mychaljo Vovk","2026-06-15",88],["Miri","Mychaljo Vovk","2026-06-15",162],["Jennifer","Hannah Azura","2026-06-15",268],["Jennifer","Thelma Guerrero","2026-06-15",50],["Jennifer","Irina Bakumova","2026-06-15",444],["Jennifer","Purchasing Depar","2026-06-15",110],["Miri","Ivan Rodrigues","2026-06-13",880],["Deysi","KIM CO","2026-06-12",167]],"files":[["Tehila",true],["Deysi",true],["Miri",true],["Jennifer",true]]}
 </script>
 
 <script>
 (async () => {
-let S;
-try { const r = await fetch('data.json',{cache:'no-store'}); if(!r.ok) throw 0; S = await r.json(); }
-catch(e){ S = JSON.parse(document.getElementById('snapshot-data').textContent); }
+const S = JSON.parse(document.getElementById('snapshot-data').textContent);
 
 const C = { Miri:'#3b82f6', Jennifer:'#22c55e', Tehila:'#f59e0b', Deysi:'#a855f7' };
 const ACC = ['#3b82f6','#22d3ee','#f59e0b','#22c55e'];

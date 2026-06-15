@@ -1,5 +1,5 @@
 // Cloud refresh: logs into Microsoft Graph, reads the 4 sales files, writes data.json
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync } from 'node:fs';
 import * as XLSX from 'xlsx';
 
 const { MS_TENANT_ID:TENANT, MS_CLIENT_ID:CLIENT, MS_CLIENT_SECRET:SECRET } = process.env;
@@ -90,4 +90,7 @@ const snap={ asOf:now.toISOString(), cutoff:ymd(cutoff), today:ymd(todayUTC), go
   biggest:{rep:biggest.rep, amount:Math.round(biggest.total), date:ymd(biggest.date)},
   totals, mtd, reps, weekTop, dailyRev:dailyRev.map(x=>Math.round(x*100)/100), dailyOrd, recent, files };
 writeFileSync('data.json', JSON.stringify(snap));
+let pageHtml = readFileSync('index.html','utf8');
+pageHtml = pageHtml.replace(/(<script id="snapshot-data"[^>]*>)[\s\S]*?(<\/script>)/, (m,a,b)=> a + '\n' + JSON.stringify(snap) + '\n' + b);
+writeFileSync('index.html', pageHtml);
 console.log('OK', JSON.stringify({reps, totals, files}));
