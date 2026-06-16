@@ -24,11 +24,11 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 .9vw rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
 .clock{ font-size:1.4vw; font-weight:700; font-variant-numeric:tabular-nums; }
 .upd{ font-size:.8vw; color:var(--mut); text-align:right; }
-.kpis{ display:grid; grid-template-columns:repeat(5,1fr); gap:.9vw; }
+.kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:1vw; }
 .kpi{ background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-radius:16px; padding:1vw 1.2vw; position:relative; overflow:hidden; }
 .kpi::after{ content:""; position:absolute; top:0; left:0; width:100%; height:4px; background:var(--accent); }
 .kpi .lab{ font-size:.82vw; color:var(--mut); text-transform:uppercase; letter-spacing:1.5px; font-weight:700; }
-.kpi .val{ font-size:2.2vw; font-weight:800; margin-top:.25vw; font-variant-numeric:tabular-nums; letter-spacing:-1px; }
+.kpi .val{ font-size:2.5vw; font-weight:800; margin-top:.25vw; font-variant-numeric:tabular-nums; letter-spacing:-1px; }
 .kpi .meta{ font-size:.78vw; color:var(--mut); margin-top:.15vw; }
 .main{ flex:1; display:grid; grid-template-columns:1.35fr 1fr; gap:1vw; min-height:0; }
 .col{ display:flex; flex-direction:column; gap:1vw; min-height:0; }
@@ -85,11 +85,11 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 
 <div class="board">
   <div class="top">
-    <div class="brand"><div class="mk">SURGAMED</div><div class="sub">Sales Floor • Live</div></div>
+    <div class="brand"><div class="mk">SURGAMED</div><div class="sub">Sales Floor • Month to Date</div></div>
     <div class="live">
       <div class="cd"><div class="n" id="cdDays">--</div><div class="l">days left in <span id="cdMon">month</span></div></div>
       <div class="livedot"><i></i>LIVE</div>
-      <div><div class="clock" id="clock">--:--</div><div class="upd">Rolling 30 days · updated <span id="upd"></span></div></div>
+      <div><div class="clock" id="clock">--:--</div><div class="upd"><span id="periodLbl">Month to date</span> · updated <span id="upd"></span></div></div>
     </div>
   </div>
 
@@ -98,13 +98,13 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
   <div class="main">
     <div class="col">
       <div class="panel" style="flex:1">
-        <h3>Rep Leaderboard — last 30 days <span style="color:var(--mut);font-size:.8vw">revenue race</span></h3>
+        <h3>Rep Leaderboard — This Month <span style="color:var(--mut);font-size:.8vw">revenue race</span></h3>
         <div class="race" id="race"></div>
       </div>
     </div>
     <div class="col">
       <div class="panel">
-        <h3>Team Goal · 30-Day Pace</h3>
+        <h3>Monthly Goal · MTD Pace</h3>
         <div class="goal">
           <div class="goalrow"><div class="goalpct" id="goalpct">0%</div><div style="text-align:right"><div class="goaltxt" id="goaltxt"></div><div class="daysleft" id="goalDays"></div></div></div>
           <div class="goalbar"><div class="goalfill" id="goalfill"></div></div>
@@ -131,7 +131,7 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
   </div>
 
   <div class="panel" style="height:22vh; padding-bottom:.5vw">
-    <h3>Daily Revenue &amp; Orders</h3>
+    <h3>Daily Revenue &amp; Orders — This Month</h3>
     <div class="chartbox"><canvas id="trend"></canvas></div>
   </div>
 
@@ -139,14 +139,14 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 </div>
 
 <script id="snapshot-data" type="application/json">
-{"asOf":"2026-06-16T10:31:18.279Z","cutoff":"2026-05-18","today":"2026-06-16","goal30d":150000,"biggest":{"rep":"Miri","amount":17005,"date":"2026-06-10"},"totals":{"revenue":136072.6,"orders":185,"units":3130,"aov":735.53},"mtd":{"revenue":100002,"orders":118,"units":2138},"reps":[["Miri",59731,34,950],["Jennifer",45111.1,89,1390],["Tehila",17602.5,26,256],["Deysi",13628,36,534]],"weekTop":{"rep":"Miri","revenue":28584},"dailyRev":[2306,2270,1494.1,908.5,0,0,0,0,17064.5,6527,4335.5,1055,0,110,13593,3777,13574,2318,1090,0,0,6305,12250,21008,10344,10759,880,0,4104,0],"dailyOrd":[8,6,8,9,0,0,0,0,12,8,11,4,0,1,12,9,15,8,5,0,0,13,12,11,11,10,1,0,11,0],"recent":[["Miri","Monostryk Alexsa","2026-06-15",225],["Miri","Nestor Sanchez","2026-06-15",1095],["Miri","Mychaljo Vovk","2026-06-15",88],["Miri","Mychaljo Vovk","2026-06-15",162],["Jennifer","Graham Whitley","2026-06-15",1192],["Jennifer","Hannah Azura","2026-06-15",268],["Jennifer","Thelma Guerrero","2026-06-15",50],["Jennifer","Irina Bakumova","2026-06-15",444],["Jennifer","Purchasing Depar","2026-06-15",110],["Jennifer","Aaron Wade","2026-06-15",215]],"files":[["Tehila",true],["Deysi",true],["Miri",true],["Jennifer",true]]}
+{"asOf":"2026-06-16T13:46:17.679Z","today":"2026-06-16","monthStart":"2026-06-01","monthName":"June","daysElapsed":16,"goal":200000,"biggest":{"rep":"Mirian","amount":17005,"date":"2026-06-10"},"totals":{"revenue":105310,"orders":124,"units":2227,"aov":849.27},"reps":[["Mirian",47012,31,916],["Jennifer",34130,53,811],["Tehila",13911,13,180],["Deysi",10257,27,320]],"weekTop":{"rep":"Mirian","revenue":33150},"dailyRev":[13593,3777,13574,2318,1090,0,0,6305,12250,21008,10344,10759,880,0,4846,4566],"dailyOrd":[12,9,15,8,5,0,0,13,12,11,11,10,1,0,15,2],"recent":[["Mirian","Yehoshua Tashman","2026-06-16",3892],["Mirian","Ezequiel Hernand","2026-06-16",674],["Deysi","OSCAR VILLALOBOS","2026-06-15",110],["Deysi","JAY DESAI","2026-06-15",195],["Deysi","EDGAR GRANADOS","2026-06-15",172],["Deysi","ANTONIO PINHEIRO","2026-06-15",265],["Mirian","Monostryk Alexsa","2026-06-15",225],["Mirian","Nestor Sanchez","2026-06-15",1095],["Mirian","Mychaljo Vovk","2026-06-15",88],["Mirian","Mychaljo Vovk","2026-06-15",162]],"files":[["Tehila",true],["Deysi",true],["Mirian",true],["Jennifer",true]]}
 </script>
 
 <script>
 (async () => {
 const S = JSON.parse(document.getElementById('snapshot-data').textContent);
 
-const C = { Miri:'#3b82f6', Jennifer:'#22c55e', Tehila:'#f59e0b', Deysi:'#a855f7' };
+const C = { Mirian:'#3b82f6', Jennifer:'#22c55e', Tehila:'#f59e0b', Deysi:'#a855f7' };
 const ACC = ['#3b82f6','#22d3ee','#f59e0b','#22c55e'];
 const money = n => '$'+Math.round(n).toLocaleString('en-US');
 const MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -154,6 +154,7 @@ const MON = ['January','February','March','April','May','June','July','August','
 function tick(){ document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
 tick(); setInterval(tick,10000);
 document.getElementById('upd').textContent=new Date(S.asOf).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+document.getElementById('periodLbl').textContent=(S.monthName||'')+' '+String(S.today||'').slice(0,4);
 
 const now=new Date();
 const endMonth=new Date(now.getFullYear(), now.getMonth()+1, 0);
@@ -164,13 +165,12 @@ document.getElementById('goalDays').textContent=daysLeft+' days left in '+MON[no
 
 function countUp(el,to,fmt,dur){ const t0=performance.now(); function f(t){ let p=Math.min(1,(t-t0)/dur); p=1-Math.pow(1-p,3); el.textContent=fmt(to*p); if(p<1)requestAnimationFrame(f);} requestAnimationFrame(f); }
 
-const T=S.totals; const MTD=S.mtd||{revenue:0,orders:0};
+const T=S.totals;
 const cards=[
-  {lab:'MTD Revenue', val:MTD.revenue, fmt:money, acc:'#fde047', meta:MTD.orders+' orders · month to date'},
-  {lab:'30-Day Revenue', val:T.revenue, fmt:money, acc:ACC[0], meta:'trailing 30 days'},
-  {lab:'Orders', val:T.orders, fmt:v=>Math.round(v).toLocaleString(), acc:ACC[1], meta:'trailing 30 days'},
-  {lab:'Units Sold', val:T.units, fmt:v=>Math.round(v).toLocaleString(), acc:ACC[2], meta:'trailing 30 days'},
-  {lab:'Avg Order', val:T.aov, fmt:money, acc:ACC[3], meta:'trailing 30 days'}
+  {lab:'Revenue', val:T.revenue, fmt:money, acc:'#fde047', meta:'month to date'},
+  {lab:'Orders', val:T.orders, fmt:v=>Math.round(v).toLocaleString(), acc:ACC[0], meta:'month to date'},
+  {lab:'Units Sold', val:T.units, fmt:v=>Math.round(v).toLocaleString(), acc:ACC[1], meta:'month to date'},
+  {lab:'Avg Order', val:T.aov, fmt:money, acc:ACC[3], meta:'month to date'}
 ];
 document.getElementById('kpis').innerHTML=cards.map((k,i)=>`<div class="kpi" style="--accent:${k.acc}"><div class="lab">${k.lab}</div><div class="val" id="kpi${i}">0</div><div class="meta">${k.meta}</div></div>`).join('');
 cards.forEach((k,i)=>countUp(document.getElementById('kpi'+i),k.val,k.fmt,1400));
@@ -182,10 +182,10 @@ document.getElementById('race').innerHTML=S.reps.map((r,i)=>{
 }).join('');
 setTimeout(()=>S.reps.forEach((r,i)=>{document.getElementById('fill'+i).style.width=(r[1]/maxRev*100)+'%';}),200);
 
-const pct=Math.min(100, S.totals.revenue/S.goal30d*100);
+const pct=Math.min(100, S.totals.revenue/S.goal*100);
 setTimeout(()=>{document.getElementById('goalfill').style.width=pct+'%';},300);
 countUp(document.getElementById('goalpct'),pct,v=>Math.round(v)+'%',1500);
-document.getElementById('goaltxt').innerHTML=`${money(S.totals.revenue)} of <b style="color:var(--txt)">${money(S.goal30d)}</b>`;
+document.getElementById('goaltxt').innerHTML=`${money(S.totals.revenue)} of <b style="color:var(--txt)">${money(S.goal)}</b>`;
 
 if(S.weekTop && S.weekTop.rep){
   document.getElementById('winWho').textContent=S.weekTop.rep;
@@ -201,7 +201,7 @@ const tot=S.reps.reduce((a,r)=>a+r[1],0);
 document.getElementById('legend').innerHTML=S.reps.map(r=>`<div><i style="background:${C[r[0]]}"></i>${r[0]} <span style="color:var(--mut);margin-left:.3vw">${Math.round(r[1]/tot*100)}%</span></div>`).join('');
 
 function addDays(iso,d){const t=new Date(iso+'T00:00:00Z');t.setUTCDate(t.getUTCDate()+d);return t;}
-const labels=S.dailyRev.map((_,i)=>addDays(S.cutoff,i).toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}));
+const labels=S.dailyRev.map((_,i)=>addDays(S.monthStart,i).toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}));
 new Chart(document.getElementById('trend'),{data:{labels,datasets:[
   {type:'bar',label:'Revenue',data:S.dailyRev,backgroundColor:'#3b82f6',borderRadius:4,yAxisID:'y'},
   {type:'line',label:'Orders',data:S.dailyOrd,borderColor:'#f59e0b',backgroundColor:'#f59e0b',borderWidth:3,pointRadius:0,tension:.35,yAxisID:'y1'}
@@ -212,7 +212,6 @@ new Chart(document.getElementById('trend'),{data:{labels,datasets:[
 
 document.getElementById('ticker').innerHTML=S.recent.concat(S.recent).map(o=>`<span class="item"><span class="dot" style="background:${C[o[0]]}"></span><span style="color:${C[o[0]]};font-weight:800">${o[0]}</span> — ${o[1]} <span class="amt">${money(o[3])}</span></span>`).join('');
 
-/* deal bell + confetti */
 const cvs=document.getElementById('confetti'), ctx=cvs.getContext('2d');
 function size(){ cvs.width=innerWidth; cvs.height=innerHeight; } size(); addEventListener('resize',size);
 function fireConfetti(){
