@@ -9,7 +9,7 @@ const GRAPH = 'https://graph.microsoft.com/v1.0';
 const REPS = [
   { rep:'Tehila',   user:'tcohen@surgamed.com', path:'Tehila/Tehila - Ventas.xlsx',          sheet:'Sheet1' },
   { rep:'Deysi',    user:'dcalvo@surgamed.com', path:'Deysi Sales list NEW COMPUTER.xlsx',    sheet:'Deysi Sales', basis:'paid' },
-  { rep:'Mirian',   user:'malejo@surgamed.com', path:'MIRI - PAYPAL SENT ORDERS.xlsx',        sheet:'Sheet1' },
+  { rep:'Mirian',   user:'malejo@surgamed.com', path:'MIRI - PAYPAL SENT ORDERS.xlsx',        sheet:'Sheet1', basis:'paidflag' },
   { rep:'Jennifer', user:'jlugo@surgamed.com',  path:'Desktop/Jennifer Lugo Saless.xlsx',     sheet:'Invoiced-Sales', basis:'paid' },
 ];
 const GOAL_MONTH = 200000; // adjust your team's MONTHLY revenue goal
@@ -45,11 +45,12 @@ function parseRep(buf, R){
   if(hr<0) return null;
   const H=(grid[hr]||[]).map(c=>String(c==null?'':c).trim().toLowerCase());
   const dc=H.indexOf('order date'), qc=H.findIndex(c=>c==='qty'||c==='quantity'), tc=H.indexOf('total'), nc=H.indexOf('name');
-  const pc=H.indexOf('paid'), tpc=H.indexOf('total paid'), paid=R.basis==='paid';
+  const pc=H.indexOf('paid'), tpc=H.indexOf('total paid');
   const out=[];
   for(let i=hr+1;i<grid.length;i++){
     const row=grid[i]||[]; let d, amt;
-    if(paid){ d=toDate(row[pc]); if(!d) continue; amt=num(row[tpc]); if(!isFinite(amt)||amt<=0) amt=num(row[tc]); }
+    if(R.basis==='paid'){ d=toDate(row[pc]); if(!d) continue; amt=num(row[tpc]); if(!isFinite(amt)||amt<=0) amt=num(row[tc]); }
+    else if(R.basis==='paidflag'){ const pf=String(row[pc]==null?'':row[pc]).toLowerCase(); if(!/paid|piad/.test(pf)) continue; d=toDate(row[dc]); amt=num(row[tc]); }
     else { d=toDate(row[dc]); amt=num(row[tc]); }
     if(!d || !isFinite(amt) || amt<=0) continue;
     const q=num(row[qc]);
