@@ -10,7 +10,7 @@ const REPS = [
   { rep:'Tehila',   user:'tcohen@surgamed.com', path:'Tehila/Tehila - Ventas.xlsx',          sheet:'Sheet1' },
   { rep:'Deysi',    user:'dcalvo@surgamed.com', path:'Deysi Sales list NEW COMPUTER.xlsx',    sheet:'Deysi Sales' },
   { rep:'Mirian',   user:'malejo@surgamed.com', path:'MIRI - PAYPAL SENT ORDERS.xlsx',        sheet:'Sheet1' },
-  { rep:'Jennifer', user:'jlugo@surgamed.com',  path:'Desktop/Jennifer Lugo Saless.xlsx',     sheet:'Invoiced-Sales' },
+  { rep:'Jennifer', user:'jlugo@surgamed.com',  path:'Desktop/Jennifer Lugo Saless.xlsx',     sheet:'Invoiced-Sales', basis:'paid' },
 ];
 const GOAL_MONTH = 200000; // adjust your team's MONTHLY revenue goal
 
@@ -45,13 +45,16 @@ function parseRep(buf, R){
   if(hr<0) return null;
   const H=(grid[hr]||[]).map(c=>String(c==null?'':c).trim().toLowerCase());
   const dc=H.indexOf('order date'), qc=H.findIndex(c=>c==='qty'||c==='quantity'), tc=H.indexOf('total'), nc=H.indexOf('name');
+  const pc=H.indexOf('paid'), tpc=H.indexOf('total paid'), paid=R.basis==='paid';
   const out=[];
   for(let i=hr+1;i<grid.length;i++){
-    const row=grid[i]||[]; const d=toDate(row[dc]); if(!d) continue;
-    const tot=num(row[tc]); if(!isFinite(tot)||tot<=0) continue;
+    const row=grid[i]||[]; let d, amt;
+    if(paid){ d=toDate(row[pc]); if(!d) continue; amt=num(row[tpc]); if(!isFinite(amt)||amt<=0) amt=num(row[tc]); }
+    else { d=toDate(row[dc]); amt=num(row[tc]); }
+    if(!d || !isFinite(amt) || amt<=0) continue;
     const q=num(row[qc]);
     let nm=String(row[nc]==null?'':row[nc]).trim(); if(/[@]|http/i.test(nm)) nm=nm.split(/[@\s]/)[0]; nm=nm.slice(0,16);
-    out.push({ rep:R.rep, name:nm, date:d, total:Math.round(tot*100)/100, qty:isFinite(q)?q:0 });
+    out.push({ rep:R.rep, name:nm, date:d, total:Math.round(amt*100)/100, qty:isFinite(q)?q:0 });
   }
   return out;
 }
