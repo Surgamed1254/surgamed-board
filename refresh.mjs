@@ -8,7 +8,7 @@ const GRAPH = 'https://graph.microsoft.com/v1.0';
 // If a rep renames a file / tab, update it here.
 const REPS = [
   { rep:'Tehila',   user:'tcohen@surgamed.com', path:'Tehila/Tehila - Ventas.xlsx',          sheet:'Sheet1' },
-  { rep:'Deysi',    user:'dcalvo@surgamed.com', path:'Deysi Sales list NEW COMPUTER.xlsx',    sheet:'Deysi Sales' },
+  { rep:'Deysi',    user:'dcalvo@surgamed.com', path:'Deysi Sales list NEW COMPUTER.xlsx',    sheet:'Deysi Sales', basis:'paid' },
   { rep:'Mirian',   user:'malejo@surgamed.com', path:'MIRI - PAYPAL SENT ORDERS.xlsx',        sheet:'Sheet1' },
   { rep:'Jennifer', user:'jlugo@surgamed.com',  path:'Desktop/Jennifer Lugo Saless.xlsx',     sheet:'Invoiced-Sales', basis:'paid' },
 ];
