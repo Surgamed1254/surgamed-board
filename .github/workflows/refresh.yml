@@ -3,7 +3,7 @@ on:
   schedule:
     # Every 15 minutes, around the clock (timezone/DST-proof; matches the page's 15-min reload).
     # To limit to business hours instead, use e.g. '*/15 13-22 * * *' (~9am-6pm US Eastern, EDT).
-    - cron: '*/15 * * * *'
+   - cron: '0 * * * *'
   workflow_dispatch:
 permissions:
   contents: write
