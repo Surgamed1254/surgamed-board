@@ -25,11 +25,11 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 .9vw rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
 .clock{ font-size:1.4vw; font-weight:700; font-variant-numeric:tabular-nums; }
 .upd{ font-size:.8vw; color:var(--mut); text-align:right; }
-.kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:1vw; }
-.kpi{ background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-radius:16px; padding:1vw 1.2vw; position:relative; overflow:hidden; }
+.kpis{ display:grid; grid-template-columns:repeat(2,1fr); gap:1.2vw; }
+.kpi{ background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-radius:16px; padding:1.2vw 1.5vw; position:relative; overflow:hidden; }
 .kpi::after{ content:""; position:absolute; top:0; left:0; width:100%; height:4px; background:var(--accent); }
 .kpi .lab{ font-size:.82vw; color:var(--mut); text-transform:uppercase; letter-spacing:1.5px; font-weight:700; }
-.kpi .val{ font-size:2.5vw; font-weight:800; margin-top:.25vw; font-variant-numeric:tabular-nums; letter-spacing:-1px; }
+.kpi .val{ font-size:3.2vw; font-weight:800; margin-top:.25vw; font-variant-numeric:tabular-nums; letter-spacing:-1px; }
 .kpi .meta{ font-size:.78vw; color:var(--mut); margin-top:.15vw; }
 .main{ flex:1; display:grid; grid-template-columns:1.35fr 1fr; gap:1vw; min-height:0; }
 .col{ display:flex; flex-direction:column; gap:1vw; min-height:0; }
@@ -52,7 +52,7 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 .goalpct{ font-size:2.2vw; font-weight:800; }
 .goaltxt{ font-size:.9vw; color:var(--mut); }
 .daysleft{ font-size:.82vw; color:var(--amber); font-weight:700; }
-.duo{ display:grid; grid-template-columns:1fr 1fr; gap:1vw; }
+.duo{ display:grid; grid-template-columns:1fr 1fr; gap:1vw; flex:1; }
 .spot{ display:flex; flex-direction:column; gap:.3vw; }
 .spot .who{ font-size:1.6vw; font-weight:800; }
 .spot .amt{ font-size:1.3vw; font-weight:800; font-variant-numeric:tabular-nums; }
@@ -124,10 +124,6 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
           <div class="cap" id="dealWho"></div>
         </div>
       </div>
-      <div class="panel" style="flex:1">
-        <h3>Revenue Share</h3>
-        <div class="donutwrap"><div class="donutbox"><canvas id="donut"></canvas></div><div class="legend" id="legend"></div></div>
-      </div>
     </div>
   </div>
 
@@ -140,7 +136,7 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 </div>
 
 <script id="snapshot-data" type="application/json">
-{"asOf":"2026-06-17T17:54:04.690Z","today":"2026-06-17","monthStart":"2026-06-01","monthName":"June","daysElapsed":17,"goal":200000,"biggest":{"rep":"Mirian","amount":17005,"date":"2026-06-10"},"totals":{"revenue":104368.5,"orders":137,"units":2364,"aov":761.81},"reps":[["Mirian",47978,37,952],["Jennifer",30642.5,52,834],["Tehila",15299,19,247],["Deysi",10449,29,331]],"weekTop":{"rep":"Mirian","revenue":16796},"dailyRev":[14189.5,3387,12231,2929,1816,0,0,4770,11926,23307,4075,9402,819,0,11231,4090,196],"dailyOrd":[16,7,11,10,8,0,0,9,13,12,8,10,1,0,20,9,3],"recent":[["Tehila","Germán rigoberto","2026-06-17",40],["Mirian","Angie Han","2026-06-17",72],["Mirian","Mychaljo Vovk","2026-06-17",84],["Tehila","Tomas Garibaldi","2026-06-16",640],["Tehila","Germán rigoberto","2026-06-16",65],["Mirian","Carlos Duran","2026-06-16",930],["Mirian","Carlos Duran","2026-06-16",60],["Mirian","Emma Contreras","2026-06-16",225],["Mirian","Emma Contreras","2026-06-16",100],["Mirian","Emma Contreras","2026-06-16",375]],"files":[["Tehila",true],["Deysi",true],["Mirian",true],["Jennifer",true]]}
+{"asOf":"2026-06-17T17:41:52.981Z","today":"2026-06-17","monthStart":"2026-06-01","monthName":"June","daysElapsed":17,"goal":200000,"biggest":{"rep":"Mirian","amount":17005,"date":"2026-06-10"},"totals":{"revenue":104368.5,"orders":137,"units":2364,"aov":761.81},"reps":[["Mirian",47978,37,952],["Jennifer",30642.5,52,834],["Tehila",15299,19,247],["Deysi",10449,29,331]],"weekTop":{"rep":"Mirian","revenue":16796},"dailyRev":[14189.5,3387,12231,2929,1816,0,0,4770,11926,23307,4075,9402,819,0,11231,4090,196],"dailyOrd":[16,7,11,10,8,0,0,9,13,12,8,10,1,0,20,9,3],"recent":[["Tehila","Germn rigoberto","2026-06-17",40],["Mirian","Angie Han","2026-06-17",72],["Mirian","Mychaljo Vovk","2026-06-17",84],["Tehila","Tomas Garibaldi","2026-06-16",640],["Tehila","Germn rigoberto","2026-06-16",65],["Mirian","Carlos Duran","2026-06-16",930],["Mirian","Carlos Duran","2026-06-16",60],["Mirian","Emma Contreras","2026-06-16",225],["Mirian","Emma Contreras","2026-06-16",100]],"files":[["Tehila",true],["Deysi",true],["Mirian",true],["Jennifer",true]]}
 </script>
 
 <script>
@@ -169,9 +165,7 @@ function countUp(el,to,fmt,dur){ const t0=performance.now(); function f(t){ let 
 const T=S.totals;
 const cards=[
   {lab:'Revenue', val:T.revenue, fmt:money, acc:'#fde047', meta:'month to date'},
-  {lab:'Orders', val:T.orders, fmt:v=>Math.round(v).toLocaleString(), acc:ACC[0], meta:'month to date'},
-  {lab:'Units Sold', val:T.units, fmt:v=>Math.round(v).toLocaleString(), acc:ACC[1], meta:'month to date'},
-  {lab:'Avg Order', val:T.aov, fmt:money, acc:ACC[3], meta:'month to date'}
+  {lab:'Orders', val:T.orders, fmt:v=>Math.round(v).toLocaleString(), acc:ACC[0], meta:'month to date'}
 ];
 document.getElementById('kpis').innerHTML=cards.map((k,i)=>`<div class="kpi" style="--accent:${k.acc}"><div class="lab">${k.lab}</div><div class="val" id="kpi${i}">0</div><div class="meta">${k.meta}</div></div>`).join('');
 cards.forEach((k,i)=>countUp(document.getElementById('kpi'+i),k.val,k.fmt,1400));
@@ -197,9 +191,6 @@ if(S.weekTop && S.weekTop.rep){
 document.getElementById('dealAmt').textContent=money(S.biggest.amount);
 document.getElementById('dealWho').innerHTML=`by <b style="color:${C[S.biggest.rep]}">${S.biggest.rep}</b> · ${new Date(S.biggest.date+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})}`;
 
-new Chart(document.getElementById('donut'),{type:'doughnut',data:{labels:S.reps.map(r=>r[0]),datasets:[{data:S.reps.map(r=>r[1]),backgroundColor:S.reps.map(r=>C[r[0]]),borderColor:'#121829',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
-const tot=S.reps.reduce((a,r)=>a+r[1],0);
-document.getElementById('legend').innerHTML=S.reps.map(r=>`<div><i style="background:${C[r[0]]}"></i>${r[0]} <span style="color:var(--mut);margin-left:.3vw">${Math.round(r[1]/tot*100)}%</span></div>`).join('');
 
 function addDays(iso,d){const t=new Date(iso+'T00:00:00Z');t.setUTCDate(t.getUTCDate()+d);return t;}
 const labels=S.dailyRev.map((_,i)=>addDays(S.monthStart,i).toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'}));
