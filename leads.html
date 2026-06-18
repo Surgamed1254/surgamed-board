@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SurgaMed — dotMed Lead Board</title>
+<style>
+:root{ color-scheme: light; }
+*{ box-sizing:border-box; }
+body{ margin:0; background:#f4f6f9; color:#16202c; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.45; }
+.wrap{ padding:18px 20px 60px; max-width:1500px; margin:0 auto; }
+h1{ font-size:20px; margin:0 0 2px; }
+.sub{ color:#5a6b7b; font-size:13px; margin:0 0 14px; }
+.rotabar{ background:#fff; border:1px solid #e1e7ee; border-radius:12px; padding:14px 16px; margin-bottom:16px; }
+.rotabar .day{ font-weight:600; color:#0b66c3; }
+.rota-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:10px; }
+.rota-card{ border:1px solid #e6ebf1; border-radius:9px; padding:10px 12px; background:#fafcff; }
+.rota-card .cat{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:#7b8a99; font-weight:600;}
+.rota-card .rep{ font-size:16px; font-weight:700; margin-top:3px; }
+.controls{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:14px; }
+.controls select{ padding:7px 9px; border:1px solid #cdd6df; border-radius:8px; background:#fff; font-size:13px; }
+.counts{ margin-left:auto; color:#5a6b7b; font-size:12.5px; }
+.whoami{ font-size:12px; color:#5a6b7b; }
+.whoami b{ color:#16202c; }
+.signout{ background:none;border:1px solid #d7dee6;border-radius:7px;padding:5px 10px;cursor:pointer;font-size:12px; }
+.board{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; align-items:start; }
+.col{ background:#eef1f5; border-radius:12px; padding:10px; min-height:120px; }
+.col h2{ font-size:13px; margin:2px 4px 4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+.col .folder{ font-size:11px; color:#8794a1; margin:0 4px 10px; }
+.col h2 .pill{ background:#fff; border-radius:20px; padding:1px 9px; font-size:12px; color:#5a6b7b; border:1px solid #e0e6ec; }
+.col h2 .ontoday{ font-size:11px; font-weight:600; color:#0b66c3; background:#e2efff; border-radius:20px; padding:2px 8px; }
+.card{ background:#fff; border:1px solid #e4e9ef; border-radius:10px; padding:11px 12px; margin-bottom:10px; box-shadow:0 1px 2px rgba(20,32,44,.04); }
+.cardhead{ cursor:pointer; }
+.cardhead:hover .from{ text-decoration:underline; }
+.cardhint{ font-size:10.5px; color:#0b66c3; margin:0 0 7px; }
+.card .from{ font-weight:600; font-size:13.5px; }
+.card .ttl{ color:#42505e; font-size:12.5px; margin:3px 0 2px; }
+.card .item{ color:#6b7886; font-size:11.5px; margin:0 0 7px; max-height:34px; overflow:hidden; }
+.card .meta{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:8px; }
+.tag{ font-size:11px; border-radius:20px; padding:2px 8px; font-weight:600; }
+.tag.rep{ background:#ede7ff; color:#5b3fc4; }
+.tag.date{ background:#f0f3f6; color:#6b7886; font-weight:500; }
+.tag.acct{ background:#e6f4ea; color:#1d7a3f; font-weight:500; }
+.tag.acct.sd{ background:#fdeede; color:#9a5b14; }
+.tag.thread{ background:#fff3e0; color:#a5631a; }
+.tag.deal{ background:#e8f0fe; color:#1a52b8; font-weight:600; }
+.tag.ph{ background:#e9f7f1; color:#138a5e; font-weight:500; }
+.row2{ display:flex; gap:6px; margin-bottom:7px; }
+.row2 select{ flex:1; padding:5px 6px; border:1px solid #d2dae2; border-radius:7px; font-size:12px; background:#fff; }
+.statusbadge{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:5px; vertical-align:middle; }
+.actions{ display:flex; gap:5px; flex-wrap:wrap; }
+.actions a,.actions button{ flex:1; min-width:58px; text-align:center; text-decoration:none; font-size:11.5px; font-weight:600; padding:6px 4px; border-radius:7px; border:1px solid #d7dee6; background:#f7f9fb; color:#16202c; cursor:pointer; }
+.actions a:hover,.actions button:hover{ background:#eef3f8; }
+.empty{ color:#9aa7b4; font-size:12.5px; text-align:center; padding:18px 4px; }
+.loading{ text-align:center; padding:50px; color:#5a6b7b; }
+.err{ background:#fde8e8; color:#a5281b; border:1px solid #f3c2bd; border-radius:10px; padding:12px 14px; margin-bottom:14px; font-size:13px; }
+.note{ font-size:11.5px; color:#8794a1; margin-top:18px; line-height:1.5; }
+/* sign-in */
+#signin{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#f4f6f9; }
+.card-signin{ background:#fff; border:1px solid #e1e7ee; border-radius:14px; padding:36px 40px; text-align:center; box-shadow:0 8px 30px rgba(20,32,44,.08); max-width:380px; }
+.card-signin h1{ font-size:19px; margin:0 0 6px; }
+.card-signin p{ color:#5a6b7b; font-size:13px; margin:0 0 22px; }
+.msbtn{ display:inline-flex; align-items:center; gap:10px; background:#2f2f2f; color:#fff; border:none; border-radius:8px; padding:11px 18px; font-size:14px; font-weight:600; cursor:pointer; }
+/* modal */
+.overlay{ position:fixed; inset:0; background:rgba(20,32,44,.45); display:flex; align-items:flex-start; justify-content:center; padding:30px 16px; z-index:50; overflow:auto; }
+.modal{ background:#fff; border-radius:14px; max-width:680px; width:100%; box-shadow:0 12px 40px rgba(20,32,44,.25); overflow:hidden; }
+.modal .mhead{ padding:16px 20px; border-bottom:1px solid #eef1f5; position:relative; }
+.modal .mhead h3{ margin:0 0 4px; font-size:17px; }
+.modal .mhead .msub{ color:#5a6b7b; font-size:12.5px; }
+.modal .mclose{ position:absolute; top:12px; right:14px; border:none; background:#f0f3f6; border-radius:8px; width:30px; height:30px; font-size:16px; cursor:pointer; color:#42505e; }
+.modal .mbody{ padding:16px 20px; max-height:62vh; overflow:auto; }
+.kv{ display:grid; grid-template-columns:120px 1fr; gap:4px 12px; margin-bottom:14px; font-size:13px; }
+.kv .k{ color:#7b8a99; font-weight:600; }
+.kv .v{ color:#16202c; white-space:pre-wrap; }
+.bodytext{ white-space:pre-wrap; font-family:inherit; font-size:12.5px; color:#2c3a47; background:#f7f9fb; border:1px solid #eef1f5; border-radius:8px; padding:12px 14px; margin:0; line-height:1.5; }
+.mbody h4{ font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:#7b8a99; margin:0 0 8px; }
+.modal .mfoot{ padding:12px 20px; border-top:1px solid #eef1f5; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.modal .mfoot .row2{ margin:0; flex:1 1 200px; }
+.modal .mfoot .actions{ flex:2 1 320px; }
+@media(max-width:1100px){ .board,.rota-grid{ grid-template-columns:repeat(2,1fr);} }
+@media(max-width:620px){ .board,.rota-grid{ grid-template-columns:1fr;} .kv{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div id="signin">
+  <div class="card-signin">
+    <h1>SurgaMed — dotMed Lead Board</h1>
+    <p>Sign in with your SurgaMed Microsoft account to view the team's leads.</p>
+    <button class="msbtn" id="msBtn">
+      <svg width="18" height="18" viewBox="0 0 23 23"><rect width="10" height="10" x="1" y="1" fill="#f25022"/><rect width="10" height="10" x="12" y="1" fill="#7fba00"/><rect width="10" height="10" x="1" y="12" fill="#00a4ef"/><rect width="10" height="10" x="12" y="12" fill="#ffb900"/></svg>
+      Sign in with Microsoft
+    </button>
+    <div id="signinErr" class="err" style="display:none;margin-top:16px"></div>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+  <h1>SurgaMed — dotMed Lead Board</h1>
+  <p class="sub">Live from <b>orders@surgamed.com</b> (SurgaMed + ShortDated). Shared across the team — status, ownership &amp; history sync for everyone.</p>
+
+  <div id="rotabar" class="rotabar"></div>
+
+  <div class="controls">
+    <label>Rep:
+      <select id="repFilter">
+        <option value="all">Everyone</option>
+        <option value="Deysi">Deysi</option><option value="Mirian">Mirian</option>
+        <option value="Jennifer">Jennifer</option><option value="Tehila">Tehila</option>
+      </select>
+    </label>
+    <label>Window:
+      <select id="window">
+        <option value="3">Last 3 days</option>
+        <option value="7" selected>Last 7 days</option>
+        <option value="14">Last 14 days</option>
+        <option value="30">Last 30 days</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="hideClosed"> Hide closed</label>
+    <span class="whoami" id="whoami"></span>
+    <button class="signout" id="signout">Sign out</button>
+    <span class="counts" id="counts"></span>
+  </div>
+
+  <div id="errbox"></div>
+  <div id="board" class="board"><div class="loading">Loading leads…</div></div>
+  <p class="note" id="footnote"></p>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const SB_URL = "https://ecjemcrpbzeocoiwslcu.supabase.co";
+const SB_KEY = "sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
+const FN_URL = SB_URL + "/functions/v1/leads";
+const sb = createClient(SB_URL, SB_KEY);
+
+const REPS = ["Deysi","Mirian","Jennifer","Tehila"];
+const CATS = [
+  {key:"orders",    label:"Orders / Congrats", folder:"orders placed"},
+  {key:"inquiries", label:"Inquiries",         folder:"Inbox (filtered)"},
+  {key:"offers",    label:"Offers",            folder:"Dotmed Offer for Listing"},
+  {key:"quotes",    label:"Shipping Quotes",   folder:"shipping quote requests"}
+];
+const STATUSES = [
+  {key:"new",label:"New",color:"#9aa7b4"},
+  {key:"working",label:"Working",color:"#2e86de"},
+  {key:"waiting",label:"Waiting on customer",color:"#f0932b"},
+  {key:"upsell",label:"Upsell offered",color:"#8e44ad"},
+  {key:"closed",label:"Closed",color:"#27ae60"}
+];
+const ANCHOR = new Date(2026,5,16);
+
+let ME = "";               // signed-in person's display name
+let STATE = {};            // id -> {id,owner,assignee,status,phone}
+let LEADS = [];
+let TOKEN = "";
+
+/* ---------- auth ---------- */
+function signinErr(m){ const e=document.getElementById("signinErr"); e.style.display="block"; e.textContent=m; }
+document.getElementById("msBtn").onclick = async () => {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: "azure",
+    options: { scopes: "openid profile email", redirectTo: window.location.origin + window.location.pathname }
+  });
+  if (error) signinErr(error.message);
+};
+document.getElementById("signout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+async function boot(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session){ document.getElementById("signin").style.display="flex"; document.getElementById("app").style.display="none"; return; }
+  TOKEN = session.access_token;
+  const u = session.user;
+  ME = (u.user_metadata && (u.user_metadata.name || u.user_metadata.full_name)) || u.email || "unknown";
+  document.getElementById("whoami").innerHTML = "Signed in as <b>"+esc(ME)+"</b>";
+  document.getElementById("signin").style.display="none";
+  document.getElementById("app").style.display="block";
+  renderRota();
+  await loadState();
+  await load();
+}
+
+/* ---------- rotation ---------- */
+function midnight(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+function rotationOffset(target){
+  const a=midnight(ANCHOR), t=midnight(target);
+  if(a.getTime()===t.getTime()) return 0;
+  let step=t.getTime()>a.getTime()?1:-1, d=0; const cur=new Date(a);
+  while(cur.getTime()!==t.getTime()){ cur.setDate(cur.getDate()+step); const w=cur.getDay(); if(w!==0&&w!==6) d+=step; }
+  return d;
+}
+function repForCat(catKey,date){ let ci=0; CATS.forEach((c,i)=>{ if(c.key===catKey) ci=i; }); const d=rotationOffset(date); return REPS[(((ci-d)%4)+4)%4]; }
+function businessRef(){ const d=new Date(),w=d.getDay(); if(w===6)d.setDate(d.getDate()+2); if(w===0)d.setDate(d.getDate()+1); return d; }
+
+/* ---------- helpers ---------- */
+function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function titleCase(s){ return (s||"").replace(/\b\w/g,c=>c.toUpperCase()); }
+function senderName(s){ if(!s) return ""; const m=/^([^<]+)</.exec(s); if(m) return m[1].trim().replace(/^"|"$/g,""); if(/@/.test(s)) return s.split("@")[0].replace(/[._]/g," "); return s; }
+function senderEmail(s){ const m=/<([^>]+)>/.exec(s||""); if(m) return m[1]; return (s||"").trim(); }
+function isAuto(s){ return /auto@dotmed\.com/i.test(s||""); }
+function normSubject(s){ return (s||"").replace(/^\s*((re|fw|fwd)\s*:\s*)+/i,"").replace(/\[external\]/ig,"").replace(/\s+/g," ").trim(); }
+function ourAddr(e){ return /surgamed\.com|shortdatedsurgical\.com|dotmed/i.test(e||""); }
+function fmtDate(d){ const dt=new Date(d),n=new Date(),o={month:"short",day:"numeric"}; if(dt.getFullYear()!==n.getFullYear())o.year="numeric"; return dt.toLocaleDateString(undefined,o); }
+function statusObj(k){ return STATUSES.find(s=>s.key===k)||STATUSES[0]; }
+
+function isNoise(email){
+  const s=(email.subject||"").toLowerCase(), snd=(email.sender||"").toLowerCase();
+  if(/dotmed-mail\.com|cloud-protect\.net|mailer-daemon|postmaster|@facebookmail|linkedin\.com|github\.com|indeed\.com|upwork\.com|godaddy/.test(snd)) return true;
+  if(/(no-?reply|do-not-reply|noreply)/.test(snd) && !isAuto(snd)) return true;
+  if(/listing download|parts alerts|equipment.*alert|forums|quarantine|daily digest|expiring|reminder|out of office|undeliverable|automatic reply|^read:|^not read:/.test(s)) return true;
+  return false;
+}
+function isInquiry(email){
+  if(isNoise(email)) return false;
+  const snd=(email.sender||"").toLowerCase();
+  if(isAuto(snd)) return /sent you this email regarding/i.test(email.summary||"");
+  if(ourAddr(snd)) return false;
+  return true;
+}
+function firstCustomerEmail(s){ const re=/([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,})/g; let m; while((m=re.exec(s))){ if(!ourAddr(m[1])) return m[1]; } return ""; }
+function firstPhone(s){ let m=/(\+\d[\d\s().\-]{6,}\d)/.exec(s); if(m) return m[1].replace(/[^\d+]/g,""); m=/\b(\d{3}[\s.\-]\d{3}[\s.\-]\d{4})\b/.exec(s); if(m) return m[1].replace(/[^\d]/g,""); return ""; }
+
+function extractLead(email,catKey){
+  const s=email.summary||"", subj=email.subject||"", blob=subj+" — "+s;
+  let listing=""; const mL=/Listing\s*#?\s*(\d{4,})/i.exec(blob); if(mL) listing=mL[1];
+  const real=!isAuto(email.sender);
+  let custName="",company="",custEmail="",phone="",deal="",extra="",item="";
+  if(real){ custName=senderName(email.sender); custEmail=senderEmail(email.sender); }
+  const mE=/Email:\s*([^\s,;<>]+@[^\s,;<>]+)/i.exec(s); if(!custEmail && mE) custEmail=mE[1];
+  if(catKey==="offers"){
+    const mo=/made by\s+(.+?)\s+of\s+(.+?)\s+in\s+/i.exec(s); if(mo){ if(!custName)custName=mo[1].trim(); company=mo[2].trim(); }
+    const lp=/Listing Price:\s*\$?([\d.,]+)/i.exec(s), op=/Offer Price:\s*\$?([\d.,]+)/i.exec(s);
+    if(lp&&op) deal="List $"+lp[1]+" → Offer $"+op[1];
+    const io=/for Listing\s*#?\d+,\s*(.+?),\s*was made by/i.exec(s); if(io) item=io[1].trim();
+  } else if(catKey==="quotes"){
+    const mc=/Ship To Country:\s*(.+)/i.exec(s); if(mc) extra="Ship to "+mc[1].trim();
+    if(!custEmail) custEmail=firstCustomerEmail(s);
+    const qi=/Listing\s*#?\d+\s*[-–]\s*(.+?)[\r\n]/i.exec(s); if(qi) item=qi[1].trim();
+  } else if(catKey==="inquiries"){
+    if(isAuto(email.sender)){
+      const mi=/([A-Za-z][\w .'\-]+?)\s+of\s+(.+?)\s+sent you this email/i.exec(s);
+      if(mi){ custName=mi[1].trim(); company=mi[2].trim(); }
+      else { const m2=/^\s*([A-Za-z][\w .'\-]+?)\s+sent you this email/i.exec(s); if(m2) custName=m2[1].trim(); }
+      custEmail=firstCustomerEmail(s); phone=firstPhone(s);
+      const ii=/regarding Listing\s*#?\d+,\s*(.+?)\.(?:\s|$|\r|\n)/i.exec(s); if(ii) item=ii[1].trim();
+    } else item=normSubject(subj);
+  }
+  let display=custName||company;
+  if(!display) display = custEmail ? custEmail.split("@")[0] : (listing?("Listing #"+listing):"dotMed lead");
+  if(company && custName && company.toLowerCase()!==custName.toLowerCase()) display=custName+" · "+company;
+  let title;
+  if(catKey==="orders") title="Order placed"+(listing?" · #"+listing:"");
+  else if(catKey==="offers") title="Offer"+(listing?" · #"+listing:"");
+  else if(catKey==="quotes") title="Shipping quote"+(listing?" · #"+listing:"")+(extra?" · "+extra:"");
+  else title = isAuto(email.sender) ? ("Inquiry"+(listing?" · #"+listing:"")) : normSubject(subj);
+  const who=custEmail||custName||company||"";
+  let gkey;
+  if(listing) gkey=catKey+":L"+listing+"|"+who.toLowerCase();
+  else if(who) gkey=catKey+":"+normSubject(subj).toLowerCase()+"|"+who.toLowerCase();
+  else gkey=catKey+":id:"+(email.id||Math.random());
+  return {listing,custName,company,custEmail,phone,deal,item,display,title,gkey};
+}
+function acctLabel(email){ const r=(email.recipients&&email.recipients.join(" "))||""; return /shortdated/i.test(r)?{t:"ShortDated",sd:true}:{t:"SurgaMed",sd:false}; }
+
+/* ---------- state (Supabase) ---------- */
+async function loadState(){
+  const { data, error } = await sb.from("lead_state").select("*");
+  STATE = {};
+  if(!error && data) data.forEach(r=>{ STATE[r.id]=r; });
+}
+async function upsertState(id, patch){
+  STATE[id] = Object.assign({ id }, STATE[id]||{}, patch, { updated_at:new Date().toISOString(), updated_by:ME });
+  await sb.from("lead_state").upsert(STATE[id]);
+}
+async function addHistory(id, action){
+  await sb.from("lead_history").insert({ lead_id:id, actor:ME, action });
+}
+function st(id){ return STATE[id]||{}; }
+function effRep(l){ const s=st(l.id); return s.assignee||s.owner||repForCat(l.cat,new Date(l.date)); }
+function effStatus(l){ return st(l.id).status||"new"; }
+
+async function applyRep(l, val){
+  const prev=st(l.id).assignee||st(l.id).owner||"";
+  if(val===prev) return;
+  await upsertState(l.id,{assignee:val});
+  await addHistory(l.id,"Passed from "+(prev||"?")+" → "+val);
+}
+async function applyStatus(l, val){
+  const ps=st(l.id).status||"new";
+  if(val===ps) return;
+  await upsertState(l.id,{status:val});
+  await addHistory(l.id,"Status: "+statusObj(ps).label+" → "+statusObj(val).label);
+}
+
+/* ---------- fetch leads via edge function ---------- */
+async function fetchLeads(){
+  const r = await fetch(FN_URL, { headers:{ Authorization:"Bearer "+TOKEN, apikey:SB_KEY } });
+  if(!r.ok){ const t=await r.text(); throw new Error("Server "+r.status+": "+t.slice(0,200)); }
+  const j = await r.json();
+  if(j.error) throw new Error(j.error);
+  return j.data;
+}
+async function fetchMessage(id){
+  const r = await fetch(FN_URL+"?message="+encodeURIComponent(id), { headers:{ Authorization:"Bearer "+TOKEN, apikey:SB_KEY } });
+  if(!r.ok) throw new Error("Server "+r.status);
+  return await r.json();
+}
+
+function buildCategory(emails, cat, cutoffMs){
+  const groups={};
+  emails.forEach(e=>{
+    if(new Date(e.receivedDateTime).getTime() < cutoffMs) return;
+    if(cat.key==="inquiries"){ if(!isInquiry(e)) return; } else { if(isNoise(e)) return; }
+    const x=extractLead(e,cat.key); let g=groups[x.gkey];
+    if(!g){ groups[x.gkey]={id:x.gkey,x,latest:e,first:e,count:1}; }
+    else { g.count++; if(new Date(e.receivedDateTime)>new Date(g.latest.receivedDateTime)){ g.latest=e; g.x=x; } if(new Date(e.receivedDateTime)<new Date(g.first.receivedDateTime)){ g.first=e; } }
+  });
+  const out=[], newOwners=[];
+  for(const k in groups){ const g=groups[k], a=acctLabel(g.latest);
+    const owner=repForCat(cat.key,new Date(g.first.receivedDateTime));
+    if(!st(g.id).owner){ STATE[g.id]=Object.assign({id:g.id},STATE[g.id]||{},{owner}); newOwners.push({id:g.id,owner,category:cat.key}); }
+    out.push({ id:g.id, cat:cat.key, display:g.x.display, title:g.x.title, item:g.x.item, deal:g.x.deal,
+      custEmail:g.x.custEmail, hasPhone:!!(g.x.phone||st(g.id).phone), listing:g.x.listing,
+      webLink:g.latest.webLink, date:g.first.receivedDateTime, updated:g.latest.receivedDateTime,
+      count:g.count, acct:a, uri:g.latest.uri||g.latest.id, sender:g.latest.sender||"" });
+  }
+  return { out, newOwners };
+}
+
+async function load(){
+  document.getElementById("errbox").innerHTML="";
+  document.getElementById("board").innerHTML='<div class="loading">Loading leads…</div>';
+  const days=parseInt(document.getElementById("window").value,10);
+  const cutoff=Date.now()-days*86400000;
+  try{
+    const data=await fetchLeads();
+    let all=[], owners=[];
+    CATS.forEach(c=>{ const r=buildCategory(data[c.key]||[], c, cutoff); all=all.concat(r.out); owners=owners.concat(r.newOwners); });
+    LEADS=all;
+    if(owners.length){ await sb.from("lead_state").upsert(owners.map(o=>({id:o.id,owner:o.owner,category:o.category,status:"new",updated_by:"rotation"}))); }
+    renderBoard();
+    document.getElementById("footnote").innerHTML =
+      "<b>Shared board.</b> Each lead is owned by the rep on rotation the day it arrived and stays theirs until Closed. "+
+      "Tap any lead for the full email. Status, ownership &amp; history are saved for the whole team. Changes are stamped with your name ("+esc(ME)+").";
+  }catch(e){
+    document.getElementById("board").innerHTML="";
+    document.getElementById("errbox").innerHTML='<div class="err">Couldn’t load leads: '+esc(String(e.message||e))+'</div>';
+  }
+}
+
+/* ---------- render ---------- */
+function renderRota(){
+  const ref=businessRef(), today=new Date(), wknd=(today.getDay()===0||today.getDay()===6);
+  const dname=ref.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+  let html='<div><span class="day">Today’s rotation · '+dname+'</span>'+(wknd?' (weekend — next business day)':'')+'</div><div class="rota-grid">';
+  CATS.forEach(c=>{ html+='<div class="rota-card"><div class="cat">'+c.label+'</div><div class="rep">'+repForCat(c.key,ref)+'</div></div>'; });
+  document.getElementById("rotabar").innerHTML=html+'</div>';
+}
+function renderBoard(){
+  const repF=document.getElementById("repFilter").value;
+  const hideClosed=document.getElementById("hideClosed").checked;
+  const ref=businessRef();
+  const byCat={}; CATS.forEach(c=>byCat[c.key]=[]);
+  let shown=0;
+  LEADS.forEach(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&stt==="closed")return; if(repF!=="all"&&rep!==repF)return; byCat[l.cat].push(l); shown++; });
+  for(const k in byCat) byCat[k].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  let html="";
+  CATS.forEach(c=>{
+    html+='<div class="col"><h2>'+c.label+' <span class="pill">'+byCat[c.key].length+'</span> <span class="ontoday" title="On rotation today">'+repForCat(c.key,ref)+'</span></h2>';
+    html+='<div class="folder">📁 '+c.folder+'</div>';
+    if(byCat[c.key].length===0) html+='<div class="empty">No leads in window</div>';
+    byCat[c.key].forEach(l=>html+=cardHtml(l));
+    html+='</div>';
+  });
+  document.getElementById("board").innerHTML=html;
+  document.getElementById("counts").textContent=shown+" shown · "+LEADS.length+" in window";
+  wireCards();
+}
+function cardHtml(l){
+  const stt=effStatus(l), so=statusObj(stt), rep=effRep(l);
+  let repSel='<select data-id="'+l.id+'" data-k="rep">'; REPS.forEach(r=>{ repSel+='<option'+(r===rep?' selected':'')+'>'+r+'</option>'; }); repSel+='</select>';
+  let statSel='<select data-id="'+l.id+'" data-k="status">'; STATUSES.forEach(s=>{ statSel+='<option value="'+s.key+'"'+(s.key===stt?' selected':'')+'>'+s.label+'</option>'; }); statSel+='</select>';
+  const replyHref = l.custEmail ? ("mailto:"+encodeURIComponent(l.custEmail)+"?subject="+encodeURIComponent("Re: "+(l.title||"DOTmed"))) : (l.webLink||"#");
+  return '<div class="card">'+
+    '<div class="cardhead" data-detail="'+l.id+'"><div class="from">'+esc(titleCase(l.display))+'</div>'+
+    '<div class="ttl">'+esc(l.title)+'</div>'+(l.item?'<div class="item">'+esc(l.item)+'</div>':'')+
+    '<div class="cardhint">▸ tap for full email</div></div>'+
+    '<div class="meta"><span class="tag rep" title="Owner">'+rep+'</span>'+
+      (l.deal?'<span class="tag deal">'+esc(l.deal)+'</span>':'')+
+      (l.hasPhone?'<span class="tag ph" title="Phone on file">☎</span>':'')+
+      '<span class="tag date">'+fmtDate(l.date)+'</span>'+
+      '<span class="tag acct'+(l.acct.sd?' sd':'')+'">'+l.acct.t+'</span>'+
+      (l.count>1?'<span class="tag thread">'+l.count+'</span>':'')+
+      '<span><span class="statusbadge" style="background:'+so.color+'"></span>'+so.label+'</span></div>'+
+    '<div class="row2">'+repSel+statSel+'</div>'+
+    '<div class="actions"><a href="'+replyHref+'"'+(l.custEmail?'':' target="_blank" rel="noopener"')+'>'+(l.custEmail?"Reply":"Open")+'</a>'+
+      '<button data-act="wa" data-id="'+l.id+'">WhatsApp</button>'+
+      '<button data-act="call" data-id="'+l.id+'">Call</button>'+
+      (l.webLink?'<a href="'+l.webLink+'" target="_blank" rel="noopener">Outlook</a>':'')+'</div></div>';
+}
+function findLead(id){ return LEADS.find(l=>l.id===id); }
+function wireCards(){
+  document.querySelectorAll(".card select").forEach(sel=>{
+    sel.onchange=async function(){ const l=findLead(this.getAttribute("data-id")); if(!l)return;
+      if(this.getAttribute("data-k")==="rep") await applyRep(l,this.value); else await applyStatus(l,this.value); renderBoard(); };
+  });
+  document.querySelectorAll(".card button[data-act]").forEach(b=>{ b.onclick=function(){ contactAction(this.getAttribute("data-id"),this.getAttribute("data-act")); }; });
+  document.querySelectorAll(".cardhead[data-detail]").forEach(h=>{ h.onclick=function(){ openDetail(this.getAttribute("data-detail")); }; });
+}
+async function contactAction(id,act){
+  const l=findLead(id); if(!l)return; let phone=st(id).phone||"";
+  if(!phone){ phone=window.prompt("Phone number for "+titleCase(l.display)+" (with country code for WhatsApp):",""); if(!phone)return; phone=phone.replace(/[^0-9+]/g,""); await upsertState(id,{phone}); await addHistory(id,"Phone added"); }
+  if(act==="wa") window.open("https://wa.me/"+phone.replace(/[^0-9]/g,""),"_blank"); else window.open("tel:"+phone,"_self");
+}
+
+/* ---------- detail ---------- */
+function htmlToText(html){
+  try{ const doc=new DOMParser().parseFromString(html||"","text/html");
+    ["script","style","head"].forEach(t=>doc.querySelectorAll(t).forEach(n=>n.remove()));
+    doc.querySelectorAll("br").forEach(n=>n.replaceWith("\n"));
+    doc.querySelectorAll("tr,div,p,li,table,h1,h2,h3,h4").forEach(n=>n.append("\n"));
+    return (doc.body?doc.body.textContent:"").replace(/\r/g,"").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
+  }catch(e){ return (html||"").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim(); }
+}
+function pick(re,t){ const m=re.exec(t); return m?m[1].trim():""; }
+function extractDetails(text){
+  const kv=[];
+  const name=pick(/(?:Buyer[^\n]*\n)?Name:\s*(.+)/i,text), email=pick(/Email:\s*([^\s]+@[^\s]+)/i,text), phone=pick(/Phone:\s*([+\d][\d\s().\-]{5,})/i,text);
+  const addr=pick(/ADDRESS\s*=+\s*([\s\S]*?)\n\s*\n/i,text), country=pick(/Ship To Country:\s*(.+)/i,text), zip=pick(/Ship To Zip:\s*(.+)/i,text);
+  const listP=pick(/Listing Price:\s*\$?([\d.,]+)/i,text), offP=pick(/Offer Price:\s*\$?([\d.,]+)/i,text);
+  const total=pick(/Order Total[^\d]*([\d.,]+)\s*USD/i,text); const msg=pick(/Message:\s*([\s\S]+?)(?:\n\s*\n|$)/i,text);
+  if(name) kv.push(["Customer",name]); if(email) kv.push(["Email",email]); if(phone) kv.push(["Phone",phone]);
+  if(listP&&offP) kv.push(["Offer","List $"+listP+"  →  Offer $"+offP]);
+  if(zip||country) kv.push(["Ship to",[zip,country].filter(Boolean).join(", ")]);
+  if(addr) kv.push(["Address",addr.replace(/\n{2,}/g,"\n").trim()]);
+  if(total) kv.push(["Order total","$"+total]); if(msg&&msg.length<400) kv.push(["Their message",msg.trim()]);
+  return {kv,email,phone};
+}
+function ensureOverlay(){
+  let o=document.getElementById("detailOverlay");
+  if(!o){ o=document.createElement("div"); o.id="detailOverlay"; o.className="overlay"; o.style.display="none";
+    o.addEventListener("click",e=>{ if(e.target===o) closeDetail(); });
+    document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeDetail(); });
+    document.body.appendChild(o); }
+  return o;
+}
+function closeDetail(){ const o=document.getElementById("detailOverlay"); if(o) o.style.display="none"; }
+async function renderHist(id){
+  const box=document.getElementById("histBox"); if(!box) return;
+  const { data } = await sb.from("lead_history").select("*").eq("lead_id",id).order("ts",{ascending:false});
+  if(!data||!data.length){ box.innerHTML='<div style="color:#9aa7b4;font-size:12px">No history yet.</div>'; return; }
+  box.innerHTML=data.map(e=>{ const d=new Date(e.ts), ds=isNaN(d.getTime())?e.ts:d.toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+    return '<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #f0f3f6"><span style="color:#7b8a99">'+esc(ds)+'</span> &middot; '+esc(e.action)+' <span style="color:#9aa7b4">('+esc(e.actor||"—")+')</span></div>'; }).join("");
+}
+async function openDetail(id){
+  const l=findLead(id); if(!l)return; const o=ensureOverlay(); o.style.display="flex";
+  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>'+esc(titleCase(l.display))+'</h3><div class="msub">'+esc((CATS.find(c=>c.key===l.cat)||{}).label)+' · '+fmtDate(l.date)+' · '+l.acct.t+'</div></div><div class="mbody"><div class="loading">Loading full email…</div></div></div>';
+  document.getElementById("mClose").onclick=closeDetail;
+  let msg=null,err=null;
+  try{ msg=await fetchMessage(l.uri); if(msg.error) err=msg.error; }catch(e){ err=String(e.message||e); }
+  if(o.style.display==="none") return;
+  const text=htmlToText((msg&&msg.body&&msg.body.content)||(msg&&msg.summary)||"");
+  const det=extractDetails(text);
+  if(det.email && !l.custEmail) l.custEmail=det.email;
+  if(det.phone && !st(l.id).phone){ await upsertState(l.id,{phone:det.phone.replace(/[^0-9+]/g,"")}); l.hasPhone=true; }
+  const cats=(msg&&msg.categories)||[];
+  let kvHtml=""; if(det.kv.length){ kvHtml='<h4>Key details</h4><div class="kv">'; det.kv.forEach(p=>{ kvHtml+='<div class="k">'+esc(p[0])+'</div><div class="v">'+esc(p[1])+'</div>'; }); kvHtml+='</div>'; }
+  let catHtml = cats.length ? ('<h4>Outlook categories</h4><div style="margin-bottom:14px">'+cats.map(c=>'<span class="tag" style="background:#eef1f5;color:#42505e;margin-right:5px">'+esc(c)+'</span>').join("")+'</div>') : '';
+  const mb=o.querySelector(".mbody");
+  if(err){ mb.innerHTML='<div class="err">Couldn’t load the email: '+esc(err)+'</div>'; return; }
+  mb.innerHTML = kvHtml + catHtml + '<h4>History</h4><div id="histBox"></div>'+
+    '<div style="margin:8px 0 16px;display:flex;gap:6px"><input id="noteIn" placeholder="Add a note…" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="noteBtn" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>'+
+    '<h4>Full email</h4><pre class="bodytext">'+esc(text||"(no text content)")+'</pre>';
+  renderHist(l.id);
+  document.getElementById("noteBtn").onclick=async()=>{ const ni=document.getElementById("noteIn"); const v=ni.value.trim(); if(!v)return; await addHistory(l.id,"Note: "+v); ni.value=""; renderHist(l.id); };
+  // footer
+  const modal=o.querySelector(".modal");
+  const stt=effStatus(l), rep=effRep(l);
+  let repSel='<select data-k="rep">'; REPS.forEach(r=>{ repSel+='<option'+(r===rep?' selected':'')+'>'+r+'</option>'; }); repSel+='</select>';
+  let statSel='<select data-k="status">'; STATUSES.forEach(s=>{ statSel+='<option value="'+s.key+'"'+(s.key===stt?' selected':'')+'>'+s.label+'</option>'; }); statSel+='</select>';
+  const replyHref=l.custEmail?("mailto:"+encodeURIComponent(l.custEmail)+"?subject="+encodeURIComponent("Re: "+(l.title||"DOTmed"))):(l.webLink||"#");
+  const foot=document.createElement("div"); foot.className="mfoot";
+  foot.innerHTML='<div class="row2">'+repSel+statSel+'</div><div class="actions"><a href="'+replyHref+'"'+(l.custEmail?'':' target="_blank" rel="noopener"')+'>'+(l.custEmail?"Reply":"Open")+'</a><button data-act="wa">WhatsApp</button><button data-act="call">Call</button>'+(l.webLink?'<a href="'+l.webLink+'" target="_blank" rel="noopener">Outlook</a>':'')+'</div>';
+  modal.appendChild(foot);
+  foot.querySelector('[data-k="rep"]').onchange=async function(){ await applyRep(l,this.value); renderBoard(); renderHist(l.id); };
+  foot.querySelector('[data-k="status"]').onchange=async function(){ await applyStatus(l,this.value); renderBoard(); renderHist(l.id); };
+  foot.querySelectorAll("button[data-act]").forEach(b=>{ b.onclick=()=>contactAction(l.id,b.getAttribute("data-act")); });
+}
+
+document.getElementById("repFilter").onchange=renderBoard;
+document.getElementById("hideClosed").onchange=renderBoard;
+document.getElementById("window").onchange=load;
+sb.auth.onAuthStateChange(()=>{}); // ensure session is picked up from redirect
+boot();
+</script>
+</body>
+</html>
