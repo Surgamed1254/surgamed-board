@@ -55,13 +55,11 @@ h1{ font-size:20px; margin:0 0 2px; }
 .loading{ text-align:center; padding:50px; color:#5a6b7b; }
 .err{ background:#fde8e8; color:#a5281b; border:1px solid #f3c2bd; border-radius:10px; padding:12px 14px; margin-bottom:14px; font-size:13px; }
 .note{ font-size:11.5px; color:#8794a1; margin-top:18px; line-height:1.5; }
-/* sign-in */
 #signin{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#f4f6f9; }
 .card-signin{ background:#fff; border:1px solid #e1e7ee; border-radius:14px; padding:36px 40px; text-align:center; box-shadow:0 8px 30px rgba(20,32,44,.08); max-width:380px; }
 .card-signin h1{ font-size:19px; margin:0 0 6px; }
 .card-signin p{ color:#5a6b7b; font-size:13px; margin:0 0 22px; }
 .msbtn{ display:inline-flex; align-items:center; gap:10px; background:#2f2f2f; color:#fff; border:none; border-radius:8px; padding:11px 18px; font-size:14px; font-weight:600; cursor:pointer; }
-/* modal */
 .overlay{ position:fixed; inset:0; background:rgba(20,32,44,.45); display:flex; align-items:flex-start; justify-content:center; padding:30px 16px; z-index:50; overflow:auto; }
 .modal{ background:#fff; border-radius:14px; max-width:680px; width:100%; box-shadow:0 12px 40px rgba(20,32,44,.25); overflow:hidden; }
 .modal .mhead{ padding:16px 20px; border-bottom:1px solid #eef1f5; position:relative; }
@@ -97,9 +95,7 @@ h1{ font-size:20px; margin:0 0 2px; }
 <div class="wrap" id="app" style="display:none">
   <h1>SurgaMed — dotMed Lead Board</h1>
   <p class="sub">Live from <b>orders@surgamed.com</b> (SurgaMed + ShortDated). Shared across the team — status, ownership &amp; history sync for everyone.</p>
-
   <div id="rotabar" class="rotabar"></div>
-
   <div class="controls">
     <label>Rep:
       <select id="repFilter">
@@ -121,7 +117,6 @@ h1{ font-size:20px; margin:0 0 2px; }
     <button class="signout" id="signout">Sign out</button>
     <span class="counts" id="counts"></span>
   </div>
-
   <div id="errbox"></div>
   <div id="board" class="board"><div class="loading">Loading leads…</div></div>
   <p class="note" id="footnote"></p>
@@ -129,7 +124,6 @@ h1{ font-size:20px; margin:0 0 2px; }
 
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 const SB_URL = "https://ecjemcrpbzeocoiwslcu.supabase.co";
 const SB_KEY = "sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
 const FN_URL = SB_URL + "/functions/v1/leads";
@@ -151,13 +145,14 @@ const STATUSES = [
 ];
 const ANCHOR = new Date(2026,5,16);
 
-let ME = "";               // signed-in person's display name
-let STATE = {};            // id -> {id,owner,assignee,status,phone}
+let ME = "";
+let STATE = {};
 let LEADS = [];
 let TOKEN = "";
 
-/* ---------- auth ---------- */
+function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function signinErr(m){ const e=document.getElementById("signinErr"); e.style.display="block"; e.textContent=m; }
+
 document.getElementById("msBtn").onclick = async () => {
   const { error } = await sb.auth.signInWithOAuth({
     provider: "azure",
@@ -167,9 +162,10 @@ document.getElementById("msBtn").onclick = async () => {
 };
 document.getElementById("signout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
 
-async function boot(){
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session){ document.getElementById("signin").style.display="flex"; document.getElementById("app").style.display="none"; return; }
+let booted=false;
+function showSignin(){ if(booted) return; document.getElementById("signin").style.display="flex"; document.getElementById("app").style.display="none"; }
+async function showApp(session){
+  if (booted) return; booted=true;
   TOKEN = session.access_token;
   const u = session.user;
   ME = (u.user_metadata && (u.user_metadata.name || u.user_metadata.full_name)) || u.email || "unknown";
@@ -180,8 +176,11 @@ async function boot(){
   await loadState();
   await load();
 }
+async function boot(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) showApp(session); else showSignin();
+}
 
-/* ---------- rotation ---------- */
 function midnight(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
 function rotationOffset(target){
   const a=midnight(ANCHOR), t=midnight(target);
@@ -193,8 +192,6 @@ function rotationOffset(target){
 function repForCat(catKey,date){ let ci=0; CATS.forEach((c,i)=>{ if(c.key===catKey) ci=i; }); const d=rotationOffset(date); return REPS[(((ci-d)%4)+4)%4]; }
 function businessRef(){ const d=new Date(),w=d.getDay(); if(w===6)d.setDate(d.getDate()+2); if(w===0)d.setDate(d.getDate()+1); return d; }
 
-/* ---------- helpers ---------- */
-function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function titleCase(s){ return (s||"").replace(/\b\w/g,c=>c.toUpperCase()); }
 function senderName(s){ if(!s) return ""; const m=/^([^<]+)</.exec(s); if(m) return m[1].trim().replace(/^"|"$/g,""); if(/@/.test(s)) return s.split("@")[0].replace(/[._]/g," "); return s; }
 function senderEmail(s){ const m=/<([^>]+)>/.exec(s||""); if(m) return m[1]; return (s||"").trim(); }
@@ -263,7 +260,6 @@ function extractLead(email,catKey){
 }
 function acctLabel(email){ const r=(email.recipients&&email.recipients.join(" "))||""; return /shortdated/i.test(r)?{t:"ShortDated",sd:true}:{t:"SurgaMed",sd:false}; }
 
-/* ---------- state (Supabase) ---------- */
 async function loadState(){
   const { data, error } = await sb.from("lead_state").select("*");
   STATE = {};
@@ -279,7 +275,6 @@ async function addHistory(id, action){
 function st(id){ return STATE[id]||{}; }
 function effRep(l){ const s=st(l.id); return s.assignee||s.owner||repForCat(l.cat,new Date(l.date)); }
 function effStatus(l){ return st(l.id).status||"new"; }
-
 async function applyRep(l, val){
   const prev=st(l.id).assignee||st(l.id).owner||"";
   if(val===prev) return;
@@ -293,7 +288,6 @@ async function applyStatus(l, val){
   await addHistory(l.id,"Status: "+statusObj(ps).label+" → "+statusObj(val).label);
 }
 
-/* ---------- fetch leads via edge function ---------- */
 async function fetchLeads(){
   const r = await fetch(FN_URL, { headers:{ Authorization:"Bearer "+TOKEN, apikey:SB_KEY } });
   if(!r.ok){ const t=await r.text(); throw new Error("Server "+r.status+": "+t.slice(0,200)); }
@@ -349,7 +343,6 @@ async function load(){
   }
 }
 
-/* ---------- render ---------- */
 function renderRota(){
   const ref=businessRef(), today=new Date(), wknd=(today.getDay()===0||today.getDay()===6);
   const dname=ref.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"});
@@ -414,7 +407,6 @@ async function contactAction(id,act){
   if(act==="wa") window.open("https://wa.me/"+phone.replace(/[^0-9]/g,""),"_blank"); else window.open("tel:"+phone,"_self");
 }
 
-/* ---------- detail ---------- */
 function htmlToText(html){
   try{ const doc=new DOMParser().parseFromString(html||"","text/html");
     ["script","style","head"].forEach(t=>doc.querySelectorAll(t).forEach(n=>n.remove()));
@@ -474,7 +466,6 @@ async function openDetail(id){
     '<h4>Full email</h4><pre class="bodytext">'+esc(text||"(no text content)")+'</pre>';
   renderHist(l.id);
   document.getElementById("noteBtn").onclick=async()=>{ const ni=document.getElementById("noteIn"); const v=ni.value.trim(); if(!v)return; await addHistory(l.id,"Note: "+v); ni.value=""; renderHist(l.id); };
-  // footer
   const modal=o.querySelector(".modal");
   const stt=effStatus(l), rep=effRep(l);
   let repSel='<select data-k="rep">'; REPS.forEach(r=>{ repSel+='<option'+(r===rep?' selected':'')+'>'+r+'</option>'; }); repSel+='</select>';
@@ -489,4 +480,10 @@ async function openDetail(id){
 }
 
 document.getElementById("repFilter").onchange=renderBoard;
-document.getElementById("hideClosed").onchange=ren
+document.getElementById("hideClosed").onchange=renderBoard;
+document.getElementById("window").onchange=load;
+sb.auth.onAuthStateChange((e, session)=>{ if(session) showApp(session); });
+boot();
+</script>
+</body>
+</html>
