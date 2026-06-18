@@ -200,6 +200,30 @@ function normSubject(s){ return (s||"").replace(/^\s*((re|fw|fwd)\s*:\s*)+/i,"")
 function ourAddr(e){ return /surgamed\.com|shortdatedsurgical\.com|dotmed/i.test(e||""); }
 function fmtDate(d){ const dt=new Date(d),n=new Date(),o={month:"short",day:"numeric"}; if(dt.getFullYear()!==n.getFullYear())o.year="numeric"; return dt.toLocaleDateString(undefined,o); }
 function statusObj(k){ return STATUSES.find(s=>s.key===k)||STATUSES[0]; }
+const KNOWN_CATS = new Set();
+const STATUS_LABELS = STATUSES.map(s=>s.label);
+async function writeCats(lead, cats){
+  const set=[...new Set((cats||[]).map(c=>String(c).trim()).filter(Boolean))].slice(0,25);
+  lead.cats=set; set.forEach(c=>KNOWN_CATS.add(c));
+  try{ const r=await fetch(FN_URL,{method:"POST",headers:{Authorization:"Bearer "+TOKEN,apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify({id:lead.uri,categories:set})}); return r.ok; }catch(e){ return false; }
+}
+function renderTags(l){
+  const box=document.getElementById("tagsBox"); if(!box) return;
+  const cur=l.cats||[];
+  let h='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">';
+  if(cur.length){ cur.forEach(c=>{ h+='<span class="tag" style="background:#e2efff;color:#0b66c3;cursor:pointer" data-rm="'+esc(c)+'" title="Remove">'+esc(c)+' ✕</span>'; }); }
+  else h+='<span style="color:#9aa7b4;font-size:12px">No tags on this email</span>';
+  h+='</div>';
+  const sugg=[...new Set([...KNOWN_CATS, ...REPS, ...STATUS_LABELS])].filter(c=>!cur.includes(c));
+  if(sugg.length){ h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'; sugg.forEach(c=>{ h+='<span class="tag" style="background:#f0f3f6;color:#42505e;cursor:pointer" data-add="'+esc(c)+'">+ '+esc(c)+'</span>'; }); h+='</div>'; }
+  h+='<div style="display:flex;gap:6px"><input id="tagIn" placeholder="New tag…" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="tagAdd" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>';
+  box.innerHTML=h;
+  box.querySelectorAll("[data-rm]").forEach(el=>{ el.onclick=async()=>{ el.style.opacity=.5; await writeCats(l,(l.cats||[]).filter(x=>x!==el.getAttribute("data-rm"))); renderTags(l); renderBoard(); }; });
+  box.querySelectorAll("[data-add]").forEach(el=>{ el.onclick=async()=>{ el.style.opacity=.5; await writeCats(l,[...(l.cats||[]),el.getAttribute("data-add")]); renderTags(l); renderBoard(); }; });
+  const ta=document.getElementById("tagAdd"), ti=document.getElementById("tagIn");
+  ta.onclick=async()=>{ const v=ti.value.trim(); if(!v)return; ta.disabled=true; await writeCats(l,[...(l.cats||[]),v]); ti.value=""; renderTags(l); renderBoard(); };
+  ti.addEventListener("keydown",e=>{ if(e.key==="Enter") ta.onclick(); });
+}
 
 function isNoise(email){
   const s=(email.subject||"").toLowerCase(), snd=(email.sender||"").toLowerCase();
@@ -317,7 +341,7 @@ function buildCategory(emails, cat, cutoffMs){
     out.push({ id:g.id, cat:cat.key, display:g.x.display, title:g.x.title, item:g.x.item, deal:g.x.deal,
       custEmail:g.x.custEmail, hasPhone:!!(g.x.phone||st(g.id).phone), listing:g.x.listing,
       webLink:g.latest.webLink, date:g.first.receivedDateTime, updated:g.latest.receivedDateTime,
-      count:g.count, acct:a, uri:g.latest.uri||g.latest.id, sender:g.latest.sender||"" });
+      count:g.count, acct:a, uri:g.latest.uri||g.latest.id, sender:g.latest.sender||"", cats:(g.latest.categories||[]).slice() });
   }
   return { out, newOwners };
 }
@@ -332,6 +356,7 @@ async function load(){
     let all=[], owners=[];
     CATS.forEach(c=>{ const r=buildCategory(data[c.key]||[], c, cutoff); all=all.concat(r.out); owners=owners.concat(r.newOwners); });
     LEADS=all;
+    LEADS.forEach(l=>(l.cats||[]).forEach(c=>KNOWN_CATS.add(c)));
     if(owners.length){ await sb.from("lead_state").upsert(owners.map(o=>({id:o.id,owner:o.owner,category:o.category,status:"new",updated_by:"rotation"}))); }
     renderBoard();
     document.getElementById("footnote").innerHTML =
@@ -384,6 +409,7 @@ function cardHtml(l){
       (l.hasPhone?'<span class="tag ph" title="Phone on file">☎</span>':'')+
       '<span class="tag date">'+fmtDate(l.date)+'</span>'+
       '<span class="tag acct'+(l.acct.sd?' sd':'')+'">'+l.acct.t+'</span>'+
+      ((l.cats||[]).map(c=>'<span class="tag" style="background:#e2efff;color:#0b66c3">'+esc(c)+'</span>').join(""))+
       (l.count>1?'<span class="tag thread">'+l.count+'</span>':'')+
       '<span><span class="statusbadge" style="background:'+so.color+'"></span>'+so.label+'</span></div>'+
     '<div class="row2">'+repSel+statSel+'</div>'+
@@ -456,14 +482,15 @@ async function openDetail(id){
   const det=extractDetails(text);
   if(det.email && !l.custEmail) l.custEmail=det.email;
   if(det.phone && !st(l.id).phone){ await upsertState(l.id,{phone:det.phone.replace(/[^0-9+]/g,"")}); l.hasPhone=true; }
-  const cats=(msg&&msg.categories)||[];
+  l.cats=(msg&&msg.categories)||l.cats||[]; (l.cats||[]).forEach(c=>KNOWN_CATS.add(c));
   let kvHtml=""; if(det.kv.length){ kvHtml='<h4>Key details</h4><div class="kv">'; det.kv.forEach(p=>{ kvHtml+='<div class="k">'+esc(p[0])+'</div><div class="v">'+esc(p[1])+'</div>'; }); kvHtml+='</div>'; }
-  let catHtml = cats.length ? ('<h4>Outlook categories</h4><div style="margin-bottom:14px">'+cats.map(c=>'<span class="tag" style="background:#eef1f5;color:#42505e;margin-right:5px">'+esc(c)+'</span>').join("")+'</div>') : '';
+  let catHtml = '<h4>Tags (Outlook categories) — click to add or remove</h4><div id="tagsBox" style="margin-bottom:14px"></div>';
   const mb=o.querySelector(".mbody");
   if(err){ mb.innerHTML='<div class="err">Couldn’t load the email: '+esc(err)+'</div>'; return; }
   mb.innerHTML = kvHtml + catHtml + '<h4>History</h4><div id="histBox"></div>'+
     '<div style="margin:8px 0 16px;display:flex;gap:6px"><input id="noteIn" placeholder="Add a note…" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="noteBtn" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>'+
     '<h4>Full email</h4><pre class="bodytext">'+esc(text||"(no text content)")+'</pre>';
+  renderTags(l);
   renderHist(l.id);
   document.getElementById("noteBtn").onclick=async()=>{ const ni=document.getElementById("noteIn"); const v=ni.value.trim(); if(!v)return; await addHistory(l.id,"Note: "+v); ni.value=""; renderHist(l.id); };
   const modal=o.querySelector(".modal");
