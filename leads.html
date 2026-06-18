@@ -206,9 +206,9 @@ function statusObj(k){ return STATUSES.find(s=>s.key===k)||STATUSES[0]; }
 
 function isNoise(email){
   const s=(email.subject||"").toLowerCase(), snd=(email.sender||"").toLowerCase();
-  if(/dotmed-mail\.com|cloud-protect\.net|mailer-daemon|postmaster|@facebookmail|linkedin\.com|github\.com|indeed\.com|upwork\.com|godaddy/.test(snd)) return true;
+  if(/dotmed-mail\.com|cloud-protect\.net|mailer-daemon|postmaster|@facebookmail|linkedin\.com|github\.com|indeed\.com|upwork\.com|godaddy|paypal\.com|anthropic\.com|intuit|quickbooks|stripe\.com|squareup|@amazon|billing@/.test(snd)) return true;
   if(/(no-?reply|do-not-reply|noreply)/.test(snd) && !isAuto(snd)) return true;
-  if(/listing download|parts alerts|equipment.*alert|forums|quarantine|daily digest|expiring|reminder|out of office|undeliverable|automatic reply|^read:|^not read:/.test(s)) return true;
+  if(/listing download|parts alerts|equipment.*alert|forums|quarantine|daily digest|expiring|reminder|out of office|undeliverable|automatic reply|^read:|^not read:|receipt|your invoice|updated your invoice|we sent your invoice|invoice #|payment received/.test(s)) return true;
   return false;
 }
 function isInquiry(email){
@@ -489,10 +489,4 @@ async function openDetail(id){
 }
 
 document.getElementById("repFilter").onchange=renderBoard;
-document.getElementById("hideClosed").onchange=renderBoard;
-document.getElementById("window").onchange=load;
-sb.auth.onAuthStateChange(()=>{}); // ensure session is picked up from redirect
-boot();
-</script>
-</body>
-</html>
+document.getElementById("hideClosed").onchange=ren
