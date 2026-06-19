@@ -202,10 +202,15 @@ function fmtDate(d){ const dt=new Date(d),n=new Date(),o={month:"short",day:"num
 function statusObj(k){ return STATUSES.find(s=>s.key===k)||STATUSES[0]; }
 const KNOWN_CATS = new Set();
 const STATUS_LABELS = STATUSES.map(s=>s.label);
+async function freshToken(){ try{ const { data:{ session } }=await sb.auth.getSession(); if(session) TOKEN=session.access_token; }catch(e){} return TOKEN; }
 async function writeCats(lead, cats){
   const set=[...new Set((cats||[]).map(c=>String(c).trim()).filter(Boolean))].slice(0,25);
-  lead.cats=set; set.forEach(c=>KNOWN_CATS.add(c));
-  try{ const r=await fetch(FN_URL,{method:"POST",headers:{Authorization:"Bearer "+TOKEN,apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify({id:lead.uri,categories:set})}); return r.ok; }catch(e){ return false; }
+  try{
+    const r=await fetch(FN_URL,{method:"POST",headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify({id:lead.uri,categories:set})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){ alert("Couldn't save tags to Outlook: "+(j.error||("HTTP "+r.status))); return false; }
+    lead.cats=Array.isArray(j.categories)?j.categories:set; lead.cats.forEach(c=>KNOWN_CATS.add(c)); return true;
+  }catch(e){ alert("Couldn't save tags: "+e); return false; }
 }
 function renderTags(l){
   const box=document.getElementById("tagsBox"); if(!box) return;
@@ -313,14 +318,14 @@ async function applyStatus(l, val){
 }
 
 async function fetchLeads(){
-  const r = await fetch(FN_URL, { headers:{ Authorization:"Bearer "+TOKEN, apikey:SB_KEY } });
+  const r = await fetch(FN_URL, { headers:{ Authorization:"Bearer "+(await freshToken()), apikey:SB_KEY } });
   if(!r.ok){ const t=await r.text(); throw new Error("Server "+r.status+": "+t.slice(0,200)); }
   const j = await r.json();
   if(j.error) throw new Error(j.error);
   return j.data;
 }
 async function fetchMessage(id){
-  const r = await fetch(FN_URL+"?message="+encodeURIComponent(id), { headers:{ Authorization:"Bearer "+TOKEN, apikey:SB_KEY } });
+  const r = await fetch(FN_URL+"?message="+encodeURIComponent(id), { headers:{ Authorization:"Bearer "+(await freshToken()), apikey:SB_KEY } });
   if(!r.ok) throw new Error("Server "+r.status);
   return await r.json();
 }
