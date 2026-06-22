@@ -122,6 +122,16 @@ h1{ font-size:20px; margin:0 0 2px; }
         <option value="30">Last 30 days</option>
       </select>
     </label>
+    <label>Status:
+      <select id="statusFilter">
+        <option value="all">All statuses</option>
+        <option value="new">New</option>
+        <option value="working">Working</option>
+        <option value="waiting">Waiting on customer</option>
+        <option value="upsell">Upsell offered</option>
+        <option value="closed">Closed</option>
+      </select>
+    </label>
     <label><input type="checkbox" id="hideClosed"> Hide closed</label>
     <button class="custbtn" id="custLookup">🔎 Customer lookup</button>
     <span class="whoami" id="whoami"></span>
@@ -181,6 +191,10 @@ async function showApp(session){
   const u = session.user;
   ME = (u.user_metadata && (u.user_metadata.name || u.user_metadata.full_name)) || u.email || "unknown";
   document.getElementById("whoami").innerHTML = "Signed in as <b>"+esc(ME)+"</b>";
+  // Default each rep's view to their own leads; they can switch to Everyone or anyone specific.
+  const idStr = (ME+" "+(u.email||"")).toLowerCase();
+  const myRep = REPS.find(r => idStr.includes(r.toLowerCase()));
+  if(myRep) document.getElementById("repFilter").value = myRep;
   document.getElementById("signin").style.display="none";
   document.getElementById("app").style.display="block";
   renderRota();
@@ -394,11 +408,12 @@ function renderRota(){
 }
 function renderBoard(){
   const repF=document.getElementById("repFilter").value;
+  const statusF=document.getElementById("statusFilter").value;
   const hideClosed=document.getElementById("hideClosed").checked;
   const ref=businessRef();
   const byCat={}; CATS.forEach(c=>byCat[c.key]=[]);
   let shown=0;
-  LEADS.forEach(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&stt==="closed")return; if(repF!=="all"&&rep!==repF)return; byCat[l.cat].push(l); shown++; });
+  LEADS.forEach(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&stt==="closed")return; if(statusF!=="all"&&stt!==statusF)return; if(repF!=="all"&&rep!==repF)return; byCat[l.cat].push(l); shown++; });
   for(const k in byCat) byCat[k].sort((a,b)=>new Date(b.date)-new Date(a.date));
   let html="";
   CATS.forEach(c=>{
@@ -595,6 +610,7 @@ function openCustSearch(){
 document.getElementById("custLookup").onclick=openCustSearch;
 
 document.getElementById("repFilter").onchange=renderBoard;
+document.getElementById("statusFilter").onchange=renderBoard;
 document.getElementById("hideClosed").onchange=renderBoard;
 document.getElementById("window").onchange=load;
 sb.auth.onAuthStateChange((e, session)=>{ if(session) showApp(session); });
