@@ -192,8 +192,9 @@ async function showApp(session){
   ME = (u.user_metadata && (u.user_metadata.name || u.user_metadata.full_name)) || u.email || "unknown";
   document.getElementById("whoami").innerHTML = "Signed in as <b>"+esc(ME)+"</b>";
   // Default each rep's view to their own leads; they can switch to Everyone or anyone specific.
+  const REP_EMAILS = { "dcalvo@surgamed.com":"Deysi", "malejo@surgamed.com":"Mirian", "jlugo@surgamed.com":"Jennifer", "tcohen@surgamed.com":"Tehila" };
   const idStr = (ME+" "+(u.email||"")).toLowerCase();
-  const myRep = REPS.find(r => idStr.includes(r.toLowerCase()));
+  const myRep = REP_EMAILS[(u.email||"").toLowerCase()] || REPS.find(r => idStr.includes(r.toLowerCase()));
   if(myRep) document.getElementById("repFilter").value = myRep;
   document.getElementById("signin").style.display="none";
   document.getElementById("app").style.display="block";
