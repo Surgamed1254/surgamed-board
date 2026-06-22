@@ -202,7 +202,7 @@ let STATE = {};
 let LEADS = [];
 let TOKEN = "";
 let VIEW = localStorage.getItem('sg_view') || 'cards';
-let histMin = localStorage.getItem('sg_hist_min') === '1';
+let histMin = false; // purchase history opens expanded by default on every lead
 
 function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function signinErr(m){ const e=document.getElementById("signinErr"); e.style.display="block"; e.textContent=m; }
@@ -663,9 +663,10 @@ async function openDetail(id){
   (function(){
     const hdr=document.getElementById("custHdr"), cb=document.getElementById("custBox"), car=document.getElementById("custCaret");
     if(!hdr) return;
+    histMin=false; // reset to open each time a lead is opened; only collapses on click
     function apply(){ cb.style.display=histMin?"none":""; car.textContent=histMin?"▸":"▾"; }
     apply();
-    hdr.onclick=function(){ histMin=!histMin; localStorage.setItem('sg_hist_min', histMin?'1':'0'); apply(); };
+    hdr.onclick=function(){ histMin=!histMin; apply(); };
   })();
   document.getElementById("noteBtn").onclick=async()=>{ const ni=document.getElementById("noteIn"); const v=ni.value.trim(); if(!v)return; await addHistory(l.id,"Note: "+v); ni.value=""; renderHist(l.id); };
   const modal=o.querySelector(".modal");
