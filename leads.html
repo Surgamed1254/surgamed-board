@@ -390,16 +390,18 @@ function buildCategory(emails, cat, cutoffMs){
     if(!g){ groups[x.gkey]={id:x.gkey,x,latest:e,first:e,count:1}; }
     else { g.count++; if(new Date(e.receivedDateTime)>new Date(g.latest.receivedDateTime)){ g.latest=e; g.x=x; } if(new Date(e.receivedDateTime)<new Date(g.first.receivedDateTime)){ g.first=e; } }
   });
-  const out=[], newOwners=[];
+  const out=[], newOwners=[], reassigned=[];
   for(const k in groups){ const g=groups[k], a=acctLabel(g.latest);
     const owner=repForCat(cat.key,effDate(new Date(g.first.receivedDateTime)));
-    if(!st(g.id).owner){ STATE[g.id]=Object.assign({id:g.id},STATE[g.id]||{},{owner}); newOwners.push({id:g.id,owner,category:cat.key}); }
+    const cur=st(g.id);
+    if(!cur.owner){ STATE[g.id]=Object.assign({id:g.id},cur,{owner}); newOwners.push({id:g.id,owner,category:cat.key}); }
+    else if(cur.owner!==owner && !cur.assignee){ STATE[g.id]=Object.assign({id:g.id},cur,{owner}); reassigned.push({id:g.id,owner}); }
     out.push({ id:g.id, cat:cat.key, display:g.x.display, title:g.x.title, item:g.x.item, deal:g.x.deal,
       custEmail:g.x.custEmail, hasPhone:!!(g.x.phone||st(g.id).phone), listing:g.x.listing,
       webLink:g.latest.webLink, date:g.first.receivedDateTime, updated:g.latest.receivedDateTime,
       count:g.count, acct:a, uri:g.latest.uri||g.latest.id, sender:g.latest.sender||"", cats:(g.latest.categories||[]).slice() });
   }
-  return { out, newOwners };
+  return { out, newOwners, reassigned };
 }
 
 async function load(){
@@ -409,11 +411,15 @@ async function load(){
   const cutoff=Date.now()-days*86400000;
   try{
     const data=await fetchLeads();
-    let all=[], owners=[];
-    CATS.forEach(c=>{ const r=buildCategory(data[c.key]||[], c, cutoff); all=all.concat(r.out); owners=owners.concat(r.newOwners); });
+    let all=[], owners=[], reassigned=[];
+    CATS.forEach(c=>{ const r=buildCategory(data[c.key]||[], c, cutoff); all=all.concat(r.out); owners=owners.concat(r.newOwners); reassigned=reassigned.concat(r.reassigned); });
     LEADS=all;
     LEADS.forEach(l=>(l.cats||[]).forEach(c=>KNOWN_CATS.add(c)));
     if(owners.length){ await sb.from("lead_state").upsert(owners.map(o=>({id:o.id,owner:o.owner,category:o.category,status:"new",updated_by:"rotation"}))); }
+    if(reassigned.length){
+      await sb.from("lead_state").upsert(reassigned.map(o=>({id:o.id,owner:o.owner,updated_by:"rotation (6 PM ET rule)"})));
+      await sb.from("lead_history").insert(reassigned.map(o=>({lead_id:o.id, actor:"system", action:"Owner set to "+o.owner+" — applied new 6 PM ET / weekend rotation rule"})));
+    }
     renderBoard();
     document.getElementById("footnote").innerHTML =
       "<b>Shared board.</b> Each lead is owned by the rep on rotation the day it arrived and stays theirs until Closed. "+
