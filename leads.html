@@ -93,6 +93,20 @@ h1{ font-size:20px; margin:0 0 2px; }
 .fieldbox .fieldsub{ color:#5a6b7b; font-size:11px; margin-top:3px; }
 .custbtn{ background:#0b66c3; color:#fff; border:1px solid #0b66c3; border-radius:7px; padding:5px 12px; cursor:pointer; font-size:12px; font-weight:600; }
 .custbtn:hover{ background:#0a5aad; }
+.board.listview{ display:block; }
+.ltab{ width:100%; border-collapse:collapse; background:#fff; border:1px solid #e4e9ef; border-radius:10px; overflow:hidden; font-size:13px; }
+.ltab th{ text-align:left; background:#f4f6f9; color:#5a6b7b; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.03em; padding:8px 10px; border-bottom:1px solid #e1e7ee; }
+.ltab td{ padding:8px 10px; border-bottom:1px solid #eef1f5; vertical-align:top; }
+.ltab tr:hover td{ background:#f7f9fb; }
+.ltab .lcust{ cursor:pointer; min-width:140px; }
+.ltab .lcust:hover b{ text-decoration:underline; color:#0b66c3; }
+.ltab .lsub{ color:#8794a1; font-size:11px; margin-top:2px; }
+.ltab .litem{ color:#42505e; max-width:360px; }
+.ltab select{ padding:4px 6px; border:1px solid #d2dae2; border-radius:6px; font-size:12px; background:#fff; max-width:110px; }
+.ltab .nowrap{ white-space:nowrap; color:#6b7886; }
+.ltab .lact{ white-space:nowrap; }
+.ltab .lact a,.ltab .lact button{ font-size:11px; font-weight:600; padding:4px 7px; border-radius:6px; border:1px solid #d7dee6; background:#f7f9fb; color:#16202c; cursor:pointer; text-decoration:none; margin-right:3px; }
+.ltab .lact a:hover,.ltab .lact button:hover{ background:#eef3f8; }
 @media(max-width:1100px){ .board,.rota-grid{ grid-template-columns:repeat(2,1fr);} }
 @media(max-width:620px){ .board,.rota-grid{ grid-template-columns:1fr;} .kv{ grid-template-columns:1fr; } }
 </style>
@@ -140,6 +154,12 @@ h1{ font-size:20px; margin:0 0 2px; }
         <option value="closed">Closed</option>
       </select>
     </label>
+    <label>View:
+      <select id="viewSel">
+        <option value="cards">Cards</option>
+        <option value="list">List</option>
+      </select>
+    </label>
     <label><input type="checkbox" id="hideClosed"> Hide closed</label>
     <button class="custbtn" id="custLookup">🔎 Customer lookup</button>
     <button class="custbtn" id="teamActivity" style="display:none;background:#5b3fc4;border-color:#5b3fc4">👥 Team activity</button>
@@ -158,6 +178,7 @@ const SB_URL = "https://ecjemcrpbzeocoiwslcu.supabase.co";
 const SB_KEY = "sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
 const FN_URL = SB_URL + "/functions/v1/leads";
 const sb = createClient(SB_URL, SB_KEY);
+const BUILD = "listview-enrich-1"; // feature marker
 
 const REPS = ["Deysi","Mirian","Jennifer","Tehila"];
 const CATS = [
@@ -179,6 +200,7 @@ let ME = "";
 let STATE = {};
 let LEADS = [];
 let TOKEN = "";
+let VIEW = localStorage.getItem('sg_view') || 'cards';
 
 function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function signinErr(m){ const e=document.getElementById("signinErr"); e.style.display="block"; e.textContent=m; }
@@ -405,6 +427,25 @@ function buildCategory(emails, cat, cutoffMs){
   return { out, newOwners, reassigned };
 }
 
+// Orders ("congrats") emails only show the listing # in the preview — pull the buyer
+// name + item (manufacturer/product) from the purchases DB so cards lead with real info.
+async function enrichOrders(){
+  const ids=[...new Set(LEADS.filter(l=>l.cat==='orders'&&l.listing).map(l=>l.listing))];
+  if(!ids.length) return;
+  try{
+    const { data } = await sb.from('purchases').select('listing,customer_name,customer_email,item,order_date').in('listing',ids).limit(1000);
+    const by={}; (data||[]).forEach(r=>{ (by[r.listing]=by[r.listing]||[]).push(r); });
+    LEADS.forEach(l=>{
+      if(l.cat!=='orders'||!l.listing) return;
+      const rs=by[l.listing]; if(!rs||!rs.length) return;
+      const day=(l.date||'').slice(0,10);
+      const m=rs.find(r=>r.order_date===day)||rs[0];
+      if(m.customer_name) l.display=m.customer_name;
+      if(m.customer_email && !l.custEmail) l.custEmail=m.customer_email;
+      if(m.item) l.item=m.item;
+    });
+  }catch(e){}
+}
 async function load(){
   document.getElementById("errbox").innerHTML="";
   document.getElementById("board").innerHTML='<div class="loading">Loading leads…</div>';
@@ -416,6 +457,7 @@ async function load(){
     CATS.forEach(c=>{ const r=buildCategory(data[c.key]||[], c, cutoff); all=all.concat(r.out); owners=owners.concat(r.newOwners); reassigned=reassigned.concat(r.reassigned); });
     LEADS=all;
     LEADS.forEach(l=>(l.cats||[]).forEach(c=>KNOWN_CATS.add(c)));
+    await enrichOrders();
     if(owners.length){ await sb.from("lead_state").upsert(owners.map(o=>({id:o.id,owner:o.owner,category:o.category,status:"new",updated_by:"rotation"}))); }
     if(reassigned.length){
       await sb.from("lead_state").upsert(reassigned.map(o=>({id:o.id,owner:o.owner,updated_by:"rotation (6 PM ET rule)"})));
@@ -442,6 +484,8 @@ function renderRota(){
   document.getElementById("rotabar").innerHTML=html+'</div>';
 }
 function renderBoard(){
+  const bd=document.getElementById("board"); bd.className='board'+(VIEW==='list'?' listview':'');
+  if(VIEW==='list'){ renderList(); return; }
   const repF=document.getElementById("repFilter").value;
   const statusF=document.getElementById("statusFilter").value;
   const hideClosed=document.getElementById("hideClosed").checked;
@@ -460,6 +504,36 @@ function renderBoard(){
   });
   document.getElementById("board").innerHTML=html;
   document.getElementById("counts").textContent=shown+" shown · "+LEADS.length+" in window";
+  wireCards();
+}
+function renderList(){
+  const repF=document.getElementById("repFilter").value;
+  const statusF=document.getElementById("statusFilter").value;
+  const hideClosed=document.getElementById("hideClosed").checked;
+  let rows=LEADS.filter(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&stt==="closed")return false; if(statusF!=="all"&&stt!==statusF)return false; if(repF!=="all"&&rep!==repF)return false; return true; });
+  rows.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  let h='<table class="ltab"><thead><tr><th>Date</th><th>Type</th><th>Customer</th><th>Item / details</th><th>Acct</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+  if(!rows.length) h+='<tr><td colspan="8"><div class="empty">No leads in window</div></td></tr>';
+  rows.forEach(l=>{
+    const stt=effStatus(l), so=statusObj(stt), rep=effRep(l);
+    const catLabel=(CATS.find(c=>c.key===l.cat)||{}).label||l.cat;
+    let repSel='<select data-id="'+l.id+'" data-k="rep">'; REPS.forEach(r=>{ repSel+='<option'+(r===rep?' selected':'')+'>'+r+'</option>'; }); repSel+='</select>';
+    let statSel='<select data-id="'+l.id+'" data-k="status">'; STATUSES.forEach(s=>{ statSel+='<option value="'+s.key+'"'+(s.key===stt?' selected':'')+'>'+s.label+'</option>'; }); statSel+='</select>';
+    const replyHref=l.custEmail?("mailto:"+encodeURIComponent(l.custEmail)+"?subject="+encodeURIComponent("Re: "+(l.title||"DOTmed"))):(l.webLink||"#");
+    h+='<tr>'+
+      '<td class="nowrap">'+fmtDate(l.date)+'</td>'+
+      '<td><span class="tag" style="background:#eef1f5;color:#5a6b7b">'+esc(catLabel)+'</span></td>'+
+      '<td class="lcust" data-detail="'+l.id+'"><b>'+esc(titleCase(l.display))+'</b>'+(l.hasPhone?' ☎':'')+'<div class="lsub">'+esc(l.title)+'</div></td>'+
+      '<td class="litem">'+esc(l.item||'')+(l.deal?'<div class="lsub">'+esc(l.deal)+'</div>':'')+'</td>'+
+      '<td><span class="tag acct'+(l.acct.sd?' sd':'')+'">'+l.acct.t+'</span></td>'+
+      '<td>'+repSel+'</td>'+
+      '<td><span class="statusbadge" style="background:'+so.color+'"></span>'+statSel+'</td>'+
+      '<td class="lact"><a href="'+replyHref+'"'+(l.custEmail?'':' target="_blank" rel="noopener"')+'>'+(l.custEmail?'Reply':'Open')+'</a><button data-act="wa" data-id="'+l.id+'">WA</button><button data-act="call" data-id="'+l.id+'">Call</button>'+(l.webLink?'<a href="'+l.webLink+'" target="_blank" rel="noopener">Outlook</a>':'')+'</td>'+
+    '</tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById("board").innerHTML=h;
+  document.getElementById("counts").textContent=rows.length+" shown · "+LEADS.length+" in window";
   wireCards();
 }
 function cardHtml(l){
@@ -487,12 +561,12 @@ function cardHtml(l){
 }
 function findLead(id){ return LEADS.find(l=>l.id===id); }
 function wireCards(){
-  document.querySelectorAll(".card select").forEach(sel=>{
+  document.querySelectorAll("#board select[data-id][data-k]").forEach(sel=>{
     sel.onchange=async function(){ const l=findLead(this.getAttribute("data-id")); if(!l)return;
       if(this.getAttribute("data-k")==="rep") await applyRep(l,this.value); else await applyStatus(l,this.value); renderBoard(); };
   });
-  document.querySelectorAll(".card button[data-act]").forEach(b=>{ b.onclick=function(){ contactAction(this.getAttribute("data-id"),this.getAttribute("data-act")); }; });
-  document.querySelectorAll(".cardhead[data-detail]").forEach(h=>{ h.onclick=function(){ openDetail(this.getAttribute("data-detail")); }; });
+  document.querySelectorAll("#board button[data-act][data-id]").forEach(b=>{ b.onclick=function(){ contactAction(this.getAttribute("data-id"),this.getAttribute("data-act")); }; });
+  document.querySelectorAll("#board [data-detail]").forEach(h=>{ h.onclick=function(){ openDetail(this.getAttribute("data-detail")); }; });
 }
 async function contactAction(id,act){
   const l=findLead(id); if(!l)return; let phone=st(id).phone||"";
@@ -727,6 +801,7 @@ async function openTeamActivity(){
 
 document.getElementById("repFilter").onchange=renderBoard;
 document.getElementById("statusFilter").onchange=renderBoard;
+(function(){ const v=document.getElementById("viewSel"); if(v){ v.value=VIEW; v.onchange=function(){ VIEW=this.value; localStorage.setItem('sg_view',VIEW); renderBoard(); }; } })();
 document.getElementById("hideClosed").onchange=renderBoard;
 document.getElementById("window").onchange=load;
 sb.auth.onAuthStateChange((e, session)=>{ if(session) showApp(session); });
