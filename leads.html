@@ -186,6 +186,7 @@ async function showApp(session){
   renderRota();
   await loadState();
   await load();
+  refreshPurchases();
 }
 async function boot(){
   const { data: { session } } = await sb.auth.getSession();
@@ -563,6 +564,21 @@ async function loadCustHistory(l){
   const box=document.getElementById("custBox"); if(!box) return;
   try{ const rows=await getPurchases(l.custEmail,l.display); box.innerHTML=renderPurchases(rows); }
   catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load history: '+esc(String(e.message||e))+'</div>'; }
+}
+// Keep the purchase-history DB current: each time the board loads, scan the most
+// recent orders and upsert them (idempotent). Covers a few days of new orders.
+async function refreshPurchases(){
+  try{
+    let before=null;
+    for(let i=0;i<3;i++){
+      const u=FN_URL+"?ingest=orders"+(before?("&before="+encodeURIComponent(before)):"");
+      const r=await fetch(u,{headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY}});
+      if(!r.ok) break;
+      const d=await r.json();
+      before=d.nextBefore;
+      if(d.done||!before) break;
+    }
+  }catch(e){ /* silent: history stays at last good state */ }
 }
 function openCustSearch(){
   const o=ensureOverlay(); o.style.display="flex";
