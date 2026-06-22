@@ -83,6 +83,13 @@ h1{ font-size:20px; margin:0 0 2px; }
 .acctttl .dot{ width:9px;height:9px;border-radius:50%;display:inline-block; }
 .acctblock{ margin-bottom:8px; }
 .phsum{ font-size:11.5px; color:#5a6b7b; margin-bottom:4px; }
+.fieldbox{ background:#eef4ff; border:1px solid #d4e2fb; border-radius:9px; padding:9px 12px; margin-bottom:12px; font-size:12.5px; color:#16334d; }
+.fieldbox b{ color:#0b4a8a; }
+.fieldbox .conf{ font-size:11px; font-weight:600; border-radius:20px; padding:1px 8px; margin-left:6px; }
+.fieldbox .conf.strong{ background:#d6f0e0; color:#1d7a3f; }
+.fieldbox .conf.likely{ background:#fdeede; color:#9a5b14; }
+.fieldbox .conf.mixed{ background:#eceff2; color:#5a6b7b; }
+.fieldbox .fieldsub{ color:#5a6b7b; font-size:11px; margin-top:3px; }
 .custbtn{ background:#0b66c3; color:#fff; border:1px solid #0b66c3; border-radius:7px; padding:5px 12px; cursor:pointer; font-size:12px; font-weight:600; }
 .custbtn:hover{ background:#0a5aad; }
 @media(max-width:1100px){ .board,.rota-grid{ grid-template-columns:repeat(2,1fr);} }
@@ -559,11 +566,55 @@ async function getPurchases(email,name){
   return rows;
 }
 function money(n){ return "$"+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:0}); }
+
+// --- Likely medical field, inferred from purchased items (heuristic) ---
+const FIELD_RULES = [
+  {field:"ENT / Otolaryngology", kw:[/nasal/i,/sinus/i,/merocel/i,/rhino/i,/tonsil/i,/myringotom/i,/tympan/i,/laryng/i,/otolog/i,/septal/i,/nasopharyng/i,/\bent\b/i]},
+  {field:"Orthopedics", kw:[/orthop/i,/\bbone\b/i,/\bscrew\b/i,/reamer/i,/arthroscop/i,/\bknee\b/i,/\bhip\b/i,/femoral nail/i,/tibial/i,/suture anchor/i,/pedicle/i,/oscillating.*saw/i,/sagittal saw/i,/\bk-?wire/i,/intramedullary/i,/\bplate\b.*\b(screw|bone|fixation)/i]},
+  {field:"Cardiology / Cardiovascular", kw:[/cardiac/i,/coronary/i,/angio/i,/\bvalve\b/i,/pacemaker/i,/ablation/i,/hemodynamic/i,/aortic/i,/\bcardio/i,/guidewire/i,/\bballoon\b/i,/\bcannula\b/i,/\bsheath\b/i,/femoral.*venous/i]},
+  {field:"GI / Endoscopy", kw:[/endoscop/i,/biliary/i,/colonoscop/i,/gastro/i,/\bercp\b/i,/polypectom/i,/esophag/i,/banding/i,/\bgi\b/i]},
+  {field:"General / Laparoscopic Surgery", kw:[/stapler/i,/trocar/i,/laparoscop/i,/\bmesh\b/i,/harmonic/i,/ligasure/i,/endopath/i,/hernia/i,/clip applier/i,/electrosurg/i,/\bligature\b/i,/quick load/i,/knot/i]},
+  {field:"Neurosurgery", kw:[/\bcsf\b/i,/\bshunt\b/i,/cranial/i,/\bdura\b/i,/aneurysm/i,/ventricular/i,/\bicp\b/i,/\bneuro/i,/external.*drainage/i]},
+  {field:"Anesthesia / Pain", kw:[/epidural/i,/tuohy/i,/spinal needle/i,/anesthesi/i,/nerve block/i,/\bregional\b/i]},
+  {field:"Urology", kw:[/ureter/i,/urolog/i,/\bfoley\b/i,/nephro/i,/cystoscop/i,/prostate/i,/lithotrip/i,/double.?j/i,/\bstone\b/i]},
+  {field:"OB/GYN", kw:[/obstetr/i,/gynec/i,/uterine/i,/cervical/i,/vaginal/i,/hysteroscop/i,/\bfetal\b/i,/ob\/?gyn/i]},
+  {field:"Ophthalmology", kw:[/ophthalm/i,/intraocular/i,/\biol\b/i,/phaco/i,/vitrectom/i,/\bcornea/i,/\bretina/i]},
+  {field:"Wound Care / Supplies", kw:[/dressing/i,/\bgauze\b/i,/\bwound\b/i,/bandage/i]},
+];
+function inferField(rows){
+  const scores={}; const signals={};
+  (rows||[]).forEach(r=>{
+    const txt=(r.item||"")+" "; const w=Math.min(Number(r.qty)||1,5);
+    FIELD_RULES.forEach(rule=>{
+      if(rule.kw.some(re=>re.test(txt))){
+        scores[rule.field]=(scores[rule.field]||0)+w;
+        (signals[rule.field]=signals[rule.field]||[]).push((r.item||"").split(/[-–]/)[0].trim().slice(0,46));
+      }
+    });
+  });
+  const ranked=Object.keys(scores).map(f=>({field:f,score:scores[f]})).sort((a,b)=>b.score-a.score);
+  const total=ranked.reduce((s,x)=>s+x.score,0);
+  if(!ranked.length) return null;
+  const top=ranked[0], share=total?top.score/total:0;
+  const conf= share>=0.6?"strong": share>=0.35?"likely":"mixed";
+  return { top:top.field, share, conf, second: ranked[1]?ranked[1].field:null,
+           sig:[...new Set(signals[top.field]||[])].slice(0,3) };
+}
+function renderFieldBanner(rows){
+  const f=inferField(rows);
+  if(!f) return '';
+  const sub = (f.second? "Also seen: "+esc(f.second)+" · ":"") + (f.sig.length? "signals: "+f.sig.map(esc).join(", ") : "");
+  return '<div class="fieldbox">🔬 Likely medical field: <b>'+esc(f.top)+'</b>'+
+    '<span class="conf '+f.conf+'">'+f.conf+'</span>'+
+    (sub?'<div class="fieldsub">'+sub+'</div>':'')+
+    '<div class="fieldsub" style="opacity:.8">Best guess from purchase history — verify with the customer.</div></div>';
+}
+
 function renderPurchases(rows){
   if(!rows||!rows.length) return '<div style="color:#9aa7b4;font-size:12px">No prior orders found in the history.</div>';
   const groups={};
   rows.forEach(r=>{ const a=r.account||"SurgaMed"; (groups[a]=groups[a]||[]).push(r); });
-  let h='';
+  let h=renderFieldBanner(rows);
   Object.keys(groups).sort().forEach(acct=>{
     const list=groups[acct]; let total=0,units=0;
     list.forEach(r=>{ total+=Number(r.price||0)*Number(r.qty||1); units+=Number(r.qty||1); });
