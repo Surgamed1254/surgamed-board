@@ -651,10 +651,11 @@ async function openDetail(id){
   l.cats=(msg&&msg.categories)||l.cats||[]; (l.cats||[]).forEach(c=>KNOWN_CATS.add(c));
   let kvHtml=""; if(det.kv.length){ kvHtml='<h4>Key details</h4><div class="kv">'; det.kv.forEach(p=>{ kvHtml+='<div class="k">'+esc(p[0])+'</div><div class="v">'+esc(p[1])+'</div>'; }); kvHtml+='</div>'; }
   let custHtml = '<h4 id="custHdr" style="cursor:pointer;user-select:none"><span id="custCaret"></span> Customer purchase history <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="custBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up prior orders…</div></div>';
+  let suggHtml = '<h4>💡 Suggested items to pitch (live SurgaMed inventory)</h4><div id="suggBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Finding in-stock matches…</div></div>';
   let catHtml = '<h4>Tags (Outlook categories) — click to add or remove</h4><div id="tagsBox" style="margin-bottom:14px"></div>';
   const mb=o.querySelector(".mbody");
   if(err){ mb.innerHTML='<div class="err">Couldn’t load the email: '+esc(err)+'</div>'; return; }
-  mb.innerHTML = kvHtml + custHtml + catHtml + '<h4>History</h4><div id="histBox"></div>'+
+  mb.innerHTML = kvHtml + custHtml + suggHtml + catHtml + '<h4>History</h4><div id="histBox"></div>'+
     '<div style="margin:8px 0 16px;display:flex;gap:6px"><input id="noteIn" placeholder="Add a note…" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="noteBtn" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>'+
     '<h4>Full email</h4><pre class="bodytext">'+linkify(text||"(no text content)")+'</pre>';
   renderTags(l);
@@ -764,8 +765,30 @@ function renderPurchases(rows){
 }
 async function loadCustHistory(l){
   const box=document.getElementById("custBox"); if(!box) return;
-  try{ const rows=await getPurchases(l.custEmail,l.display); box.innerHTML=renderPurchases(rows); }
+  let rows=[];
+  try{ rows=await getPurchases(l.custEmail,l.display); box.innerHTML=renderPurchases(rows); }
   catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load history: '+esc(String(e.message||e))+'</div>'; }
+  loadSuggestions(rows);
+}
+// Suggest live in-stock inventory based on what the customer has bought: reorders
+// (same listing still in stock) + cross-sell (other in-stock items from their brands).
+async function loadSuggestions(rows){
+  const box=document.getElementById("suggBox"); if(!box) return;
+  try{
+    const ids=[...new Set((rows||[]).map(r=>r.listing).filter(Boolean))];
+    const mfgs=[...new Set((rows||[]).map(r=>{ const m=(r.item||'').trim().match(/^[A-Za-z][A-Za-z&.\-]*/); return m?m[0].replace(/[*,()]/g,'').toUpperCase():''; }).filter(w=>w&&w.length>=2))].slice(0,6);
+    if(!ids.length && !mfgs.length){ box.innerHTML='<div style="color:#9aa7b4;font-size:12px">No history to base suggestions on.</div>'; return; }
+    let reorder=[];
+    if(ids.length){ const { data }=await sb.from('listings').select('id,account,mfg,name,category,price,url').in('id',ids).eq('in_stock',true).limit(60); reorder=data||[]; }
+    let cross=[];
+    if(mfgs.length){ const orf=mfgs.map(m=>'mfg.ilike.'+m+'*').join(','); const { data }=await sb.from('listings').select('id,account,mfg,name,category,price,url').or(orf).eq('in_stock',true).limit(60); const ex=new Set([...ids,...reorder.map(r=>r.id)]); cross=(data||[]).filter(r=>!ex.has(r.id)).slice(0,12); }
+    if(!reorder.length && !cross.length){ box.innerHTML='<div style="color:#9aa7b4;font-size:12px">No in-stock matches found in current inventory.</div>'; return; }
+    function tbl(list){ let s='<table class="phtab"><thead><tr><th>Item</th><th>Category</th><th>Price</th><th></th></tr></thead><tbody>'; list.forEach(r=>{ s+='<tr><td>'+esc(r.name||r.mfg||'')+'</td><td>'+esc(r.category||'')+'</td><td>'+(r.price!=null?money(r.price):'')+'</td><td><a href="'+esc(r.url||'#')+'" target="_blank" rel="noopener">view</a></td></tr>'; }); s+='</tbody></table>'; return s; }
+    let h='';
+    if(reorder.length){ h+='<div class="phsum" style="font-weight:600;color:#1d7a3f">🔁 Reorder — bought before &amp; in stock now ('+reorder.length+')</div>'+tbl(reorder); }
+    if(cross.length){ h+='<div class="phsum" style="font-weight:600;color:#0b66c3;margin-top:10px">✨ More from brands they buy ('+cross.length+')</div>'+tbl(cross); }
+    box.innerHTML=h;
+  }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load suggestions: '+esc(String(e.message||e))+'</div>'; }
 }
 // Keep the purchase-history DB current: each time the board loads, scan the most
 // recent orders and upsert them (idempotent). Covers a few days of new orders.
