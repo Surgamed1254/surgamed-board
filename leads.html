@@ -138,6 +138,7 @@ h1{ font-size:20px; margin:0 0 2px; }
     </label>
     <label>Window:
       <select id="window">
+        <option value="rot">Today (this rotation)</option>
         <option value="3">Last 3 days</option>
         <option value="7" selected>Last 7 days</option>
         <option value="14">Last 14 days</option>
@@ -265,6 +266,23 @@ function effDate(d){
   return x;
 }
 function businessRef(){ return effDate(new Date()); }
+// Build the ms timestamp for hour:00 ET on a given Y-M-D (DST-safe).
+function etInstant(y,m,d,hour){
+  for(const off of [4,5]){
+    const t=Date.UTC(y,m-1,d,hour+off,0,0);
+    const h=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',hourCycle:'h23'}).format(new Date(t)));
+    if(h===hour) return t;
+  }
+  return Date.UTC(y,m-1,d,hour+4,0,0);
+}
+// Start of the current rotation window = the 6 PM ET handoff that began today's shift
+// (reaches back through the weekend on Mondays, matching who owns those leads).
+function rotationStartMs(){
+  const D=effDate(new Date());
+  const prev=new Date(D); prev.setDate(prev.getDate()-1);
+  while(prev.getDay()===0||prev.getDay()===6) prev.setDate(prev.getDate()-1);
+  return etInstant(prev.getFullYear(), prev.getMonth()+1, prev.getDate(), 18);
+}
 
 function titleCase(s){ return (s||"").replace(/\b\w/g,c=>c.toUpperCase()); }
 function senderName(s){ if(!s) return ""; const m=/^([^<]+)</.exec(s); if(m) return m[1].trim().replace(/^"|"$/g,""); if(/@/.test(s)) return s.split("@")[0].replace(/[._]/g," "); return s; }
@@ -449,8 +467,8 @@ async function enrichOrders(){
 async function load(){
   document.getElementById("errbox").innerHTML="";
   document.getElementById("board").innerHTML='<div class="loading">Loading leads…</div>';
-  const days=parseInt(document.getElementById("window").value,10);
-  const cutoff=Date.now()-days*86400000;
+  const wv=document.getElementById("window").value;
+  const cutoff = wv==='rot' ? rotationStartMs() : (Date.now()-parseInt(wv,10)*86400000);
   try{
     const data=await fetchLeads();
     let all=[], owners=[], reassigned=[];
