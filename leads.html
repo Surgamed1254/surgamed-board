@@ -141,6 +141,7 @@ h1{ font-size:20px; margin:0 0 2px; }
     </label>
     <label><input type="checkbox" id="hideClosed"> Hide closed</label>
     <button class="custbtn" id="custLookup">🔎 Customer lookup</button>
+    <button class="custbtn" id="teamActivity" style="display:none;background:#5b3fc4;border-color:#5b3fc4">👥 Team activity</button>
     <span class="whoami" id="whoami"></span>
     <button class="signout" id="signout">Sign out</button>
     <span class="counts" id="counts"></span>
@@ -203,6 +204,11 @@ async function showApp(session){
   const idStr = (ME+" "+(u.email||"")).toLowerCase();
   const myRep = REP_EMAILS[(u.email||"").toLowerCase()] || REPS.find(r => idStr.includes(r.toLowerCase()));
   if(myRep) document.getElementById("repFilter").value = myRep;
+  // Presence: record this user's "last seen" now and every minute while the board is open.
+  markPresence(u); setInterval(()=>markPresence(u), 60000);
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden) markPresence(u); });
+  // Team-activity view is visible only to the admin (Meir).
+  if((u.email||"").toLowerCase()===ADMIN_EMAIL){ const ta=document.getElementById("teamActivity"); ta.style.display=""; ta.onclick=openTeamActivity; }
   document.getElementById("signin").style.display="none";
   document.getElementById("app").style.display="block";
   renderRota();
@@ -660,6 +666,36 @@ function openCustSearch(){
   go.onclick=run; q.addEventListener("keydown",e=>{ if(e.key==="Enter")run(); }); q.focus();
 }
 document.getElementById("custLookup").onclick=openCustSearch;
+
+// ---- Presence / Team activity (admin-only) ----
+const ADMIN_EMAIL="mweinreb@surgamed.com";
+const TEAM=[ {email:"dcalvo@surgamed.com",name:"Deysi"}, {email:"malejo@surgamed.com",name:"Mirian"}, {email:"jlugo@surgamed.com",name:"Jennifer"}, {email:"tcohen@surgamed.com",name:"Tehila"} ];
+async function markPresence(u){
+  try{ await sb.from("presence").upsert({ id:u.id, email:(u.email||"").toLowerCase(), name:ME, last_seen:new Date().toISOString() }); }catch(e){}
+}
+function relTime(t){ const s=(Date.now()-t)/1000; if(s<60) return Math.max(0,Math.floor(s))+"s ago"; if(s<3600) return Math.floor(s/60)+"m ago"; if(s<86400) return Math.floor(s/3600)+"h ago"; return new Date(t).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); }
+async function openTeamActivity(){
+  const o=ensureOverlay(); o.style.display="flex";
+  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>Team activity</h3><div class="msub">Who’s on the board and when each rep was last active — visible to you only</div></div><div class="mbody"><div id="taBody"><div style="color:#9aa7b4;font-size:12px">Loading…</div></div></div></div>';
+  document.getElementById("mClose").onclick=closeDetail;
+  try{
+    const { data, error } = await sb.from("presence").select("*");
+    if(error) throw error;
+    const byEmail={}; (data||[]).forEach(r=>{ byEmail[(r.email||"").toLowerCase()]=r; });
+    const now=Date.now();
+    let h='<table class="phtab"><thead><tr><th>Rep</th><th>Status</th><th>Last active</th></tr></thead><tbody>';
+    TEAM.forEach(p=>{
+      const r=byEmail[p.email]; let status='<span style="color:#9aa7b4">— never signed in</span>', last='—';
+      if(r && r.last_seen){ const t=new Date(r.last_seen).getTime(); const online=(now-t)/60000 < 3;
+        status = online ? '<span style="color:#1d7a3f;font-weight:700">● Online now</span>' : '<span style="color:#8794a1">○ Offline</span>';
+        last = relTime(t);
+      }
+      h+='<tr><td>'+esc(p.name)+'<div style="color:#9aa7b4;font-size:11px">'+esc(p.email)+'</div></td><td>'+status+'</td><td>'+last+'</td></tr>';
+    });
+    h+='</tbody></table><div style="color:#9aa7b4;font-size:11px;margin-top:8px">“Online” = active in the last 3 minutes. Updates while a rep has the board open.</div>';
+    document.getElementById("taBody").innerHTML=h;
+  }catch(e){ document.getElementById("taBody").innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load: '+esc(String(e.message||e))+'</div>'; }
+}
 
 document.getElementById("repFilter").onchange=renderBoard;
 document.getElementById("statusFilter").onchange=renderBoard;
