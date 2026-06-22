@@ -208,7 +208,7 @@ async function showApp(session){
   markPresence(u); setInterval(()=>markPresence(u), 60000);
   document.addEventListener("visibilitychange",()=>{ if(!document.hidden) markPresence(u); });
   // Team-activity view is visible only to the admin (Meir).
-  if((u.email||"").toLowerCase()===ADMIN_EMAIL){ const ta=document.getElementById("teamActivity"); ta.style.display=""; ta.onclick=openTeamActivity; }
+  if(ADMINS.includes((u.email||"").toLowerCase())){ const ta=document.getElementById("teamActivity"); ta.style.display=""; ta.onclick=openTeamActivity; }
   document.getElementById("signin").style.display="none";
   document.getElementById("app").style.display="block";
   renderRota();
@@ -689,7 +689,7 @@ function openCustSearch(){
 document.getElementById("custLookup").onclick=openCustSearch;
 
 // ---- Presence / Team activity (admin-only) ----
-const ADMIN_EMAIL="mweinreb@surgamed.com";
+const ADMINS=["mweinreb@surgamed.com","sgluck@surgamed.com"];
 const TEAM=[ {email:"dcalvo@surgamed.com",name:"Deysi"}, {email:"malejo@surgamed.com",name:"Mirian"}, {email:"jlugo@surgamed.com",name:"Jennifer"}, {email:"tcohen@surgamed.com",name:"Tehila"} ];
 async function markPresence(u){
   try{ await sb.from("presence").upsert({ id:u.id, email:(u.email||"").toLowerCase(), name:ME, last_seen:new Date().toISOString() }); }catch(e){}
