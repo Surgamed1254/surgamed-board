@@ -84,6 +84,16 @@ h1{ font-size:20px; margin:0 0 2px; }
 .acctttl .dot{ width:9px;height:9px;border-radius:50%;display:inline-block; }
 .acctblock{ margin-bottom:8px; }
 .phsum{ font-size:11.5px; color:#5a6b7b; margin-bottom:4px; }
+.buyname{ color:#0b66c3; cursor:pointer; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:5px; }
+.buyname:hover{ text-decoration:underline; }
+.buyname .bcaret{ font-size:9px; color:#9aa7b4; transition:transform .12s; }
+.buyrow.open{ background:#eef4ff; }
+.buyrow.open .buyname{ color:#0b4a8a; }
+.buyrow.open .buyname .bcaret{ color:#0b66c3; }
+.buydetail td{ background:#f7faff; border-bottom:2px solid #d4e2fb; padding:0 !important; }
+.bdwrap{ padding:10px 12px 12px 26px; border-left:3px solid #0b66c3; margin:2px 0 2px 6px; }
+.bdwrap .bdhead{ font-size:12px; color:#5a6b7b; margin-bottom:8px; }
+.bdwrap .bdhead b{ color:#16334d; font-size:13px; }
 .fieldbox{ background:#eef4ff; border:1px solid #d4e2fb; border-radius:9px; padding:9px 12px; margin-bottom:12px; font-size:12.5px; color:#16334d; }
 .fieldbox b{ color:#0b4a8a; }
 .fieldbox .conf{ font-size:11px; font-weight:600; border-radius:20px; padding:1px 8px; margin-left:6px; }
@@ -872,15 +882,32 @@ function renderItemBuyers(rows){
     if(!c.name&&r.customer_name)c.name=r.customer_name; if(!c.phone&&r.customer_phone)c.phone=r.customer_phone;
   });
   const list=Object.values(by).sort((a,b)=>(b.units-a.units)||(b.last>a.last?1:-1));
-  let h='<div class="phsum" style="font-weight:600;margin-top:6px">👥 '+list.length+' customer'+(list.length===1?'':'s')+' bought this · '+rows.length+' line item'+(rows.length===1?'':'s')+' total</div>';
+  let h='<div class="phsum" style="font-weight:600;margin-top:6px">👥 '+list.length+' customer'+(list.length===1?'':'s')+' bought this · '+rows.length+' line item'+(rows.length===1?'':'s')+' total <span style="font-weight:400;color:#9aa7b4">— click a name for their full history</span></div>';
   h+='<table class="phtab"><thead><tr><th>Customer</th><th>Contact</th><th>Units</th><th>Orders</th><th>Last order</th><th>Account</th></tr></thead><tbody>';
-  list.forEach(c=>{
+  list.forEach((c,idx)=>{
     const contact=[c.email?'<a href="mailto:'+esc(c.email)+'">'+esc(c.email)+'</a>':'', c.phone?esc(c.phone):''].filter(Boolean).join('<br>');
     const accts=[...c.accts].map(a=>'<span style="color:'+(ACCT_COLOR[a]||"#5a6b7b")+'">'+esc(a)+'</span>').join(', ');
-    h+='<tr><td><b>'+esc(c.name||"(unknown)")+'</b></td><td>'+contact+'</td><td>'+c.units+'</td><td>'+c.orders+'</td><td>'+esc(c.last||"")+'</td><td>'+accts+'</td></tr>';
+    h+='<tr class="buyrow" id="br'+idx+'"><td><a href="#" class="buyname" data-bi="'+idx+'" data-email="'+esc(c.email||"")+'" data-name="'+esc(c.name||"")+'"><span class="bcaret">▸</span>'+esc(c.name||"(unknown)")+'</a></td><td>'+contact+'</td><td>'+c.units+'</td><td>'+c.orders+'</td><td>'+esc(c.last||"")+'</td><td>'+accts+'</td></tr>';
+    h+='<tr class="buydetail" id="bd'+idx+'" style="display:none"><td colspan="6"><div class="bdwrap" id="bdw'+idx+'"></div></td></tr>';
   });
   h+='</tbody></table>';
   return h;
+}
+// Expand a buyer row in place to reveal that customer's complete purchase history.
+async function toggleBuyer(idx, email, name, link){
+  const row=document.getElementById('br'+idx), detail=document.getElementById('bd'+idx), wrap=document.getElementById('bdw'+idx);
+  if(!detail) return;
+  const isOpen=detail.style.display!=='none';
+  if(isOpen){ detail.style.display='none'; row.classList.remove('open'); link.querySelector('.bcaret').textContent='▸'; return; }
+  detail.style.display=''; row.classList.add('open'); link.querySelector('.bcaret').textContent='▾';
+  if(wrap.dataset.loaded) return;
+  wrap.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading full history…</div>';
+  try{
+    const rows=await getPurchases(email,name);
+    const hdr='<div class="bdhead">📇 <b>'+esc(name||"(unknown)")+'</b>'+(email?' · '+esc(email):'')+' — complete order history across both accounts</div>';
+    wrap.innerHTML=hdr+renderPurchases(rows);
+    wrap.dataset.loaded='1';
+  }catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px;padding:6px 0">Couldn’t load history: '+esc(String(e.message||e))+'</div>'; }
 }
 function openItemSearch(){
   const o=ensureOverlay(); o.style.display="flex";
@@ -893,6 +920,7 @@ function openItemSearch(){
     res.innerHTML='<div style="color:#9aa7b4;font-size:12px">Searching inventory &amp; order history…</div>';
     try{ const [stock,buyers]=await Promise.all([getItemStock(v),getItemBuyers(v)]); res.innerHTML=renderItemStock(stock)+renderItemBuyers(buyers); }
     catch(e){ res.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; } }
+  res.onclick=function(e){ const a=e.target.closest(".buyname"); if(!a)return; e.preventDefault(); toggleBuyer(a.dataset.bi,a.dataset.email,a.dataset.name,a); };
   go.onclick=run; q.addEventListener("keydown",e=>{ if(e.key==="Enter")run(); }); q.focus();
 }
 document.getElementById("itemLookup").onclick=openItemSearch;
