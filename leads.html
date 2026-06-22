@@ -230,7 +230,18 @@ function rotationOffset(target){
   return d;
 }
 function repForCat(catKey,date){ let ci=0; CATS.forEach((c,i)=>{ if(c.key===catKey) ci=i; }); const d=rotationOffset(date); return REPS[(((ci-d)%4)+4)%4]; }
-function businessRef(){ const d=new Date(),w=d.getDay(); if(w===6)d.setDate(d.getDate()+2); if(w===0)d.setDate(d.getDate()+1); return d; }
+// Effective "owning business day" for a timestamp, evaluated in US Eastern:
+//  - handoff at 6 PM ET (after 6 PM rolls to the next business day's rep)
+//  - Sat/Sun (and Friday after 6 PM) roll forward to Monday's rep
+function effDate(d){
+  const f=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'});
+  const o={}; f.formatToParts(new Date(d)).forEach(p=>{ o[p.type]=p.value; });
+  let x=new Date(Number(o.year), Number(o.month)-1, Number(o.day), 12, 0, 0);
+  if(Number(o.hour)>=18) x.setDate(x.getDate()+1);
+  while(x.getDay()===0||x.getDay()===6) x.setDate(x.getDate()+1);
+  return x;
+}
+function businessRef(){ return effDate(new Date()); }
 
 function titleCase(s){ return (s||"").replace(/\b\w/g,c=>c.toUpperCase()); }
 function senderName(s){ if(!s) return ""; const m=/^([^<]+)</.exec(s); if(m) return m[1].trim().replace(/^"|"$/g,""); if(/@/.test(s)) return s.split("@")[0].replace(/[._]/g," "); return s; }
@@ -342,7 +353,7 @@ async function addHistory(id, action){
   await sb.from("lead_history").insert({ lead_id:id, actor:ME, action });
 }
 function st(id){ return STATE[id]||{}; }
-function effRep(l){ const s=st(l.id); return s.assignee||s.owner||repForCat(l.cat,new Date(l.date)); }
+function effRep(l){ const s=st(l.id); return s.assignee||s.owner||repForCat(l.cat,effDate(new Date(l.date))); }
 function effStatus(l){ return st(l.id).status||"new"; }
 async function applyRep(l, val){
   const prev=st(l.id).assignee||st(l.id).owner||"";
@@ -381,7 +392,7 @@ function buildCategory(emails, cat, cutoffMs){
   });
   const out=[], newOwners=[];
   for(const k in groups){ const g=groups[k], a=acctLabel(g.latest);
-    const owner=repForCat(cat.key,new Date(g.first.receivedDateTime));
+    const owner=repForCat(cat.key,effDate(new Date(g.first.receivedDateTime)));
     if(!st(g.id).owner){ STATE[g.id]=Object.assign({id:g.id},STATE[g.id]||{},{owner}); newOwners.push({id:g.id,owner,category:cat.key}); }
     out.push({ id:g.id, cat:cat.key, display:g.x.display, title:g.x.title, item:g.x.item, deal:g.x.deal,
       custEmail:g.x.custEmail, hasPhone:!!(g.x.phone||st(g.id).phone), listing:g.x.listing,
@@ -414,9 +425,12 @@ async function load(){
 }
 
 function renderRota(){
-  const ref=businessRef(), today=new Date(), wknd=(today.getDay()===0||today.getDay()===6);
+  const ref=businessRef();
+  const o={}; new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',hourCycle:'h23',weekday:'short'}).formatToParts(new Date()).forEach(p=>{ o[p.type]=p.value; });
+  const wknd=(o.weekday==='Sat'||o.weekday==='Sun'); const after6=Number(o.hour)>=18;
+  const note = wknd ? ' (weekend — showing next business day)' : (after6 ? ' (after 6 PM ET — next rep is up)' : '');
   const dname=ref.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"});
-  let html='<div><span class="day">Today’s rotation · '+dname+'</span>'+(wknd?' (weekend — next business day)':'')+'</div><div class="rota-grid">';
+  let html='<div><span class="day">On rotation now · '+dname+'</span>'+note+'</div><div class="rota-grid">';
   CATS.forEach(c=>{ html+='<div class="rota-card"><div class="cat">'+c.label+'</div><div class="rep">'+repForCat(c.key,ref)+'</div></div>'; });
   document.getElementById("rotabar").innerHTML=html+'</div>';
 }
