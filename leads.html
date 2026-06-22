@@ -71,6 +71,7 @@ h1{ font-size:20px; margin:0 0 2px; }
 .kv .k{ color:#7b8a99; font-weight:600; }
 .kv .v{ color:#16202c; white-space:pre-wrap; }
 .bodytext{ white-space:pre-wrap; font-family:inherit; font-size:12.5px; color:#2c3a47; background:#f7f9fb; border:1px solid #eef1f5; border-radius:8px; padding:12px 14px; margin:0; line-height:1.5; }
+.bodytext a{ color:#0b66c3; word-break:break-all; }
 .mbody h4{ font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:#7b8a99; margin:0 0 8px; }
 .modal .mfoot{ padding:12px 20px; border-top:1px solid #eef1f5; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
 .modal .mfoot .row2{ margin:0; flex:1 1 200px; }
@@ -507,6 +508,12 @@ function htmlToText(html){
     return (doc.body?doc.body.textContent:"").replace(/\r/g,"").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
   }catch(e){ return (html||"").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim(); }
 }
+function linkify(s){
+  let h=esc(String(s||""));
+  h=h.replace(/(https?:\/\/[^\s<"']+)/g, function(u){ return '<a href="'+u+'" target="_blank" rel="noopener">'+u+'</a>'; });
+  h=h.replace(/(^|[\s(])(www\.[^\s<"']+)/g, function(_,p,u){ return p+'<a href="https://'+u+'" target="_blank" rel="noopener">'+u+'</a>'; });
+  return h;
+}
 function pick(re,t){ const m=re.exec(t); return m?m[1].trim():""; }
 function extractDetails(text){
   const kv=[];
@@ -556,7 +563,7 @@ async function openDetail(id){
   if(err){ mb.innerHTML='<div class="err">Couldn’t load the email: '+esc(err)+'</div>'; return; }
   mb.innerHTML = kvHtml + custHtml + catHtml + '<h4>History</h4><div id="histBox"></div>'+
     '<div style="margin:8px 0 16px;display:flex;gap:6px"><input id="noteIn" placeholder="Add a note…" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="noteBtn" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>'+
-    '<h4>Full email</h4><pre class="bodytext">'+esc(text||"(no text content)")+'</pre>';
+    '<h4>Full email</h4><pre class="bodytext">'+linkify(text||"(no text content)")+'</pre>';
   renderTags(l);
   renderHist(l.id);
   loadCustHistory(l);
