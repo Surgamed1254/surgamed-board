@@ -202,6 +202,7 @@ let STATE = {};
 let LEADS = [];
 let TOKEN = "";
 let VIEW = localStorage.getItem('sg_view') || 'cards';
+let histMin = localStorage.getItem('sg_hist_min') === '1';
 
 function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function signinErr(m){ const e=document.getElementById("signinErr"); e.style.display="block"; e.textContent=m; }
@@ -649,7 +650,7 @@ async function openDetail(id){
   if(det.phone && !st(l.id).phone){ await upsertState(l.id,{phone:det.phone.replace(/[^0-9+]/g,"")}); l.hasPhone=true; }
   l.cats=(msg&&msg.categories)||l.cats||[]; (l.cats||[]).forEach(c=>KNOWN_CATS.add(c));
   let kvHtml=""; if(det.kv.length){ kvHtml='<h4>Key details</h4><div class="kv">'; det.kv.forEach(p=>{ kvHtml+='<div class="k">'+esc(p[0])+'</div><div class="v">'+esc(p[1])+'</div>'; }); kvHtml+='</div>'; }
-  let custHtml = '<h4>Customer purchase history</h4><div id="custBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up prior orders…</div></div>';
+  let custHtml = '<h4 id="custHdr" style="cursor:pointer;user-select:none"><span id="custCaret"></span> Customer purchase history <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="custBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up prior orders…</div></div>';
   let catHtml = '<h4>Tags (Outlook categories) — click to add or remove</h4><div id="tagsBox" style="margin-bottom:14px"></div>';
   const mb=o.querySelector(".mbody");
   if(err){ mb.innerHTML='<div class="err">Couldn’t load the email: '+esc(err)+'</div>'; return; }
@@ -659,6 +660,13 @@ async function openDetail(id){
   renderTags(l);
   renderHist(l.id);
   loadCustHistory(l);
+  (function(){
+    const hdr=document.getElementById("custHdr"), cb=document.getElementById("custBox"), car=document.getElementById("custCaret");
+    if(!hdr) return;
+    function apply(){ cb.style.display=histMin?"none":""; car.textContent=histMin?"▸":"▾"; }
+    apply();
+    hdr.onclick=function(){ histMin=!histMin; localStorage.setItem('sg_hist_min', histMin?'1':'0'); apply(); };
+  })();
   document.getElementById("noteBtn").onclick=async()=>{ const ni=document.getElementById("noteIn"); const v=ni.value.trim(); if(!v)return; await addHistory(l.id,"Note: "+v); ni.value=""; renderHist(l.id); };
   const modal=o.querySelector(".modal");
   const stt=effStatus(l), rep=effRep(l);
