@@ -94,6 +94,12 @@ h1{ font-size:20px; margin:0 0 2px; }
 .bdwrap{ padding:10px 12px 12px 26px; border-left:3px solid #0b66c3; margin:2px 0 2px 6px; }
 .bdwrap .bdhead{ font-size:12px; color:#5a6b7b; margin-bottom:8px; }
 .bdwrap .bdhead b{ color:#16334d; font-size:13px; }
+.relbox{ background:#fff7e6; border:1px solid #ffd98a; border-radius:9px; padding:9px 12px; margin-bottom:10px; font-size:12.5px; color:#5a3d00; }
+.relbox b{ color:#9a5b14; }
+.logrow{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.logbtn{ padding:4px 10px; border:1px solid #d7dee6; border-radius:7px; background:#f7f9fb; font-size:12px; font-weight:600; cursor:pointer; }
+.logbtn:hover{ background:#eef4ff; border-color:#b9d2f5; }
+.tag.relbadge{ background:#fff1d6; color:#9a5b14; }
 .fieldbox{ background:#eef4ff; border:1px solid #d4e2fb; border-radius:9px; padding:9px 12px; margin-bottom:12px; font-size:12.5px; color:#16334d; }
 .fieldbox b{ color:#0b4a8a; }
 .fieldbox .conf{ font-size:11px; font-weight:600; border-radius:20px; padding:1px 8px; margin-left:6px; }
@@ -209,6 +215,9 @@ const STATUSES = [
 const ANCHOR = new Date(2026,5,16);
 
 let ME = "";
+let MY_REP = "";   // which of the 4 reps the signed-in user is (if any)
+let MY_EMAIL = ""; // signed-in user's email
+let CONTACTS_BY_EMAIL = {}; // customer_email -> {rep, count} established-relationship map
 let STATE = {};
 let LEADS = [];
 let TOKEN = "";
@@ -240,6 +249,8 @@ async function showApp(session){
   const REP_EMAILS = { "dcalvo@surgamed.com":"Deysi", "malejo@surgamed.com":"Mirian", "jlugo@surgamed.com":"Jennifer", "tcohen@surgamed.com":"Tehila" };
   const idStr = (ME+" "+(u.email||"")).toLowerCase();
   const myRep = REP_EMAILS[(u.email||"").toLowerCase()] || REPS.find(r => idStr.includes(r.toLowerCase()));
+  MY_REP = myRep || "";
+  MY_EMAIL = (u.email||"").toLowerCase();
   if(myRep) document.getElementById("repFilter").value = myRep;
   // Presence: record this user's "last seen" now and every minute while the board is open.
   markPresence(u); setInterval(()=>markPresence(u), 60000);
@@ -422,6 +433,86 @@ async function applyStatus(l, val){
   await addHistory(l.id,"Status: "+statusObj(ps).label+" → "+statusObj(val).label);
 }
 
+// ---- Rep contact history (so the team knows who's already in touch with a customer) ----
+const CHAN_LABEL={ email:"✉️ Emailed", phone:"📞 Called", whatsapp:"💬 WhatsApp", note:"📝 Note" };
+async function getContacts(email){
+  if(!email) return [];
+  const { data } = await sb.from("contacts").select("*").eq("customer_email",String(email).toLowerCase()).order("created_at",{ascending:false}).limit(200);
+  return data||[];
+}
+// Record that the signed-in rep made contact with this lead's customer.
+async function logContact(l, channel, note){
+  if(!l) return;
+  const email=(l.custEmail||"").toLowerCase();
+  if(!email && !note) return;
+  const rep = (REPS.includes(MY_REP)?MY_REP:"") || effRep(l) || ME;
+  try{
+    await sb.from("contacts").insert({
+      customer_email: email||null, customer_name: l.display||l.custName||null,
+      rep, rep_email: MY_EMAIL||null, channel, lead_id: l.id, listing: l.listing||null, note: note||null
+    });
+    if(email){ const cur=CONTACTS_BY_EMAIL[email]||{rep, count:0}; CONTACTS_BY_EMAIL[email]={rep:cur.rep||rep, count:(cur.count||0)+1}; }
+  }catch(e){ /* non-fatal */ }
+}
+// Which rep "owns the relationship" for a set of contact rows: most contacts, earliest wins ties.
+function primaryRep(rows){
+  const cnt={}, first={};
+  (rows||[]).forEach(r=>{ if(!r.rep) return; cnt[r.rep]=(cnt[r.rep]||0)+1; if(!first[r.rep]||r.created_at<first[r.rep]) first[r.rep]=r.created_at; });
+  const reps=Object.keys(cnt); if(!reps.length) return null;
+  reps.sort((a,b)=>(cnt[b]-cnt[a])||(first[a]<first[b]?-1:1));
+  return reps[0];
+}
+function renderContacts(rows, l){
+  if(!rows||!rows.length) return '<div style="color:#9aa7b4;font-size:12px">No rep has logged contact with this customer yet.</div>';
+  const pr=primaryRep(rows);
+  let h='';
+  if(pr){ h+='<div class="relbox">🤝 Relationship: <b>'+esc(pr)+'</b> already deals with this customer — keep it with '+esc(pr)+'. <span style="color:#5a6b7b">('+rows.length+' contact'+(rows.length===1?'':'s')+' on record)</span></div>'; }
+  h+='<table class="phtab"><thead><tr><th>When</th><th>Rep</th><th>Channel</th><th>Note</th></tr></thead><tbody>';
+  rows.forEach(r=>{ const d=new Date(r.created_at), ds=isNaN(d.getTime())?(r.created_at||''):d.toLocaleString(undefined,{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"});
+    h+='<tr><td class="nowrap">'+esc(ds)+'</td><td><b>'+esc(r.rep||'—')+'</b></td><td>'+esc((CHAN_LABEL[r.channel]||r.channel||''))+'</td><td>'+esc(r.note||'')+'</td></tr>'; });
+  h+='</tbody></table>';
+  return h;
+}
+async function loadContacts(l){
+  const box=document.getElementById("contactBox"); if(!box) return;
+  try{ const rows=await getContacts(l.custEmail); box.innerHTML=renderContacts(rows,l); }
+  catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load contact history: '+esc(String(e.message||e))+'</div>'; }
+}
+// Build the customer→primary-rep map and auto-assign matching leads to that rep
+// (so repeat customers stay with the rep who already deals with them).
+async function applyContactOwnership(){
+  CONTACTS_BY_EMAIL={};
+  const emails=[...new Set(LEADS.map(l=>(l.custEmail||'').toLowerCase()).filter(Boolean))];
+  if(!emails.length) return;
+  let rows=[];
+  try{
+    for(let i=0;i<emails.length;i+=80){
+      const chunk=emails.slice(i,i+80);
+      const { data } = await sb.from('contacts').select('customer_email,rep,created_at').in('customer_email',chunk);
+      rows=rows.concat(data||[]);
+    }
+  }catch(e){ return; }
+  const byEmail={};
+  rows.forEach(r=>{ const e=(r.customer_email||'').toLowerCase(); if(!e) return; (byEmail[e]=byEmail[e]||[]).push(r); });
+  Object.keys(byEmail).forEach(e=>{ const pr=primaryRep(byEmail[e]); if(pr) CONTACTS_BY_EMAIL[e]={rep:pr, count:byEmail[e].length}; });
+  // Auto-assign: leads still on their rotation owner (no manual reassignment) go to the primary rep.
+  const assigns=[];
+  LEADS.forEach(l=>{
+    const e=(l.custEmail||'').toLowerCase(); if(!e) return;
+    const info=CONTACTS_BY_EMAIL[e]; if(!info||!REPS.includes(info.rep)) return;
+    if(st(l.id).assignee) return;          // respect a manual reassignment
+    if(effRep(l)===info.rep) return;        // already with them
+    assigns.push({id:l.id, rep:info.rep});
+  });
+  if(assigns.length){
+    try{
+      await sb.from('lead_state').upsert(assigns.map(a=>({id:a.id, assignee:a.rep, updated_by:'contact-history'})));
+      await sb.from('lead_history').insert(assigns.map(a=>({lead_id:a.id, actor:'system', action:'Auto-assigned to '+a.rep+' — '+a.rep+' already deals with this customer'})));
+      assigns.forEach(a=>{ STATE[a.id]=Object.assign({id:a.id}, STATE[a.id]||{}, {assignee:a.rep, updated_by:'contact-history'}); });
+    }catch(e){}
+  }
+}
+
 async function fetchLeads(){
   const r = await fetch(FN_URL, { headers:{ Authorization:"Bearer "+(await freshToken()), apikey:SB_KEY } });
   if(!r.ok){ const t=await r.text(); throw new Error("Server "+r.status+": "+t.slice(0,200)); }
@@ -489,6 +580,7 @@ async function load(){
     LEADS=all;
     LEADS.forEach(l=>(l.cats||[]).forEach(c=>KNOWN_CATS.add(c)));
     await enrichOrders();
+    await applyContactOwnership();
     if(owners.length){ await sb.from("lead_state").upsert(owners.map(o=>({id:o.id,owner:o.owner,category:o.category,status:"new",updated_by:"rotation"}))); }
     if(reassigned.length){
       await sb.from("lead_state").upsert(reassigned.map(o=>({id:o.id,owner:o.owner,updated_by:"rotation (6 PM ET rule)"})));
@@ -557,9 +649,9 @@ function renderList(){
       '<td class="lcust" data-detail="'+l.id+'"><b>'+esc(titleCase(l.display))+'</b>'+(l.hasPhone?' ☎':'')+'<div class="lsub">'+esc(l.title)+'</div></td>'+
       '<td class="litem">'+esc(l.item||'')+(l.deal?'<div class="lsub">'+esc(l.deal)+'</div>':'')+'</td>'+
       '<td><span class="tag acct'+(l.acct.sd?' sd':'')+'">'+l.acct.t+'</span></td>'+
-      '<td>'+repSel+'</td>'+
+      '<td>'+repSel+relBadge(l)+'</td>'+
       '<td><span class="statusbadge" style="background:'+so.color+'"></span>'+statSel+'</td>'+
-      '<td class="lact"><a href="'+replyHref+'"'+(l.custEmail?'':' target="_blank" rel="noopener"')+'>'+(l.custEmail?'Reply':'Open')+'</a><button data-act="wa" data-id="'+l.id+'">WA</button><button data-act="call" data-id="'+l.id+'">Call</button>'+(l.webLink?'<a href="'+l.webLink+'" target="_blank" rel="noopener">Outlook</a>':'')+'</td>'+
+      '<td class="lact"><a class="mailact" data-id="'+l.id+'" href="'+replyHref+'"'+(l.custEmail?'':' target="_blank" rel="noopener"')+'>'+(l.custEmail?'Reply':'Open')+'</a><button data-act="wa" data-id="'+l.id+'">WA</button><button data-act="call" data-id="'+l.id+'">Call</button>'+(l.webLink?'<a class="mailact" data-id="'+l.id+'" href="'+l.webLink+'" target="_blank" rel="noopener">Outlook</a>':'')+'</td>'+
     '</tr>';
   });
   h+='</tbody></table>';
@@ -567,6 +659,7 @@ function renderList(){
   document.getElementById("counts").textContent=rows.length+" shown · "+LEADS.length+" in window";
   wireCards();
 }
+function relBadge(l){ const e=(l.custEmail||'').toLowerCase(); const info=CONTACTS_BY_EMAIL[e]; return (info&&info.rep)?('<span class="tag relbadge" title="Existing relationship — keep with this rep">🤝 '+esc(info.rep)+'</span>'):''; }
 function cardHtml(l){
   const stt=effStatus(l), so=statusObj(stt), rep=effRep(l);
   let repSel='<select data-id="'+l.id+'" data-k="rep">'; REPS.forEach(r=>{ repSel+='<option'+(r===rep?' selected':'')+'>'+r+'</option>'; }); repSel+='</select>';
@@ -576,7 +669,7 @@ function cardHtml(l){
     '<div class="cardhead" data-detail="'+l.id+'"><div class="from">'+esc(titleCase(l.display))+'</div>'+
     '<div class="ttl">'+esc(l.title)+'</div>'+(l.item?'<div class="item">'+esc(l.item)+'</div>':'')+
     '<div class="cardhint">▸ tap for full email</div></div>'+
-    '<div class="meta"><span class="tag rep" title="Owner">'+rep+'</span>'+
+    '<div class="meta"><span class="tag rep" title="Owner">'+rep+'</span>'+relBadge(l)+
       (l.deal?'<span class="tag deal">'+esc(l.deal)+'</span>':'')+
       (l.hasPhone?'<span class="tag ph" title="Phone on file">☎</span>':'')+
       '<span class="tag date">'+fmtDate(l.date)+'</span>'+
@@ -585,10 +678,10 @@ function cardHtml(l){
       (l.count>1?'<span class="tag thread">'+l.count+'</span>':'')+
       '<span><span class="statusbadge" style="background:'+so.color+'"></span>'+so.label+'</span></div>'+
     '<div class="row2">'+repSel+statSel+'</div>'+
-    '<div class="actions"><a href="'+replyHref+'"'+(l.custEmail?'':' target="_blank" rel="noopener"')+'>'+(l.custEmail?"Reply":"Open")+'</a>'+
+    '<div class="actions"><a class="mailact" data-id="'+l.id+'" href="'+replyHref+'"'+(l.custEmail?'':' target="_blank" rel="noopener"')+'>'+(l.custEmail?"Reply":"Open")+'</a>'+
       '<button data-act="wa" data-id="'+l.id+'">WhatsApp</button>'+
       '<button data-act="call" data-id="'+l.id+'">Call</button>'+
-      (l.webLink?'<a href="'+l.webLink+'" target="_blank" rel="noopener">Outlook</a>':'')+'</div></div>';
+      (l.webLink?'<a class="mailact" data-id="'+l.id+'" href="'+l.webLink+'" target="_blank" rel="noopener">Outlook</a>':'')+'</div></div>';
 }
 function findLead(id){ return LEADS.find(l=>l.id===id); }
 function wireCards(){
@@ -597,6 +690,7 @@ function wireCards(){
       if(this.getAttribute("data-k")==="rep") await applyRep(l,this.value); else await applyStatus(l,this.value); renderBoard(); };
   });
   document.querySelectorAll("#board button[data-act][data-id]").forEach(b=>{ b.onclick=function(){ contactAction(this.getAttribute("data-id"),this.getAttribute("data-act")); }; });
+  document.querySelectorAll("#board a.mailact[data-id]").forEach(a=>{ a.addEventListener("click",function(){ const l=findLead(this.getAttribute("data-id")); if(l) logContact(l,"email"); }); });
   document.querySelectorAll("#board [data-detail]").forEach(h=>{ h.onclick=function(){ openDetail(this.getAttribute("data-detail")); }; });
 }
 async function contactAction(id,act){
@@ -665,14 +759,25 @@ async function openDetail(id){
   let custHtml = '<h4 id="custHdr" style="cursor:pointer;user-select:none"><span id="custCaret"></span> Customer purchase history <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="custBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up prior orders…</div></div>';
   let suggHtml = '<h4 id="suggHdr" style="cursor:pointer;user-select:none"><span id="suggCaret"></span> 💡 Suggested items to pitch (live inventory) <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="suggBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Finding in-stock matches…</div></div>';
   let catHtml = '<h4>Tags (Outlook categories) — click to add or remove</h4><div id="tagsBox" style="margin-bottom:14px"></div>';
+  let contactHtml = '<h4>📨 Rep contact history <span style="color:#9aa7b4;font-weight:400;font-size:10px">(who on the team has already reached this customer)</span></h4>'+
+    '<div id="contactBox" style="margin-bottom:8px"><div style="color:#9aa7b4;font-size:12px">Loading contact history…</div></div>'+
+    '<div class="logrow" style="margin-bottom:16px"><span style="color:#5a6b7b;font-size:12px">Log a contact:</span> <button class="logbtn" data-log="email">✉️ Email</button><button class="logbtn" data-log="phone">📞 Call</button><button class="logbtn" data-log="whatsapp">💬 WhatsApp</button><button class="logbtn" data-log="note">📝 Note</button></div>';
   const mb=o.querySelector(".mbody");
   if(err){ mb.innerHTML='<div class="err">Couldn’t load the email: '+esc(err)+'</div>'; return; }
-  mb.innerHTML = kvHtml + custHtml + suggHtml + catHtml + '<h4>History</h4><div id="histBox"></div>'+
+  mb.innerHTML = kvHtml + contactHtml + custHtml + suggHtml + catHtml + '<h4>History</h4><div id="histBox"></div>'+
     '<div style="margin:8px 0 16px;display:flex;gap:6px"><input id="noteIn" placeholder="Add a note…" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="noteBtn" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>'+
     '<h4>Full email</h4><pre class="bodytext">'+linkify(text||"(no text content)")+'</pre>';
   renderTags(l);
   renderHist(l.id);
+  loadContacts(l);
   loadCustHistory(l);
+  mb.querySelectorAll('.logbtn[data-log]').forEach(b=>{ b.onclick=async()=>{
+    const ch=b.getAttribute('data-log'); let note='';
+    if(ch==='note'){ note=(prompt('Note about this customer / contact:')||'').trim(); if(!note) return; }
+    await logContact(l, ch, note);
+    await addHistory(l.id, (CHAN_LABEL[ch]||ch)+(note?': '+note:'')+' — '+(MY_REP||ME));
+    await loadContacts(l); renderHist(l.id);
+  }; });
   (function(){
     const hdr=document.getElementById("custHdr"), cb=document.getElementById("custBox"), car=document.getElementById("custCaret");
     if(!hdr) return;
@@ -696,11 +801,13 @@ async function openDetail(id){
   let statSel='<select data-k="status">'; STATUSES.forEach(s=>{ statSel+='<option value="'+s.key+'"'+(s.key===stt?' selected':'')+'>'+s.label+'</option>'; }); statSel+='</select>';
   const replyHref=l.custEmail?("mailto:"+encodeURIComponent(l.custEmail)+"?subject="+encodeURIComponent("Re: "+(l.title||"DOTmed"))):(l.webLink||"#");
   const foot=document.createElement("div"); foot.className="mfoot";
-  foot.innerHTML='<div class="row2">'+repSel+statSel+'</div><div class="actions"><a href="'+replyHref+'"'+(l.custEmail?'':' target="_blank" rel="noopener"')+'>'+(l.custEmail?"Reply":"Open")+'</a><button data-act="wa">WhatsApp</button><button data-act="call">Call</button>'+(l.webLink?'<a href="'+l.webLink+'" target="_blank" rel="noopener">Outlook</a>':'')+'</div>';
+  foot.innerHTML='<div class="row2">'+repSel+statSel+'</div><div class="actions"><a id="detReply" href="'+replyHref+'"'+(l.custEmail?'':' target="_blank" rel="noopener"')+'>'+(l.custEmail?"Reply":"Open")+'</a><button data-act="wa">WhatsApp</button><button data-act="call">Call</button>'+(l.webLink?'<a id="detOutlook" href="'+l.webLink+'" target="_blank" rel="noopener">Outlook</a>':'')+'</div>';
   modal.appendChild(foot);
   foot.querySelector('[data-k="rep"]').onchange=async function(){ await applyRep(l,this.value); renderBoard(); renderHist(l.id); };
   foot.querySelector('[data-k="status"]').onchange=async function(){ await applyStatus(l,this.value); renderBoard(); renderHist(l.id); };
   foot.querySelectorAll("button[data-act]").forEach(b=>{ b.onclick=()=>contactAction(l.id,b.getAttribute("data-act")); });
+  // Auto-log a contact when the rep emails the customer (Reply or Outlook).
+  ["detReply","detOutlook"].forEach(id=>{ const a=foot.querySelector("#"+id); if(a) a.addEventListener("click",()=>{ logContact(l,"email"); setTimeout(()=>loadContacts(l),500); }); });
 }
 
 // ---- Customer purchase history ----
