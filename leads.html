@@ -184,6 +184,7 @@ h1{ font-size:20px; margin:0 0 2px; }
     <label><input type="checkbox" id="hideClosed"> Hide closed</label>
     <button class="custbtn" id="custLookup">🔎 Customer lookup</button>
     <button class="custbtn" id="itemLookup" style="background:#0b66c3;border-color:#0b66c3">📦 Item lookup</button>
+    <button class="custbtn" id="mySig" style="background:#5a6b7b;border-color:#5a6b7b">✍️ My signature</button>
     <button class="custbtn" id="teamActivity" style="display:none;background:#5b3fc4;border-color:#5b3fc4">👥 Team activity</button>
     <span class="whoami" id="whoami"></span>
     <button class="signout" id="signout">Sign out</button>
@@ -221,6 +222,8 @@ const ANCHOR = new Date(2026,5,16);
 let ME = "";
 let MY_REP = "";   // which of the 4 reps the signed-in user is (if any)
 let MY_EMAIL = ""; // signed-in user's email
+let MY_SIG = "";       // signed-in user's saved email signature
+let MY_SIG_HTML = false; // whether the signature is HTML
 let CONTACTS_BY_EMAIL = {}; // customer_email -> {rep, count} established-relationship map
 let STATE = {};
 let LEADS = [];
@@ -256,6 +259,7 @@ async function showApp(session){
   MY_REP = myRep || "";
   MY_EMAIL = (u.email||"").toLowerCase();
   if(myRep) document.getElementById("repFilter").value = myRep;
+  loadMySignature();
   // Presence: record this user's "last seen" now and every minute while the board is open.
   markPresence(u); setInterval(()=>markPresence(u), 60000);
   document.addEventListener("visibilitychange",()=>{ if(!document.hidden) markPresence(u); });
@@ -567,7 +571,7 @@ async function sendReply(l){
   btn.disabled=true; msg.style.color="#5a6b7b"; msg.textContent="Sending…";
   try{
     const rep=(REPS.includes(MY_REP)?MY_REP:effRep(l))||ME;
-    const payload={ action:"send", rep, text, to, subject:"Re: "+(l.title||"DOTmed") };
+    const payload={ action:"send", rep, text, to, subject:"Re: "+(l.title||"DOTmed"), signature:MY_SIG, html:MY_SIG_HTML };
     if(l.cat!=='orders' && l.uri){ payload.replyTo=l.uri; } // thread the reply for real customer conversations
     const r=await fetch(FN_URL,{method:"POST",headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify(payload)});
     const d=await r.json();
@@ -1090,6 +1094,34 @@ function openItemSearch(){
   go.onclick=run; q.addEventListener("keydown",e=>{ if(e.key==="Enter")run(); }); q.focus();
 }
 document.getElementById("itemLookup").onclick=openItemSearch;
+
+// ---- Per-rep email signature (added to every email sent from the board) ----
+async function loadMySignature(){
+  try{
+    if(!MY_EMAIL) return;
+    const { data } = await sb.from("rep_settings").select("signature,is_html").eq("rep_email",MY_EMAIL).limit(1);
+    if(data && data[0]){ MY_SIG=data[0].signature||""; MY_SIG_HTML=!!data[0].is_html; }
+  }catch(e){ /* table may not exist yet; ignore */ }
+}
+function openSignatureEditor(){
+  const o=ensureOverlay(); o.style.display="flex";
+  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>My email signature</h3><div class="msub">Added to the bottom of every email you send from the board (you’re signed in as '+esc(MY_REP||ME)+')</div></div>'+
+    '<div class="mbody"><label style="font-size:12px;color:#5a6b7b;display:block;margin-bottom:6px"><input type="checkbox" id="sigHtml"'+(MY_SIG_HTML?' checked':'')+'> This signature is HTML (paste a rich/HTML signature — supports formatting, links &amp; a hosted logo image)</label>'+
+    '<textarea id="sigText" placeholder="e.g.&#10;Deysi Calvo&#10;SurgaMed&#10;305-555-1234 · sales@surgamed.com" style="width:100%;box-sizing:border-box;min-height:170px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
+    '<div style="margin-top:8px;display:flex;gap:8px;align-items:center"><button id="sigSave" class="custbtn" style="background:#1d7a3f;border-color:#1d7a3f">Save signature</button><span id="sigMsg" style="font-size:12px;color:#5a6b7b"></span></div>'+
+    '<div style="margin-top:12px;font-size:11px;color:#9aa7b4">For a logo, host the image at a public URL and include &lt;img src="https://…"&gt; in an HTML signature. Plain-text signatures are kept exactly as typed.</div></div></div>';
+  document.getElementById("mClose").onclick=closeDetail;
+  document.getElementById("sigText").value=MY_SIG;
+  document.getElementById("sigSave").onclick=async()=>{
+    const v=document.getElementById("sigText").value; const ishtml=document.getElementById("sigHtml").checked;
+    const msg=document.getElementById("sigMsg"); msg.style.color="#5a6b7b"; msg.textContent="Saving…";
+    try{
+      await sb.from("rep_settings").upsert({ rep_email:MY_EMAIL, rep_name:(MY_REP||ME), signature:v, is_html:ishtml, updated_at:new Date().toISOString() });
+      MY_SIG=v; MY_SIG_HTML=ishtml; msg.style.color="#1d7a3f"; msg.textContent="Saved ✓ — it’ll be added to every email you send from the board.";
+    }catch(e){ msg.style.color="#c0392b"; msg.textContent="Couldn’t save: "+String(e.message||e); }
+  };
+}
+{ const sb_=document.getElementById("mySig"); if(sb_) sb_.onclick=openSignatureEditor; }
 
 // ---- Presence / Team activity (admin-only) ----
 const ADMINS=["mweinreb@surgamed.com","sgluck@surgamed.com"];
