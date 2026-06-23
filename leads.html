@@ -100,6 +100,10 @@ h1{ font-size:20px; margin:0 0 2px; }
 .logbtn{ padding:4px 10px; border:1px solid #d7dee6; border-radius:7px; background:#f7f9fb; font-size:12px; font-weight:600; cursor:pointer; }
 .logbtn:hover{ background:#eef4ff; border-color:#b9d2f5; }
 .tag.relbadge{ background:#fff1d6; color:#9a5b14; }
+.emrow .lsub{ font-size:10.5px; color:#9aa7b4; }
+.emwrap{ padding:8px 12px 10px 18px; border-left:3px solid #0b66c3; background:#f7faff; margin:2px 0; }
+.emlink{ color:#0b66c3; text-decoration:none; font-weight:600; }
+.emlink:hover{ text-decoration:underline; }
 .fieldbox{ background:#eef4ff; border:1px solid #d4e2fb; border-radius:9px; padding:9px 12px; margin-bottom:12px; font-size:12.5px; color:#16334d; }
 .fieldbox b{ color:#0b4a8a; }
 .fieldbox .conf{ font-size:11px; font-weight:600; border-radius:20px; padding:1px 8px; margin-left:6px; }
@@ -488,7 +492,7 @@ async function applyContactOwnership(){
   try{
     for(let i=0;i<emails.length;i+=80){
       const chunk=emails.slice(i,i+80);
-      const { data } = await sb.from('contacts').select('customer_email,rep,created_at').in('customer_email',chunk);
+      const { data } = await sb.from('contacts').select('customer_email,rep,created_at').not('message_id','is',null).in('customer_email',chunk);
       rows=rows.concat(data||[]);
     }
   }catch(e){ return; }
@@ -511,6 +515,46 @@ async function applyContactOwnership(){
       assigns.forEach(a=>{ STATE[a.id]=Object.assign({id:a.id}, STATE[a.id]||{}, {assignee:a.rep, updated_by:'contact-history'}); });
     }catch(e){}
   }
+}
+
+// ---- Real email history: every message to/from this customer, live from orders@ ----
+function renderEmailList(items){
+  if(!items||!items.length) return '<div style="color:#9aa7b4;font-size:12px">No emails found with this customer in the orders@ mailbox.</div>';
+  let h='<table class="phtab"><thead><tr><th></th><th>Subject</th><th>Date</th><th>Direction</th><th></th></tr></thead><tbody>';
+  items.forEach((m,i)=>{
+    const dir = m.dir==='out' ? '<span style="color:#1d7a3f">✉️ Sent</span>' : '<span style="color:#0b66c3">📨 Received</span>';
+    const who = m.dir==='out' ? ('to '+esc((m.to&&m.to[0])||'')) : ('from '+esc(m.fromName||m.from||''));
+    const d=new Date(m.date), ds=isNaN(d.getTime())?String(m.date||'').slice(0,16):d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+    h+='<tr class="emrow"><td>'+(m.hasAttachments?'📎':'')+'</td>'+
+       '<td><a href="#" class="emlink" data-ei="'+i+'" data-id="'+esc(m.id)+'">'+esc(m.subject||'(no subject)')+'</a><div class="lsub">'+who+'</div></td>'+
+       '<td class="nowrap">'+esc(ds)+'</td><td>'+dir+'</td>'+
+       '<td>'+(m.webLink?'<a href="'+esc(m.webLink)+'" target="_blank" rel="noopener" title="Open in Outlook">↗</a>':'')+'</td></tr>';
+    h+='<tr class="emdetail" id="emd'+i+'" style="display:none"><td colspan="5"><div class="emwrap" id="emw'+i+'"></div></td></tr>';
+  });
+  h+='</tbody></table>';
+  return h;
+}
+async function loadEmailThread(l){
+  const box=document.getElementById("emailBox"); if(!box) return;
+  const email=(l.custEmail||"").trim();
+  if(!email){ box.innerHTML='<div style="color:#9aa7b4;font-size:12px">No customer email on this lead to look up.</div>'; return; }
+  try{
+    const r=await fetch(FN_URL+"?thread="+encodeURIComponent(email),{headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY}});
+    const d=await r.json();
+    if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
+    box.innerHTML=renderEmailList(d.items);
+    box.onclick=function(e){ const a=e.target.closest(".emlink"); if(!a)return; e.preventDefault(); toggleEmail(a.dataset.ei, a.dataset.id); };
+  }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load emails: '+esc(String(e.message||e))+'</div>'; }
+}
+async function toggleEmail(i, id){
+  const det=document.getElementById("emd"+i), wrap=document.getElementById("emw"+i);
+  if(!det) return;
+  if(det.style.display!=="none"){ det.style.display="none"; return; }
+  det.style.display="";
+  if(wrap.dataset.loaded) return;
+  wrap.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading email…</div>';
+  try{ const m=await fetchMessage(id); const text=htmlToText((m&&m.body&&m.body.content)||(m&&m.summary)||""); wrap.innerHTML='<pre class="bodytext" style="margin:6px 0">'+linkify(text||"(no text content)")+'</pre>'; wrap.dataset.loaded="1"; }
+  catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t open this email: '+esc(String(e.message||e))+'</div>'; }
 }
 
 async function fetchLeads(){
@@ -690,7 +734,6 @@ function wireCards(){
       if(this.getAttribute("data-k")==="rep") await applyRep(l,this.value); else await applyStatus(l,this.value); renderBoard(); };
   });
   document.querySelectorAll("#board button[data-act][data-id]").forEach(b=>{ b.onclick=function(){ contactAction(this.getAttribute("data-id"),this.getAttribute("data-act")); }; });
-  document.querySelectorAll("#board a.mailact[data-id]").forEach(a=>{ a.addEventListener("click",function(){ const l=findLead(this.getAttribute("data-id")); if(l) logContact(l,"email"); }); });
   document.querySelectorAll("#board [data-detail]").forEach(h=>{ h.onclick=function(){ openDetail(this.getAttribute("data-detail")); }; });
 }
 async function contactAction(id,act){
@@ -759,9 +802,8 @@ async function openDetail(id){
   let custHtml = '<h4 id="custHdr" style="cursor:pointer;user-select:none"><span id="custCaret"></span> Customer purchase history <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="custBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up prior orders…</div></div>';
   let suggHtml = '<h4 id="suggHdr" style="cursor:pointer;user-select:none"><span id="suggCaret"></span> 💡 Suggested items to pitch (live inventory) <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="suggBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Finding in-stock matches…</div></div>';
   let catHtml = '<h4>Tags (Outlook categories) — click to add or remove</h4><div id="tagsBox" style="margin-bottom:14px"></div>';
-  let contactHtml = '<h4>📨 Rep contact history <span style="color:#9aa7b4;font-weight:400;font-size:10px">(who on the team has already reached this customer)</span></h4>'+
-    '<div id="contactBox" style="margin-bottom:8px"><div style="color:#9aa7b4;font-size:12px">Loading contact history…</div></div>'+
-    '<div class="logrow" style="margin-bottom:16px"><span style="color:#5a6b7b;font-size:12px">Log a contact:</span> <button class="logbtn" data-log="email">✉️ Email</button><button class="logbtn" data-log="phone">📞 Call</button><button class="logbtn" data-log="whatsapp">💬 WhatsApp</button><button class="logbtn" data-log="note">📝 Note</button></div>';
+  let contactHtml = '<h4>📧 Email history with this customer <span style="color:#9aa7b4;font-weight:400;font-size:10px">(live from orders@ — every message sent &amp; received)</span></h4>'+
+    '<div id="emailBox" style="margin-bottom:16px"><div style="color:#9aa7b4;font-size:12px">Loading emails…</div></div>';
   const mb=o.querySelector(".mbody");
   if(err){ mb.innerHTML='<div class="err">Couldn’t load the email: '+esc(err)+'</div>'; return; }
   mb.innerHTML = kvHtml + contactHtml + custHtml + suggHtml + catHtml + '<h4>History</h4><div id="histBox"></div>'+
@@ -769,15 +811,8 @@ async function openDetail(id){
     '<h4>Full email</h4><pre class="bodytext">'+linkify(text||"(no text content)")+'</pre>';
   renderTags(l);
   renderHist(l.id);
-  loadContacts(l);
+  loadEmailThread(l);
   loadCustHistory(l);
-  mb.querySelectorAll('.logbtn[data-log]').forEach(b=>{ b.onclick=async()=>{
-    const ch=b.getAttribute('data-log'); let note='';
-    if(ch==='note'){ note=(prompt('Note about this customer / contact:')||'').trim(); if(!note) return; }
-    await logContact(l, ch, note);
-    await addHistory(l.id, (CHAN_LABEL[ch]||ch)+(note?': '+note:'')+' — '+(MY_REP||ME));
-    await loadContacts(l); renderHist(l.id);
-  }; });
   (function(){
     const hdr=document.getElementById("custHdr"), cb=document.getElementById("custBox"), car=document.getElementById("custCaret");
     if(!hdr) return;
@@ -806,8 +841,6 @@ async function openDetail(id){
   foot.querySelector('[data-k="rep"]').onchange=async function(){ await applyRep(l,this.value); renderBoard(); renderHist(l.id); };
   foot.querySelector('[data-k="status"]').onchange=async function(){ await applyStatus(l,this.value); renderBoard(); renderHist(l.id); };
   foot.querySelectorAll("button[data-act]").forEach(b=>{ b.onclick=()=>contactAction(l.id,b.getAttribute("data-act")); });
-  // Auto-log a contact when the rep emails the customer (Reply or Outlook).
-  ["detReply","detOutlook"].forEach(id=>{ const a=foot.querySelector("#"+id); if(a) a.addEventListener("click",()=>{ logContact(l,"email"); setTimeout(()=>loadContacts(l),500); }); });
 }
 
 // ---- Customer purchase history ----
