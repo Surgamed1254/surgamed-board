@@ -995,13 +995,13 @@ async function sendReorderAlert(l, items){
   if(!to){ if(msg){ msg.style.color="#c0392b"; msg.textContent="No customer email on this lead."; } return; }
   const first=(titleCase(l.display||"").split(/[\s,]+/)[0])||"there";
   const lines=(items||[]).map(r=>'• '+(r.name||r.mfg||'')+(r.price!=null?(' — '+money(r.price)):'')).join('\n');
-  const text="Hi "+first+",\n\nGood news — the following item"+(items.length===1?'':'s')+" you've ordered from us before "+(items.length===1?'is':'are')+" currently in stock:\n\n"+lines+"\n\nIf you'd like to reorder, just reply to this email and we'll take care of it.\n\nAnd if there's anything else you're looking for that isn't in our current inventory, let us know — we'll keep it in mind and reach out as it comes in.\n\nThank you,";
+  const text="Hi "+first+",\n\nGood news — the following item(s) you've purchased from us in the past are currently in stock:\n\n"+lines+"\n\nIf you'd like to reorder any of these items, simply reply to this email and we'll be happy to assist.\n\nWe're always adding new inventory, so if there are any other products you're looking for, just let us know and we'll keep you in mind as new items arrive.\n\nThank you,";
   if(!confirm("Email "+to+" about "+items.length+" in-stock item"+(items.length===1?'':'s')+"? It will send from your email with your signature.")) return;
   if(btn) btn.disabled=true; if(msg){ msg.style.color="#5a6b7b"; msg.textContent="Sending…"; }
   try{
     const rep=(REPS.includes(MY_REP)?MY_REP:effRep(l))||ME;
     const fromMbx=REPS.includes(MY_REP)?MY_EMAIL:"";
-    const payload={ action:"send", rep, to, subject:"Items back in stock — SurgaMed", text, signature:MY_SIG, html:MY_SIG_HTML, from:fromMbx };
+    const payload={ action:"send", rep, to, subject:"Items you've ordered are back in stock — SurgaMed", text, signature:MY_SIG, html:MY_SIG_HTML, from:fromMbx };
     const r=await fetch(FN_URL,{method:"POST",headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify(payload)});
     const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
     try{ await sb.from("contacts").insert({ customer_email:to.toLowerCase(), customer_name:l.display||null, rep, rep_email:MY_EMAIL||null, channel:"email", direction:"out", lead_id:l.id, listing:l.listing||null, subject:payload.subject, message_id:"reorder-"+Date.now() }); }catch(e){}
