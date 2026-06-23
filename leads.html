@@ -556,6 +556,29 @@ async function toggleEmail(i, id){
   try{ const m=await fetchMessage(id); const text=htmlToText((m&&m.body&&m.body.content)||(m&&m.summary)||""); wrap.innerHTML='<pre class="bodytext" style="margin:6px 0">'+linkify(text||"(no text content)")+'</pre>'; wrap.dataset.loaded="1"; }
   catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t open this email: '+esc(String(e.message||e))+'</div>'; }
 }
+// Send a reply/compose from inside the board (goes out via orders@, signed by the rep,
+// then appears in the email history above). Records a real rep-attributed contact.
+async function sendReply(l){
+  const ta=document.getElementById("composeBody"), msg=document.getElementById("sendMsg"), btn=document.getElementById("sendBtn");
+  if(!ta) return; const text=(ta.value||"").trim();
+  if(!text){ ta.focus(); return; }
+  const to=(l.custEmail||"").trim();
+  if(!to && !l.uri){ msg.style.color="#c0392b"; msg.textContent="No customer email or thread to reply to."; return; }
+  btn.disabled=true; msg.style.color="#5a6b7b"; msg.textContent="Sending…";
+  try{
+    const rep=(REPS.includes(MY_REP)?MY_REP:effRep(l))||ME;
+    const payload={ action:"send", rep, text, to, subject:"Re: "+(l.title||"DOTmed") };
+    if(l.cat!=='orders' && l.uri){ payload.replyTo=l.uri; } // thread the reply for real customer conversations
+    const r=await fetch(FN_URL,{method:"POST",headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
+    try{ await sb.from("contacts").insert({ customer_email: to.toLowerCase()||null, customer_name: l.display||null, rep, rep_email: MY_EMAIL||null, channel:"email", direction:"out", lead_id:l.id, listing:l.listing||null, subject:payload.subject, message_id:"board-"+Date.now() }); }catch(e){}
+    await addHistory(l.id, "Replied by "+rep+" — sent from board");
+    ta.value=""; msg.style.color="#1d7a3f"; msg.textContent="Sent ✓";
+    setTimeout(()=>loadEmailThread(l), 1200); renderHist(l.id);
+  }catch(e){ msg.style.color="#c0392b"; msg.textContent="Couldn’t send: "+String(e.message||e); }
+  btn.disabled=false;
+}
 
 async function fetchLeads(){
   const r = await fetch(FN_URL, { headers:{ Authorization:"Bearer "+(await freshToken()), apikey:SB_KEY } });
@@ -803,7 +826,9 @@ async function openDetail(id){
   let suggHtml = '<h4 id="suggHdr" style="cursor:pointer;user-select:none"><span id="suggCaret"></span> 💡 Suggested items to pitch (live inventory) <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="suggBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Finding in-stock matches…</div></div>';
   let catHtml = '<h4>Tags (Outlook categories) — click to add or remove</h4><div id="tagsBox" style="margin-bottom:14px"></div>';
   let contactHtml = '<h4>📧 Email history with this customer <span style="color:#9aa7b4;font-weight:400;font-size:10px">(live from orders@ — every message sent &amp; received)</span></h4>'+
-    '<div id="emailBox" style="margin-bottom:16px"><div style="color:#9aa7b4;font-size:12px">Loading emails…</div></div>';
+    '<div id="emailBox" style="margin-bottom:8px"><div style="color:#9aa7b4;font-size:12px">Loading emails…</div></div>'+
+    '<div id="composeWrap" style="margin:0 0 18px"><textarea id="composeBody" placeholder="Write a reply — sends from orders@, signed by you, and shows up above" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
+    '<div style="margin-top:6px;display:flex;align-items:center;gap:8px"><button id="sendBtn" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send from board</button><span id="sendMsg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
   const mb=o.querySelector(".mbody");
   if(err){ mb.innerHTML='<div class="err">Couldn’t load the email: '+esc(err)+'</div>'; return; }
   mb.innerHTML = kvHtml + contactHtml + custHtml + suggHtml + catHtml + '<h4>History</h4><div id="histBox"></div>'+
@@ -813,6 +838,7 @@ async function openDetail(id){
   renderHist(l.id);
   loadEmailThread(l);
   loadCustHistory(l);
+  { const sbtn=document.getElementById("sendBtn"); if(sbtn) sbtn.onclick=()=>sendReply(l); }
   (function(){
     const hdr=document.getElementById("custHdr"), cb=document.getElementById("custBox"), car=document.getElementById("custCaret");
     if(!hdr) return;
