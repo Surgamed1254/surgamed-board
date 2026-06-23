@@ -962,11 +962,11 @@ async function loadCustHistory(l){
   let rows=[];
   try{ rows=await getPurchases(l.custEmail,l.display); box.innerHTML=renderPurchases(rows); }
   catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load history: '+esc(String(e.message||e))+'</div>'; }
-  loadSuggestions(rows);
+  loadSuggestions(rows, l);
 }
 // Suggest live in-stock inventory based on what the customer has bought: reorders
 // (same listing still in stock) + cross-sell (other in-stock items from their brands).
-async function loadSuggestions(rows){
+async function loadSuggestions(rows, l){
   const box=document.getElementById("suggBox"); if(!box) return;
   try{
     const ids=[...new Set((rows||[]).map(r=>r.listing).filter(Boolean))];
@@ -979,10 +979,37 @@ async function loadSuggestions(rows){
     if(!reorder.length && !cross.length){ box.innerHTML='<div style="color:#9aa7b4;font-size:12px">No in-stock matches found in current inventory.</div>'; return; }
     function tbl(list){ let s='<table class="phtab"><thead><tr><th>Item</th><th>Category</th><th>Price</th><th></th></tr></thead><tbody>'; list.forEach(r=>{ s+='<tr><td>'+esc(r.name||r.mfg||'')+'</td><td>'+esc(r.category||'')+'</td><td>'+(r.price!=null?money(r.price):'')+'</td><td><a href="'+esc(r.url||'#')+'" target="_blank" rel="noopener">view</a></td></tr>'; }); s+='</tbody></table>'; return s; }
     let h='';
-    if(reorder.length){ h+='<div class="phsum" style="font-weight:600;color:#1d7a3f">🔁 Reorder — bought before &amp; in stock now ('+reorder.length+')</div>'+tbl(reorder); }
+    if(reorder.length){ h+='<div class="phsum" style="font-weight:600;color:#1d7a3f">🔁 Reorder — bought before &amp; in stock now ('+reorder.length+')</div>'+tbl(reorder);
+      h+='<div style="margin:6px 0 14px"><button id="reorderBtn" class="custbtn" style="background:#1d7a3f;border-color:#1d7a3f;padding:6px 12px">📣 Email customer: these are in stock</button> <span id="reorderMsg" style="font-size:12px;color:#5a6b7b"></span></div>';
+    }
     if(cross.length){ h+='<div class="phsum" style="font-weight:600;color:#0b66c3;margin-top:10px">✨ More from brands they buy ('+cross.length+')</div>'+tbl(cross); }
     box.innerHTML=h;
+    if(reorder.length && l){ const rb=document.getElementById("reorderBtn"); if(rb) rb.onclick=()=>sendReorderAlert(l, reorder); }
   }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load suggestions: '+esc(String(e.message||e))+'</div>'; }
+}
+// One-click: email the customer (from the rep's own address + signature) that their
+// previously-purchased items are back in stock, with a note to flag anything else they want.
+async function sendReorderAlert(l, items){
+  const msg=document.getElementById("reorderMsg"), btn=document.getElementById("reorderBtn");
+  const to=(l.custEmail||"").trim();
+  if(!to){ if(msg){ msg.style.color="#c0392b"; msg.textContent="No customer email on this lead."; } return; }
+  const first=(titleCase(l.display||"").split(/[\s,]+/)[0])||"there";
+  const lines=(items||[]).map(r=>'• '+(r.name||r.mfg||'')+(r.price!=null?(' — '+money(r.price)):'')).join('\n');
+  const text="Hi "+first+",\n\nGood news — the following item"+(items.length===1?'':'s')+" you've ordered from us before "+(items.length===1?'is':'are')+" currently in stock:\n\n"+lines+"\n\nIf you'd like to reorder, just reply to this email and we'll take care of it.\n\nAnd if there's anything else you're looking for that isn't in our current inventory, let us know — we'll keep it in mind and reach out as it comes in.\n\nThank you,";
+  if(!confirm("Email "+to+" about "+items.length+" in-stock item"+(items.length===1?'':'s')+"? It will send from your email with your signature.")) return;
+  if(btn) btn.disabled=true; if(msg){ msg.style.color="#5a6b7b"; msg.textContent="Sending…"; }
+  try{
+    const rep=(REPS.includes(MY_REP)?MY_REP:effRep(l))||ME;
+    const fromMbx=REPS.includes(MY_REP)?MY_EMAIL:"";
+    const payload={ action:"send", rep, to, subject:"Items back in stock — SurgaMed", text, signature:MY_SIG, html:MY_SIG_HTML, from:fromMbx };
+    const r=await fetch(FN_URL,{method:"POST",headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify(payload)});
+    const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
+    try{ await sb.from("contacts").insert({ customer_email:to.toLowerCase(), customer_name:l.display||null, rep, rep_email:MY_EMAIL||null, channel:"email", direction:"out", lead_id:l.id, listing:l.listing||null, subject:payload.subject, message_id:"reorder-"+Date.now() }); }catch(e){}
+    await addHistory(l.id,"Sent in-stock reorder alert ("+items.length+" item"+(items.length===1?'':'s')+") by "+rep);
+    if(msg){ msg.style.color="#1d7a3f"; msg.textContent="Sent ✓"; }
+    setTimeout(()=>loadEmailThread(l),1200); renderHist(l.id);
+  }catch(e){ if(msg){ msg.style.color="#c0392b"; msg.textContent="Couldn’t send: "+String(e.message||e); } }
+  if(btn) btn.disabled=false;
 }
 // Keep the purchase-history DB current: each time the board loads, scan the most
 // recent orders and upsert them (idempotent). Covers a few days of new orders.
