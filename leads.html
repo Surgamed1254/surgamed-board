@@ -523,17 +523,19 @@ async function applyContactOwnership(){
 
 // ---- Real email history: every message to/from this customer, live from orders@ ----
 function renderEmailList(items){
-  if(!items||!items.length) return '<div style="color:#9aa7b4;font-size:12px">No emails found with this customer in the orders@ mailbox.</div>';
-  let h='<table class="phtab"><thead><tr><th></th><th>Subject</th><th>Date</th><th>Direction</th><th></th></tr></thead><tbody>';
+  if(!items||!items.length) return '<div style="color:#9aa7b4;font-size:12px">No emails found with this customer yet.</div>';
+  let h='<table class="phtab"><thead><tr><th>Subject</th><th>Date</th><th>Sent By</th><th></th></tr></thead><tbody>';
   items.forEach((m,i)=>{
-    const dir = m.dir==='out' ? '<span style="color:#1d7a3f">✉️ Sent</span>' : '<span style="color:#0b66c3">📨 Received</span>';
+    const icon = m.dir==='out' ? '✉️' : '📨';
     const who = m.dir==='out' ? ('to '+esc((m.to&&m.to[0])||'')) : ('from '+esc(m.fromName||m.from||''));
+    const sentBy = m.dir==='out' ? ('<b>'+esc(m.sentBy||'SurgaMed')+'</b>') : '<span style="color:#9aa7b4">customer</span>';
     const d=new Date(m.date), ds=isNaN(d.getTime())?String(m.date||'').slice(0,16):d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
-    h+='<tr class="emrow"><td>'+(m.hasAttachments?'📎':'')+'</td>'+
-       '<td><a href="#" class="emlink" data-ei="'+i+'" data-id="'+esc(m.id)+'">'+esc(m.subject||'(no subject)')+'</a><div class="lsub">'+who+'</div></td>'+
-       '<td class="nowrap">'+esc(ds)+'</td><td>'+dir+'</td>'+
+    h+='<tr class="emrow">'+
+       '<td><a href="#" class="emlink" data-ei="'+i+'" data-id="'+esc(m.id)+'" data-mbx="'+esc(m.mailbox||'')+'">'+icon+' '+esc(m.subject||'(no subject)')+'</a>'+(m.hasAttachments?' 📎':'')+'<div class="lsub">'+who+'</div></td>'+
+       '<td class="nowrap">'+esc(ds)+'</td>'+
+       '<td>'+sentBy+'</td>'+
        '<td>'+(m.webLink?'<a href="'+esc(m.webLink)+'" target="_blank" rel="noopener" title="Open in Outlook">↗</a>':'')+'</td></tr>';
-    h+='<tr class="emdetail" id="emd'+i+'" style="display:none"><td colspan="5"><div class="emwrap" id="emw'+i+'"></div></td></tr>';
+    h+='<tr class="emdetail" id="emd'+i+'" style="display:none"><td colspan="4"><div class="emwrap" id="emw'+i+'"></div></td></tr>';
   });
   h+='</tbody></table>';
   return h;
@@ -547,17 +549,17 @@ async function loadEmailThread(l){
     const d=await r.json();
     if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
     box.innerHTML=renderEmailList(d.items);
-    box.onclick=function(e){ const a=e.target.closest(".emlink"); if(!a)return; e.preventDefault(); toggleEmail(a.dataset.ei, a.dataset.id); };
+    box.onclick=function(e){ const a=e.target.closest(".emlink"); if(!a)return; e.preventDefault(); toggleEmail(a.dataset.ei, a.dataset.id, a.dataset.mbx); };
   }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load emails: '+esc(String(e.message||e))+'</div>'; }
 }
-async function toggleEmail(i, id){
+async function toggleEmail(i, id, mbx){
   const det=document.getElementById("emd"+i), wrap=document.getElementById("emw"+i);
   if(!det) return;
   if(det.style.display!=="none"){ det.style.display="none"; return; }
   det.style.display="";
   if(wrap.dataset.loaded) return;
   wrap.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading email…</div>';
-  try{ const m=await fetchMessage(id); const text=htmlToText((m&&m.body&&m.body.content)||(m&&m.summary)||""); wrap.innerHTML='<pre class="bodytext" style="margin:6px 0">'+linkify(text||"(no text content)")+'</pre>'; wrap.dataset.loaded="1"; }
+  try{ const m=await fetchMessage(id, mbx); const text=htmlToText((m&&m.body&&m.body.content)||(m&&m.summary)||""); wrap.innerHTML='<pre class="bodytext" style="margin:6px 0">'+linkify(text||"(no text content)")+'</pre>'; wrap.dataset.loaded="1"; }
   catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t open this email: '+esc(String(e.message||e))+'</div>'; }
 }
 // Send a reply/compose from inside the board (goes out via orders@, signed by the rep,
@@ -571,7 +573,8 @@ async function sendReply(l){
   btn.disabled=true; msg.style.color="#5a6b7b"; msg.textContent="Sending…";
   try{
     const rep=(REPS.includes(MY_REP)?MY_REP:effRep(l))||ME;
-    const payload={ action:"send", rep, text, to, subject:"Re: "+(l.title||"DOTmed"), signature:MY_SIG, html:MY_SIG_HTML };
+    const fromMbx = REPS.includes(MY_REP) ? MY_EMAIL : ""; // reps send from their own mailbox; others fall back to orders@
+    const payload={ action:"send", rep, text, to, subject:"Re: "+(l.title||"DOTmed"), signature:MY_SIG, html:MY_SIG_HTML, from:fromMbx };
     if(l.cat!=='orders' && l.uri){ payload.replyTo=l.uri; } // thread the reply for real customer conversations
     const r=await fetch(FN_URL,{method:"POST",headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify(payload)});
     const d=await r.json();
@@ -591,8 +594,9 @@ async function fetchLeads(){
   if(j.error) throw new Error(j.error);
   return j.data;
 }
-async function fetchMessage(id){
-  const r = await fetch(FN_URL+"?message="+encodeURIComponent(id), { headers:{ Authorization:"Bearer "+(await freshToken()), apikey:SB_KEY } });
+async function fetchMessage(id, mbx){
+  const u = FN_URL+"?message="+encodeURIComponent(id)+(mbx?("&mbx="+encodeURIComponent(mbx)):"");
+  const r = await fetch(u, { headers:{ Authorization:"Bearer "+(await freshToken()), apikey:SB_KEY } });
   if(!r.ok) throw new Error("Server "+r.status);
   return await r.json();
 }
@@ -831,7 +835,7 @@ async function openDetail(id){
   let catHtml = '<h4>Tags (Outlook categories) — click to add or remove</h4><div id="tagsBox" style="margin-bottom:14px"></div>';
   let contactHtml = '<h4>📧 Email history with this customer <span style="color:#9aa7b4;font-weight:400;font-size:10px">(live from orders@ — every message sent &amp; received)</span></h4>'+
     '<div id="emailBox" style="margin-bottom:8px"><div style="color:#9aa7b4;font-size:12px">Loading emails…</div></div>'+
-    '<div id="composeWrap" style="margin:0 0 18px"><textarea id="composeBody" placeholder="Write a reply — sends from orders@, signed by you, and shows up above" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
+    '<div id="composeWrap" style="margin:0 0 18px"><textarea id="composeBody" placeholder="Write a reply — sends from your own email, signed by you, and shows up above" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
     '<div style="margin-top:6px;display:flex;align-items:center;gap:8px"><button id="sendBtn" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send from board</button><span id="sendMsg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
   const mb=o.querySelector(".mbody");
   if(err){ mb.innerHTML='<div class="err">Couldn’t load the email: '+esc(err)+'</div>'; return; }
