@@ -183,6 +183,34 @@ body.modern .board.listview .ltab{ background:#fff; border:1px solid #ECEEF2; bo
 body.modern .ltab th{ color:#8A94A3; background:#FAFBFC; }
 body.modern #newLook{ background:#4f46e5; border-color:#4f46e5; box-shadow:0 1px 2px rgba(79,70,229,.25); }
 .custbtn#newLook{ color:#fff; }
+/* ---- Workspace (beta) dense manager view ---- */
+#board.wsview{ display:block; }
+.ws-kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:10px; margin:2px 0 14px; }
+.ws-kpi{ background:#f5f8fb; border:1px solid #e6ecf2; border-radius:12px; padding:11px 13px; }
+.ws-kpi .lab{ font-size:12px; color:#6b7a89; }
+.ws-kpi .val{ font-size:23px; font-weight:600; color:#16324f; margin-top:2px; line-height:1.1; }
+.ws-kpi.blue .val{ color:#185fa5; }
+.ws-kpi.green .val{ color:#0f7a4d; }
+.ws-kpi.amber .val{ color:#b9740f; }
+.ws-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px; }
+@media(max-width:780px){ .ws-grid{ grid-template-columns:1fr; } }
+.ws-card{ background:#fff; border:1px solid #e6ecf2; border-radius:12px; padding:13px 15px; }
+.ws-card h3{ margin:0 0 11px; font-size:14px; font-weight:600; color:#16324f; }
+.ws-stage{ display:flex; align-items:center; gap:9px; margin-bottom:9px; cursor:pointer; }
+.ws-stage .nm{ width:128px; font-size:12.5px; color:#5a6b7b; }
+.ws-stage:hover .nm{ color:#185fa5; }
+.ws-stage .bar{ flex:1; height:15px; background:#eef2f6; border-radius:5px; overflow:hidden; }
+.ws-stage .bar>i{ display:block; height:100%; border-radius:5px; min-width:2px; }
+.ws-stage .ct{ width:32px; text-align:right; font-size:12.5px; font-weight:600; color:#16324f; }
+.ws-cap{ font-size:11px; color:#9aa7b4; margin-top:9px; }
+.ws-reptab{ width:100%; border-collapse:collapse; font-size:13px; }
+.ws-reptab th{ font-weight:500; color:#8a98a6; text-align:left; padding:5px 6px; border-bottom:1px solid #eef2f6; }
+.ws-reptab td{ padding:7px 6px; border-bottom:1px solid #f3f6f9; color:#23364a; }
+.ws-reptab tbody tr{ cursor:pointer; }
+.ws-reptab tbody tr:hover td{ background:#f4f9fc; }
+.ws-secttl{ font-size:14px; font-weight:600; color:#16324f; margin:4px 0 9px; }
+#board.wsview .ltab{ font-size:12.5px; background:#fff; border:1px solid #e6ecf2; border-radius:12px; overflow:hidden; }
+#board.wsview .ltab th{ background:#f7f9fc; color:#8a98a6; }
 </style>
 </head>
 <body>
@@ -320,6 +348,12 @@ async function showApp(session){
   document.addEventListener("visibilitychange",()=>{ if(!document.hidden) markPresence(u); });
   // Team-activity view is visible only to the admin (Meir).
   if(ADMINS.includes((u.email||"").toLowerCase())){ const ta=document.getElementById("teamActivity"); ta.style.display=""; ta.onclick=openTeamActivity; }
+  // Dense "Workspace (beta)" view — manager dashboard, visible only to admins (Meir + Shaya).
+  if(ADMINS.includes(MY_EMAIL)){
+    const vs=document.getElementById('viewSel');
+    if(vs && !vs.querySelector('option[value="workspace"]')){ const op=document.createElement('option'); op.value='workspace'; op.textContent='Workspace (beta)'; vs.appendChild(op); }
+    if(VIEW==='workspace' && vs) vs.value='workspace';
+  } else if(VIEW==='workspace'){ VIEW='cards'; localStorage.setItem('sg_view','cards'); }
   // New-look preview toggle — only Meir sees it; applies only to his browser, reps unaffected.
   if(MY_EMAIL==='mweinreb@surgamed.com'){
     const nl=document.getElementById('newLook'); if(nl){
@@ -799,7 +833,10 @@ function renderRota(){
   document.getElementById("rotabar").innerHTML=html+'</div>';
 }
 function renderBoard(){
-  const bd=document.getElementById("board"); bd.className='board'+(VIEW==='list'?' listview':'');
+  const bd=document.getElementById("board");
+  if(VIEW==='workspace' && ADMINS.includes(MY_EMAIL)){ bd.className='board wsview'; renderWorkspace(); return; }
+  if(VIEW==='workspace'){ VIEW='cards'; }
+  bd.className='board'+(VIEW==='list'?' listview':'');
   if(VIEW==='list'){ renderList(); return; }
   const repF=document.getElementById("repFilter").value;
   const statusF=document.getElementById("statusFilter").value;
@@ -829,26 +866,81 @@ function renderList(){
   rows.sort((a,b)=>new Date(b.date)-new Date(a.date));
   let h='<table class="ltab"><thead><tr><th>Date</th><th>Type</th><th>Customer</th><th>Item / details</th><th>Acct</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
   if(!rows.length) h+='<tr><td colspan="8"><div class="empty">No leads in window</div></td></tr>';
-  rows.forEach(l=>{
-    const stt=effStatus(l), so=statusObj(stt), rep=effRep(l);
-    const catLabel=(CATS.find(c=>c.key===l.cat)||{}).label||l.cat;
-    let repSel='<select data-id="'+l.id+'" data-k="rep">'; REPS.forEach(r=>{ repSel+='<option'+(r===rep?' selected':'')+'>'+r+'</option>'; }); repSel+='</select>';
-    let statSel='<select data-id="'+l.id+'" data-k="status">'; STATUSES.forEach(s=>{ statSel+='<option value="'+s.key+'"'+(s.key===stt?' selected':'')+'>'+s.label+'</option>'; }); statSel+='</select>';
-    const replyHref=l.custEmail?("mailto:"+encodeURIComponent(l.custEmail)+"?subject="+encodeURIComponent("Re: "+(l.title||"DOTmed"))):(l.webLink||"#");
-    h+='<tr>'+
-      '<td class="nowrap">'+fmtDate(l.date)+'</td>'+
-      '<td><span class="tag" style="background:#eef1f5;color:#5a6b7b">'+esc(catLabel)+'</span></td>'+
-      '<td class="lcust" data-detail="'+l.id+'"><b>'+esc(titleCase(l.display))+'</b>'+(l.hasPhone?' ☎':'')+'<div class="lsub">'+esc(l.title)+'</div></td>'+
-      '<td class="litem">'+esc(l.item||'')+(l.deal?'<div class="lsub">'+esc(l.deal)+'</div>':'')+'</td>'+
-      '<td><span class="tag acct'+(l.acct.sd?' sd':'')+'">'+l.acct.t+'</span></td>'+
-      '<td>'+repSel+relBadge(l)+'</td>'+
-      '<td><span class="statusbadge" style="background:'+so.color+'"></span>'+statSel+'</td>'+
-      '<td class="lact"><a class="mailact" data-id="'+l.id+'" href="'+replyHref+'"'+(l.custEmail?'':' target="_blank" rel="noopener"')+'>'+(l.custEmail?'Reply':'Open')+'</a><button data-act="wa" data-id="'+l.id+'">WA</button><button data-act="call" data-id="'+l.id+'">Call</button>'+(l.webLink?'<a class="mailact" data-id="'+l.id+'" href="'+l.webLink+'" target="_blank" rel="noopener">Outlook</a>':'')+'</td>'+
-    '</tr>';
-  });
+  rows.forEach(l=>{ h+=leadRowHtml(l); });
   h+='</tbody></table>';
   document.getElementById("board").innerHTML=h;
   document.getElementById("counts").textContent=rows.length+" shown · "+LEADS.length+" in window";
+  wireCards();
+}
+function leadRowHtml(l){
+  const stt=effStatus(l), so=statusObj(stt), rep=effRep(l);
+  const catLabel=(CATS.find(c=>c.key===l.cat)||{}).label||l.cat;
+  let repSel='<select data-id="'+l.id+'" data-k="rep">'; REPS.forEach(r=>{ repSel+='<option'+(r===rep?' selected':'')+'>'+r+'</option>'; }); repSel+='</select>';
+  let statSel='<select data-id="'+l.id+'" data-k="status">'; STATUSES.forEach(s=>{ statSel+='<option value="'+s.key+'"'+(s.key===stt?' selected':'')+'>'+s.label+'</option>'; }); statSel+='</select>';
+  const replyHref=l.custEmail?("mailto:"+encodeURIComponent(l.custEmail)+"?subject="+encodeURIComponent("Re: "+(l.title||"DOTmed"))):(l.webLink||"#");
+  return '<tr>'+
+    '<td class="nowrap">'+fmtDate(l.date)+'</td>'+
+    '<td><span class="tag" style="background:#eef1f5;color:#5a6b7b">'+esc(catLabel)+'</span></td>'+
+    '<td class="lcust" data-detail="'+l.id+'"><b>'+esc(titleCase(l.display))+'</b>'+(l.hasPhone?' ☎':'')+'<div class="lsub">'+esc(l.title)+'</div></td>'+
+    '<td class="litem">'+esc(l.item||'')+(l.deal?'<div class="lsub">'+esc(l.deal)+'</div>':'')+'</td>'+
+    '<td><span class="tag acct'+(l.acct.sd?' sd':'')+'">'+l.acct.t+'</span></td>'+
+    '<td>'+repSel+relBadge(l)+'</td>'+
+    '<td><span class="statusbadge" style="background:'+so.color+'"></span>'+statSel+'</td>'+
+    '<td class="lact"><a class="mailact" data-id="'+l.id+'" href="'+replyHref+'"'+(l.custEmail?'':' target="_blank" rel="noopener"')+'>'+(l.custEmail?'Reply':'Open')+'</a><button data-act="wa" data-id="'+l.id+'">WA</button><button data-act="call" data-id="'+l.id+'">Call</button>'+(l.webLink?'<a class="mailact" data-id="'+l.id+'" href="'+l.webLink+'" target="_blank" rel="noopener">Outlook</a>':'')+'</td>'+
+  '</tr>';
+}
+function leadValue(l){
+  const nums=[]; const grab=function(s){ if(!s) return; const re=/\$\s*([\d][\d,]*(?:\.\d+)?)/g; let m; while((m=re.exec(s))){ const v=parseFloat(m[1].replace(/,/g,'')); if(!isNaN(v)) nums.push(v); } };
+  grab(l.deal); grab(l.item); grab(l.title);
+  return nums.length ? nums[nums.length-1] : 0;
+}
+function fmtMoney(n){ n=Math.round(n||0); return n>=1000 ? '$'+(n/1000).toFixed(n>=10000?0:1)+'k' : '$'+n.toLocaleString(); }
+function renderWorkspace(){
+  const repF=document.getElementById("repFilter").value;
+  const statusF=document.getElementById("statusFilter").value;
+  const hideClosed=document.getElementById("hideClosed").checked;
+  const ref=businessRef();
+  const base=LEADS.filter(l=> repF==="all" || effRep(l)===repF );
+  const cnt={}; STATUSES.forEach(s=>cnt[s.key]=0);
+  base.forEach(l=>{ const s=effStatus(l); if(cnt[s]==null)cnt[s]=0; cnt[s]++; });
+  const total=base.length, won=cnt.closed||0;
+  const open=base.filter(l=>effStatus(l)!=='closed').length;
+  const prog=(cnt.working||0)+(cnt.waiting||0)+(cnt.upsell||0);
+  const conv= total ? Math.round(won/total*100) : 0;
+  const estOpen=base.filter(l=>effStatus(l)!=='closed').reduce((a,l)=>a+leadValue(l),0);
+  const kpi=(lab,val,cls)=>'<div class="ws-kpi'+(cls?' '+cls:'')+'"><div class="lab">'+lab+'</div><div class="val">'+val+'</div></div>';
+  let html='<div class="ws-kpis">'+
+    kpi('Open leads', open)+
+    kpi('New', (cnt.new||0), 'blue')+
+    kpi('In progress', prog, 'amber')+
+    kpi('Won', won, 'green')+
+    kpi('Conversion', conv+'%')+
+    kpi('Est. open value', fmtMoney(estOpen), 'green')+
+  '</div>';
+  // Pipeline by stage + rep performance, side by side
+  const maxStage=Math.max(1, ...STATUSES.map(s=>cnt[s.key]||0));
+  let pipe='<div class="ws-card"><h3>Pipeline by stage'+(repF!=='all'?' · '+esc(repF):'')+'</h3>';
+  STATUSES.forEach(s=>{ const c=cnt[s.key]||0; const w=Math.round((c/maxStage)*100);
+    pipe+='<div class="ws-stage" data-wsstage="'+s.key+'" title="Filter to '+esc(s.label)+'"><span class="nm">'+esc(s.label)+'</span><span class="bar"><i style="width:'+w+'%;background:'+s.color+'"></i></span><span class="ct">'+c+'</span></div>'; });
+  pipe+='<div class="ws-cap">Click a stage to filter the table below.</div></div>';
+  const reps=REPS.map(r=>{ const ls=LEADS.filter(l=>effRep(l)===r); return { r, open: ls.filter(l=>effStatus(l)!=='closed').length, won: ls.filter(l=>effStatus(l)==='closed').length, val: ls.reduce((a,l)=>a+leadValue(l),0) }; });
+  reps.sort((a,b)=>b.val-a.val);
+  let rept='<div class="ws-card"><h3>Rep performance · this window</h3><table class="ws-reptab"><thead><tr><th>Rep</th><th>Open</th><th>Won</th><th>Est. value</th></tr></thead><tbody>';
+  reps.forEach(p=>{ rept+='<tr data-wsrep="'+esc(p.r)+'" title="Filter to '+esc(p.r)+'"><td><b>'+esc(p.r)+'</b></td><td>'+p.open+'</td><td>'+p.won+'</td><td style="color:#0f7a4d">'+fmtMoney(p.val)+'</td></tr>'; });
+  rept+='</tbody></table><div class="ws-cap">Click a rep to filter. Est. value parsed from offer/list prices — a guide, not booked revenue.</div></div>';
+  html+='<div class="ws-grid">'+pipe+rept+'</div>';
+  // Dense active-leads table (respects all three filters)
+  let rows=LEADS.filter(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&stt==="closed")return false; if(statusF!=="all"&&stt!==statusF)return false; if(repF!=="all"&&rep!==repF)return false; return true; });
+  rows.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  html+='<div class="ws-secttl">Active leads'+(statusF!=='all'?' · '+esc((STATUSES.find(s=>s.key===statusF)||{}).label||statusF):'')+(repF!=='all'?' · '+esc(repF):'')+'</div>';
+  html+='<table class="ltab wsleadtab"><thead><tr><th>Date</th><th>Type</th><th>Customer</th><th>Item / details</th><th>Acct</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+  if(!rows.length) html+='<tr><td colspan="8"><div class="empty">No leads match these filters</div></td></tr>';
+  rows.forEach(l=>{ html+=leadRowHtml(l); });
+  html+='</tbody></table>';
+  document.getElementById("board").innerHTML=html;
+  document.getElementById("counts").textContent=rows.length+" shown · "+LEADS.length+" in window";
+  document.querySelectorAll('#board [data-wsstage]').forEach(el=>{ el.onclick=function(){ document.getElementById("statusFilter").value=this.getAttribute('data-wsstage'); renderBoard(); }; });
+  document.querySelectorAll('#board [data-wsrep]').forEach(el=>{ el.onclick=function(){ document.getElementById("repFilter").value=this.getAttribute('data-wsrep'); renderBoard(); }; });
   wireCards();
 }
 function relBadge(l){ const e=(l.custEmail||'').toLowerCase(); const info=CONTACTS_BY_EMAIL[e]; return (info&&info.rep)?('<span class="tag relbadge" title="Existing relationship — keep with this rep">🤝 '+esc(info.rep)+'</span>'):''; }
