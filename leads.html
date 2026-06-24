@@ -562,6 +562,30 @@ async function toggleEmail(i, id, mbx){
   try{ const m=await fetchMessage(id, mbx); const text=htmlToText((m&&m.body&&m.body.content)||(m&&m.summary)||""); wrap.innerHTML='<pre class="bodytext" style="margin:6px 0">'+linkify(text||"(no text content)")+'</pre>'; wrap.dataset.loaded="1"; }
   catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t open this email: '+esc(String(e.message||e))+'</div>'; }
 }
+// ---- ShipStation tracking for order/congrats leads ----
+function renderShipping(list){
+  if(!list||!list.length) return '<div style="color:#9aa7b4;font-size:12px">No matching ShipStation shipment found for this customer/order yet.</div>';
+  const COL={shipped:'#1d7a3f', delivered:'#1d7a3f', awaiting_shipment:'#9a5b14', on_hold:'#9a5b14', cancelled:'#c0392b'};
+  let h='<table class="phtab"><thead><tr><th>Status</th><th>Carrier</th><th>Tracking</th><th>Ship date</th></tr></thead><tbody>';
+  list.forEach(s=>{
+    const stt=(s.status||'').replace(/_/g,' ');
+    const badge='<span class="statusbadge" style="background:'+(COL[s.status]||'#5a6b7b')+'"></span>'+esc(stt||'—');
+    const trk=s.tracking? ('<a href="'+esc(s.trackingUrl||'#')+'" target="_blank" rel="noopener">'+esc(s.tracking)+'</a>') : '<span style="color:#9aa7b4">not shipped yet</span>';
+    h+='<tr><td>'+badge+'</td><td>'+esc(s.carrier||'')+'</td><td>'+trk+'</td><td class="nowrap">'+esc((s.shipDate||'').slice(0,10))+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  return h;
+}
+async function loadShipping(l){
+  const box=document.getElementById("shipBox"); if(!box) return;
+  try{
+    const u=FN_URL+"?shipstation=1&email="+encodeURIComponent(l.custEmail||"")+"&name="+encodeURIComponent(l.display||"")+"&items="+encodeURIComponent(l.item||"");
+    const r=await fetch(u,{headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY}});
+    const d=await r.json();
+    if(d.error){ box.innerHTML='<div style="color:#9aa7b4;font-size:12px">'+esc(d.error)+'</div>'; return; }
+    box.innerHTML=renderShipping(d.shipments||[]);
+  }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load tracking: '+esc(String(e.message||e))+'</div>'; }
+}
 // Send a reply/compose from inside the board (goes out via orders@, signed by the rep,
 // then appears in the email history above). Records a real rep-attributed contact.
 async function sendReply(l){
@@ -833,19 +857,21 @@ async function openDetail(id){
   let custHtml = '<h4 id="custHdr" style="cursor:pointer;user-select:none"><span id="custCaret"></span> Customer purchase history <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="custBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up prior orders…</div></div>';
   let suggHtml = '<h4 id="suggHdr" style="cursor:pointer;user-select:none"><span id="suggCaret"></span> 💡 Suggested items to pitch (live inventory) <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="suggBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Finding in-stock matches…</div></div>';
   let catHtml = '<h4>Tags (Outlook categories) — click to add or remove</h4><div id="tagsBox" style="margin-bottom:14px"></div>';
+  let shipHtml = (l.cat==='orders') ? '<h4>📦 Shipping status (ShipStation)</h4><div id="shipBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up tracking…</div></div>' : '';
   let contactHtml = '<h4>📧 Email history with this customer <span style="color:#9aa7b4;font-weight:400;font-size:10px">(live — orders@ + every rep\'s mailbox, sent &amp; received)</span></h4>'+
     '<div id="emailBox" style="margin-bottom:8px"><div style="color:#9aa7b4;font-size:12px">Loading emails…</div></div>'+
     '<div id="composeWrap" style="margin:0 0 18px"><textarea id="composeBody" placeholder="Write a reply — sends from your own email, signed by you, and shows up above" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
     '<div style="margin-top:6px;display:flex;align-items:center;gap:8px"><button id="sendBtn" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send from board</button><span id="sendMsg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
   const mb=o.querySelector(".mbody");
   if(err){ mb.innerHTML='<div class="err">Couldn’t load the email: '+esc(err)+'</div>'; return; }
-  mb.innerHTML = kvHtml + contactHtml + custHtml + suggHtml + catHtml + '<h4>History</h4><div id="histBox"></div>'+
+  mb.innerHTML = kvHtml + shipHtml + contactHtml + custHtml + suggHtml + catHtml + '<h4>History</h4><div id="histBox"></div>'+
     '<div style="margin:8px 0 16px;display:flex;gap:6px"><input id="noteIn" placeholder="Add a note…" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="noteBtn" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>'+
     '<h4>Full email</h4><pre class="bodytext">'+linkify(text||"(no text content)")+'</pre>';
   renderTags(l);
   renderHist(l.id);
   loadEmailThread(l);
   loadCustHistory(l);
+  if(l.cat==='orders') loadShipping(l);
   { const sbtn=document.getElementById("sendBtn"); if(sbtn) sbtn.onclick=()=>sendReply(l); }
   (function(){
     const hdr=document.getElementById("custHdr"), cb=document.getElementById("custBox"), car=document.getElementById("custCaret");
