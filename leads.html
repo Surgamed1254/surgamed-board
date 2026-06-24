@@ -598,7 +598,8 @@ async function sendReply(l){
   try{
     const rep=(REPS.includes(MY_REP)?MY_REP:effRep(l))||ME;
     const fromMbx = REPS.includes(MY_REP) ? MY_EMAIL : ""; // reps send from their own mailbox; others fall back to orders@
-    const payload={ action:"send", rep, text, to, subject:"Re: "+(l.title||"DOTmed"), signature:MY_SIG, html:MY_SIG_HTML, from:fromMbx };
+    const subj=((document.getElementById("composeSubject")||{}).value||"").trim()||("Re: "+(l.title||"DOTmed"));
+    const payload={ action:"send", rep, text, to, subject:subj, signature:MY_SIG, html:MY_SIG_HTML, from:fromMbx };
     if(l.cat!=='orders' && l.uri){ payload.replyTo=l.uri; } // thread the reply for real customer conversations
     const r=await fetch(FN_URL,{method:"POST",headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify(payload)});
     const d=await r.json();
@@ -860,7 +861,7 @@ async function openDetail(id){
   let shipHtml = (l.cat==='orders') ? '<h4>📦 Shipping status (ShipStation)</h4><div id="shipBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up tracking…</div></div>' : '';
   let contactHtml = '<h4>📧 Email history with this customer <span style="color:#9aa7b4;font-weight:400;font-size:10px">(live — orders@ + every rep\'s mailbox, sent &amp; received)</span></h4>'+
     '<div id="emailBox" style="margin-bottom:8px"><div style="color:#9aa7b4;font-size:12px">Loading emails…</div></div>'+
-    '<div id="composeWrap" style="margin:0 0 18px"><textarea id="composeBody" placeholder="Write a reply — sends from your own email, signed by you, and shows up above" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
+    '<div id="composeWrap" style="margin:0 0 18px"><input id="composeSubject" placeholder="Subject" value="'+esc("Re: "+(l.title||"DOTmed"))+'" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;margin-bottom:6px"><textarea id="composeBody" placeholder="Write a reply — sends from your own email, signed by you, and shows up above" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
     '<div style="margin-top:6px;display:flex;align-items:center;gap:8px"><button id="sendBtn" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send from board</button><span id="sendMsg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
   const mb=o.querySelector(".mbody");
   if(err){ mb.innerHTML='<div class="err">Couldn’t load the email: '+esc(err)+'</div>'; return; }
