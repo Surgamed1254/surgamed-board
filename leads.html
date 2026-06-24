@@ -670,19 +670,30 @@ async function enrichOrders(){
   // Fallback: some order emails don't expose a listing # / name in the preview, so they
   // stay generic ("DotMed Lead"). Pull the real customer + item from the full email.
   function isGeneric(l){ return !l.item || /^(dotmed lead|dot ?med lead|listing #|order placed|\(order\))/i.test((l.display||"").trim()); }
-  const need=LEADS.filter(l=>l.cat==='orders' && isGeneric(l)).slice(0,40);
+  const need=LEADS.filter(l=>l.cat==='orders' && isGeneric(l)).slice(0,60);
+  const needDbItem=[];
   await Promise.all(need.map(async (l)=>{
     try{
       const mm=await fetchMessage(l.uri);
       const text=htmlToText((mm&&mm.body&&mm.body.content)||(mm&&mm.summary)||"");
-      const im=/Listing #(\d+)\s*[-–]\s*([^\n]+?)\s*\nPrice:/i.exec(text);
-      if(im){ if(!l.listing) l.listing=im[1]; if(!l.item) l.item=im[2].trim(); }
+      const lm=/Listing #(\d+)/i.exec(text); if(lm && !l.listing) l.listing=lm[1];
+      const im=/Listing #\d+\s*[-–]\s*([^\n]+?)\s*\n?\s*Price:\s*[\d.,]/i.exec(text); if(im && !l.item) l.item=im[1].trim();
       const nm=(/Buyer(?:'s)? Name:\s*([^\n]+)/i.exec(text)||/\bName:\s*([^\n]+)/i.exec(text)||[])[1];
       if(nm && isGeneric(l)) l.display=nm.trim();
       const em=(text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[])[0];
       if(em && !l.custEmail && !/dotmed\.com$/i.test(em)) l.custEmail=em.toLowerCase();
+      if(!l.item && l.listing) needDbItem.push(l);
     }catch(e){}
   }));
+  // Backstop: for any still missing an item, look it up by listing # in the purchases DB.
+  const dbIds=[...new Set(needDbItem.map(l=>l.listing).filter(Boolean))];
+  if(dbIds.length){
+    try{
+      const { data } = await sb.from('purchases').select('listing,item,customer_name').in('listing',dbIds).limit(500);
+      const by={}; (data||[]).forEach(r=>{ if(!by[r.listing]) by[r.listing]=r; });
+      needDbItem.forEach(l=>{ const r=by[l.listing]; if(r){ if(r.item) l.item=r.item; if(isGeneric(l)&&r.customer_name) l.display=r.customer_name; } });
+    }catch(e){}
+  }
 }
 async function load(){
   document.getElementById("errbox").innerHTML="";
