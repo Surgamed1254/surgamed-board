@@ -703,14 +703,13 @@ async function sendReply(l){
     const fromMbx = REPS.includes(MY_REP) ? MY_EMAIL : ""; // reps send from their own mailbox; others fall back to orders@
     const subj=((document.getElementById("composeSubject")||{}).value||"").trim()||("Re: "+(l.title||"DOTmed"));
     const payload={ action:"send", rep, text, to, subject:subj, signature:MY_SIG, html:MY_SIG_HTML, from:fromMbx };
-    const relay=/dotmed\.com|unregistered/i.test(String(l.sender||"")); // dotMed sends inquiries/offers via a relay, not the customer's own thread
-    if(l.cat!=='orders' && l.uri && !(relay && to)){ payload.replyTo=l.uri; } // thread real customer convos; for relays with a real address, send fresh to the customer
+    if(l.cat!=='orders' && l.uri){ payload.replyTo=l.uri; } // thread the reply for real customer conversations
     const r=await fetch(FN_URL,{method:"POST",headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify(payload)});
     const d=await r.json();
     if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
     try{ await sb.from("contacts").insert({ customer_email: to.toLowerCase()||null, customer_name: l.display||null, rep, rep_email: MY_EMAIL||null, channel:"email", direction:"out", lead_id:l.id, listing:l.listing||null, subject:payload.subject, message_id:"board-"+Date.now() }); }catch(e){}
     await addHistory(l.id, "Replied by "+rep+" — sent from board");
-    ta.value=""; try{ localStorage.removeItem('sg_draft_'+l.id); }catch(e){} msg.style.color="#1d7a3f"; msg.textContent="Sent ✓";
+    ta.value=""; msg.style.color="#1d7a3f"; msg.textContent="Sent ✓";
     setTimeout(()=>loadEmailThread(l), 1200); renderHist(l.id);
   }catch(e){ msg.style.color="#c0392b"; msg.textContent="Couldn’t send: "+String(e.message||e); }
   btn.disabled=false;
@@ -1019,22 +1018,11 @@ function linkify(s){
 function pick(re,t){ const m=re.exec(t); return m?m[1].trim():""; }
 function extractDetails(text){
   const kv=[];
-  let name=pick(/(?:Buyer[^\n]*\n)?Name:\s*(.+)/i,text);
-  let email=pick(/Email:\s*([^\s]+@[^\s]+)/i,text);
-  const phone=pick(/Phone:\s*([+\d][\d\s().\-]{5,})/i,text);
-  let company="";
-  // dotMed inquiry/offer relays list the real contact under "Contact Info:" with no "Email:" label.
-  // Fall back to the first genuine address in the body (skip dotMed, our own, and no-reply senders).
-  if(!email){
-    const all=(text.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/ig)||[]);
-    email=all.find(e=>!/(dotmed\.com|surgamed\.com|no-?reply|^auto@|mailer-daemon|example\.com)/i.test(e))||"";
-  }
-  // "<Name> of <Company> sent you this email" — used by dotMed relays (skip the boilerplate "… of DOTmed.com …" line).
-  if(!name){ const m=/([^\n]{2,60}?)\s+of\s+(?!DOTmed)([^\n]{1,60}?)\s+sent you this email/i.exec(text); if(m){ name=(m[1]||"").trim(); company=(m[2]||"").trim(); } }
+  const name=pick(/(?:Buyer[^\n]*\n)?Name:\s*(.+)/i,text), email=pick(/Email:\s*([^\s]+@[^\s]+)/i,text), phone=pick(/Phone:\s*([+\d][\d\s().\-]{5,})/i,text);
   const addr=pick(/ADDRESS\s*=+\s*([\s\S]*?)\n\s*\n/i,text), country=pick(/Ship To Country:\s*(.+)/i,text), zip=pick(/Ship To Zip:\s*(.+)/i,text);
   const listP=pick(/Listing Price:\s*\$?([\d.,]+)/i,text), offP=pick(/Offer Price:\s*\$?([\d.,]+)/i,text);
   const total=pick(/Order Total[^\d]*([\d.,]+)\s*USD/i,text); const msg=pick(/Message:\s*([\s\S]+?)(?:\n\s*\n|$)/i,text);
-  if(name) kv.push(["Customer",name]); if(company) kv.push(["Company",company]); if(email) kv.push(["Email",email]); if(phone) kv.push(["Phone",phone]);
+  if(name) kv.push(["Customer",name]); if(email) kv.push(["Email",email]); if(phone) kv.push(["Phone",phone]);
   if(listP&&offP) kv.push(["Offer","List $"+listP+"  →  Offer $"+offP]);
   if(zip||country) kv.push(["Ship to",[zip,country].filter(Boolean).join(", ")]);
   if(addr) kv.push(["Address",addr.replace(/\n{2,}/g,"\n").trim()]);
@@ -1089,14 +1077,6 @@ async function openDetail(id){
   loadCustHistory(l);
   if(l.cat==='orders') loadShipping(l);
   { const sbtn=document.getElementById("sendBtn"); if(sbtn) sbtn.onclick=()=>sendReply(l); }
-  // Draft: keep whatever the rep typed (subject + body) per lead, so closing & reopening doesn't lose it.
-  (function(){
-    const sEl=document.getElementById('composeSubject'), bEl=document.getElementById('composeBody');
-    if(!bEl) return; const key='sg_draft_'+l.id;
-    try{ const d=JSON.parse(localStorage.getItem(key)||'null'); if(d){ if(typeof d.b==='string') bEl.value=d.b; if(d.s && sEl) sEl.value=d.s; } }catch(e){}
-    const save=()=>{ try{ const b=bEl.value, s=sEl?sEl.value:''; if(!b && (!s || s===('Re: '+(l.title||'DOTmed')))) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify({s:s, b:b})); }catch(e){} };
-    bEl.addEventListener('input',save); if(sEl) sEl.addEventListener('input',save);
-  })();
   (function(){
     const hdr=document.getElementById("custHdr"), cb=document.getElementById("custBox"), car=document.getElementById("custCaret");
     if(!hdr) return;
