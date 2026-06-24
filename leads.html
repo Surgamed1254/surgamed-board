@@ -906,6 +906,9 @@ async function openDetail(id){
 
 // ---- Customer purchase history ----
 const ACCT_COLOR={ "SurgaMed":"#1d7a3f", "ShortDated Surgical":"#9a5b14" };
+// Some old order emails (esp. dotMed PayPal-checkout notices) couldn't be parsed into
+// line items, so the email subject got stored as the "item". Hide those rows.
+function isJunkPurchase(r){ const it=((r&&r.item)||"").toLowerCase(); return /have been bought|action required|you have an offer|you'?ve sold|dotmed listings have|congratulations|^order placed$|^\(order\)$/.test(it); }
 async function getPurchases(email,name){
   let rows=[];
   if(email){
@@ -919,7 +922,7 @@ async function getPurchases(email,name){
       rows=data||[];
     }
   }
-  return rows;
+  return (rows||[]).filter(r=>!isJunkPurchase(r));
 }
 function money(n){ return "$"+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:0}); }
 
