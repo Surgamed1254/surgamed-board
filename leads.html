@@ -129,6 +129,60 @@ h1{ font-size:20px; margin:0 0 2px; }
 .ltab .lact a:hover,.ltab .lact button:hover{ background:#eef3f8; }
 @media(max-width:1100px){ .board,.rota-grid{ grid-template-columns:repeat(2,1fr);} }
 @media(max-width:620px){ .board,.rota-grid{ grid-template-columns:1fr;} .kv{ grid-template-columns:1fr; } }
+
+/* ============ Modern preview theme (toggle — Meir only) ============ */
+body.modern{ background:#f6f7f9; color:#1a2230; -webkit-font-smoothing:antialiased; }
+body.modern .wrap{ max-width:1560px; padding:22px 26px 72px; }
+body.modern h1{ font-size:23px; font-weight:700; letter-spacing:-.015em; }
+body.modern .sub{ color:#697586; }
+body.modern .rotabar{ border:1px solid #ECEEF2; border-radius:16px; box-shadow:0 1px 2px rgba(16,24,40,.04); padding:16px 18px; }
+body.modern .rotabar .day{ color:#4f46e5; }
+body.modern .rota-card{ border:1px solid #EEF0F3; border-radius:13px; background:#fbfbfd; }
+body.modern .rota-card .rep{ letter-spacing:-.01em; }
+body.modern .controls{ gap:9px; }
+body.modern .controls select{ border:1px solid #E1E5EB; border-radius:10px; padding:8px 11px; background:#fff; box-shadow:0 1px 1px rgba(16,24,40,.03); }
+body.modern .controls label{ color:#475061; }
+body.modern .custbtn,body.modern .signout{ border-radius:10px; }
+body.modern .col{ background:transparent; padding:2px; }
+body.modern .col h2{ font-size:14px; font-weight:700; letter-spacing:-.01em; color:#1a2230; margin:2px 4px 11px; }
+body.modern .col h2 .pill{ background:#fff; border:1px solid #E7EAEF; color:#697586; }
+body.modern .col h2 .ontoday{ background:#EEF0FF; color:#4f46e5; }
+body.modern .col .folder{ display:none; }
+body.modern .card{ border:1px solid #ECEEF2; border-radius:16px; padding:14px 15px; box-shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.05); transition:box-shadow .15s ease, transform .15s ease; }
+body.modern .card:hover{ box-shadow:0 10px 26px rgba(16,24,40,.09); transform:translateY(-1px); }
+body.modern .card .from{ font-size:14.5px; font-weight:650; letter-spacing:-.01em; }
+body.modern .card .ttl{ color:#475061; }
+body.modern .card .item{ color:#7a8595; }
+body.modern .cardhint{ color:#4f46e5; }
+body.modern .tag{ font-weight:500; border-radius:8px; padding:2px 9px; font-size:10.5px; }
+body.modern .tag.rep{ background:#EEF0FF; color:#4f46e5; }
+body.modern .tag.date{ background:#F3F4F6; color:#6b7280; }
+body.modern .tag.acct{ background:#ECFDF3; color:#067647; }
+body.modern .tag.acct.sd{ background:#FFF4ED; color:#B54708; }
+body.modern .tag.deal{ background:#EFF4FF; color:#1d4ed8; }
+body.modern .tag.ph{ background:#ECFDF5; color:#0E9F6E; }
+body.modern .tag.thread{ background:#FFF6EA; color:#B54708; }
+body.modern .tag.relbadge{ background:#FFF7E6; color:#B54708; }
+body.modern .row2 select{ border:1px solid #E1E5EB; border-radius:9px; padding:6px 8px; }
+body.modern .actions a,body.modern .actions button{ border:1px solid #E4E7EC; border-radius:10px; background:#fff; font-weight:600; box-shadow:0 1px 1px rgba(16,24,40,.03); }
+body.modern .actions a:hover,body.modern .actions button:hover{ background:#F6F7F9; border-color:#D3D8DF; }
+body.modern .overlay{ background:rgba(16,24,40,.5); }
+body.modern .modal{ border-radius:18px; box-shadow:0 22px 64px rgba(16,24,40,.30); }
+body.modern .modal .mhead{ padding:18px 22px; border-bottom:1px solid #F0F2F5; }
+body.modern .modal .mhead h3{ font-size:18px; font-weight:700; letter-spacing:-.01em; }
+body.modern .modal .mclose{ border-radius:10px; }
+body.modern .modal .mbody{ padding:18px 22px; }
+body.modern .mbody h4{ color:#8A94A3; }
+body.modern .modal .mfoot{ padding:14px 22px; border-top:1px solid #F0F2F5; }
+body.modern .bodytext{ background:#F8F9FB; border:1px solid #EEF0F3; border-radius:12px; }
+body.modern .phtab th{ color:#8A94A3; border-bottom:1px solid #EEF0F3; }
+body.modern .phtab td{ border-bottom:1px solid #F4F5F7; }
+body.modern .fieldbox{ background:#F5F3FF; border:1px solid #E5E0FB; border-radius:12px; color:#3A3270; }
+body.modern .fieldbox b{ color:#4f46e5; }
+body.modern .board.listview .ltab{ background:#fff; border:1px solid #ECEEF2; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(16,24,40,.04); }
+body.modern .ltab th{ color:#8A94A3; background:#FAFBFC; }
+body.modern #newLook{ background:#4f46e5; border-color:#4f46e5; box-shadow:0 1px 2px rgba(79,70,229,.25); }
+.custbtn#newLook{ color:#fff; }
 </style>
 </head>
 <body>
@@ -185,6 +239,7 @@ h1{ font-size:20px; margin:0 0 2px; }
     <button class="custbtn" id="custLookup">🔎 Customer lookup</button>
     <button class="custbtn" id="itemLookup" style="background:#0b66c3;border-color:#0b66c3">📦 Item lookup</button>
     <button class="custbtn" id="mySig" style="background:#5a6b7b;border-color:#5a6b7b">✍️ My signature</button>
+    <button class="custbtn" id="newLook" style="display:none;background:#4f46e5;border-color:#4f46e5">✨ New look</button>
     <button class="custbtn" id="teamActivity" style="display:none;background:#5b3fc4;border-color:#5b3fc4">👥 Team activity</button>
     <span class="whoami" id="whoami"></span>
     <button class="signout" id="signout">Sign out</button>
@@ -265,6 +320,16 @@ async function showApp(session){
   document.addEventListener("visibilitychange",()=>{ if(!document.hidden) markPresence(u); });
   // Team-activity view is visible only to the admin (Meir).
   if(ADMINS.includes((u.email||"").toLowerCase())){ const ta=document.getElementById("teamActivity"); ta.style.display=""; ta.onclick=openTeamActivity; }
+  // New-look preview toggle — only Meir sees it; applies only to his browser, reps unaffected.
+  if(MY_EMAIL==='mweinreb@surgamed.com'){
+    const nl=document.getElementById('newLook'); if(nl){
+      nl.style.display='';
+      const setLbl=()=>{ nl.textContent = document.body.classList.contains('modern') ? '↩ Classic look' : '✨ New look'; };
+      if(localStorage.getItem('sg_modern')==='1') document.body.classList.add('modern');
+      setLbl();
+      nl.onclick=function(){ const on=document.body.classList.toggle('modern'); localStorage.setItem('sg_modern', on?'1':'0'); setLbl(); };
+    }
+  }
   document.getElementById("signin").style.display="none";
   document.getElementById("app").style.display="block";
   renderRota();
