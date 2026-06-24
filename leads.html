@@ -667,6 +667,22 @@ async function enrichOrders(){
       if(m.item) l.item=m.item;
     });
   }catch(e){}
+  // Fallback: some order emails don't expose a listing # / name in the preview, so they
+  // stay generic ("DotMed Lead"). Pull the real customer + item from the full email.
+  function isGeneric(l){ return !l.item || /^(dotmed lead|dot ?med lead|listing #|order placed|\(order\))/i.test((l.display||"").trim()); }
+  const need=LEADS.filter(l=>l.cat==='orders' && isGeneric(l)).slice(0,40);
+  await Promise.all(need.map(async (l)=>{
+    try{
+      const mm=await fetchMessage(l.uri);
+      const text=htmlToText((mm&&mm.body&&mm.body.content)||(mm&&mm.summary)||"");
+      const im=/Listing #(\d+)\s*[-–]\s*([^\n]+?)\s*\nPrice:/i.exec(text);
+      if(im){ if(!l.listing) l.listing=im[1]; if(!l.item) l.item=im[2].trim(); }
+      const nm=(/Buyer(?:'s)? Name:\s*([^\n]+)/i.exec(text)||/\bName:\s*([^\n]+)/i.exec(text)||[])[1];
+      if(nm && isGeneric(l)) l.display=nm.trim();
+      const em=(text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[])[0];
+      if(em && !l.custEmail && !/dotmed\.com$/i.test(em)) l.custEmail=em.toLowerCase();
+    }catch(e){}
+  }));
 }
 async function load(){
   document.getElementById("errbox").innerHTML="";
