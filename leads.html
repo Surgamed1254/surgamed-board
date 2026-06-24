@@ -211,6 +211,17 @@ body.modern #newLook{ background:#4f46e5; border-color:#4f46e5; box-shadow:0 1px
 .ws-secttl{ font-size:14px; font-weight:600; color:#16324f; margin:4px 0 9px; }
 #board.wsview .ltab{ font-size:12.5px; background:#fff; border:1px solid #e6ecf2; border-radius:12px; overflow:hidden; }
 #board.wsview .ltab th{ background:#f7f9fc; color:#8a98a6; }
+.ws-leadbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin:4px 0 9px; }
+.ws-pager{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:#5a6b7b; }
+.ws-psize{ display:inline-flex; align-items:center; gap:4px; }
+.ws-szbtn{ border:1px solid #d7dee6; background:#fff; color:#5a6b7b; border-radius:7px; padding:3px 9px; font-size:12px; cursor:pointer; }
+.ws-szbtn:hover{ border-color:#185fa5; color:#185fa5; }
+.ws-szbtn.on{ background:#185fa5; border-color:#185fa5; color:#fff; }
+.ws-prange{ color:#9aa7b4; margin:0 2px 0 6px; }
+.ws-pbtn{ border:1px solid #d7dee6; background:#fff; border-radius:7px; width:27px; height:27px; cursor:pointer; color:#23364a; font-size:15px; line-height:1; }
+.ws-pbtn:hover:not(:disabled){ border-color:#185fa5; color:#185fa5; }
+.ws-pbtn:disabled{ opacity:.4; cursor:default; }
+.ws-ppage{ min-width:46px; text-align:center; }
 </style>
 </head>
 <body>
@@ -267,7 +278,6 @@ body.modern #newLook{ background:#4f46e5; border-color:#4f46e5; box-shadow:0 1px
     <button class="custbtn" id="custLookup">🔎 Customer lookup</button>
     <button class="custbtn" id="itemLookup" style="background:#0b66c3;border-color:#0b66c3">📦 Item lookup</button>
     <button class="custbtn" id="mySig" style="background:#5a6b7b;border-color:#5a6b7b">✍️ My signature</button>
-    <button class="custbtn" id="newLook" style="display:none;background:#4f46e5;border-color:#4f46e5">✨ New look</button>
     <button class="custbtn" id="teamActivity" style="display:none;background:#5b3fc4;border-color:#5b3fc4">👥 Team activity</button>
     <span class="whoami" id="whoami"></span>
     <button class="signout" id="signout">Sign out</button>
@@ -314,6 +324,8 @@ let TOKEN = "";
 let VIEW = localStorage.getItem('sg_view') || 'cards';
 let histMin = false; // purchase history opens expanded by default on every lead
 let suggMin = false; // suggestions open expanded by default on every lead
+let WS_PAGE = 1;                                                  // Workspace active-leads current page
+let WS_SIZE = localStorage.getItem('sg_wssize') || '10';         // page size: '5' | '10' | '20' | 'all'
 
 function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function signinErr(m){ const e=document.getElementById("signinErr"); e.style.display="block"; e.textContent=m; }
@@ -348,22 +360,14 @@ async function showApp(session){
   document.addEventListener("visibilitychange",()=>{ if(!document.hidden) markPresence(u); });
   // Team-activity view is visible only to the admin (Meir).
   if(ADMINS.includes((u.email||"").toLowerCase())){ const ta=document.getElementById("teamActivity"); ta.style.display=""; ta.onclick=openTeamActivity; }
-  // Dense "Workspace (beta)" view — manager dashboard, visible only to admins (Meir + Shaya).
+  // Dense "Workspace" view — manager dashboard, available only to admins (Meir + Shaya).
+  // Admins land in the Workspace by default; they can still switch to Cards/List via the View menu.
   if(ADMINS.includes(MY_EMAIL)){
     const vs=document.getElementById('viewSel');
-    if(vs && !vs.querySelector('option[value="workspace"]')){ const op=document.createElement('option'); op.value='workspace'; op.textContent='Workspace (beta)'; vs.appendChild(op); }
+    if(vs && !vs.querySelector('option[value="workspace"]')){ const op=document.createElement('option'); op.value='workspace'; op.textContent='Workspace'; vs.appendChild(op); }
+    if(localStorage.getItem('sg_view')===null){ VIEW='workspace'; localStorage.setItem('sg_view','workspace'); }
     if(VIEW==='workspace' && vs) vs.value='workspace';
   } else if(VIEW==='workspace'){ VIEW='cards'; localStorage.setItem('sg_view','cards'); }
-  // New-look preview toggle — only Meir sees it; applies only to his browser, reps unaffected.
-  if(MY_EMAIL==='mweinreb@surgamed.com'){
-    const nl=document.getElementById('newLook'); if(nl){
-      nl.style.display='';
-      const setLbl=()=>{ nl.textContent = document.body.classList.contains('modern') ? '↩ Classic look' : '✨ New look'; };
-      if(localStorage.getItem('sg_modern')==='1') document.body.classList.add('modern');
-      setLbl();
-      nl.onclick=function(){ const on=document.body.classList.toggle('modern'); localStorage.setItem('sg_modern', on?'1':'0'); setLbl(); };
-    }
-  }
   document.getElementById("signin").style.display="none";
   document.getElementById("app").style.display="block";
   renderRota();
@@ -932,15 +936,30 @@ function renderWorkspace(){
   // Dense active-leads table (respects all three filters)
   let rows=LEADS.filter(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&stt==="closed")return false; if(statusF!=="all"&&stt!==statusF)return false; if(repF!=="all"&&rep!==repF)return false; return true; });
   rows.sort((a,b)=>new Date(b.date)-new Date(a.date));
-  html+='<div class="ws-secttl">Active leads'+(statusF!=='all'?' · '+esc((STATUSES.find(s=>s.key===statusF)||{}).label||statusF):'')+(repF!=='all'?' · '+esc(repF):'')+'</div>';
+  const totalRows=rows.length;
+  const sizeNum = WS_SIZE==='all' ? (totalRows||1) : (parseInt(WS_SIZE,10)||10);
+  const pages = Math.max(1, Math.ceil(totalRows/sizeNum));
+  if(WS_PAGE>pages) WS_PAGE=pages; if(WS_PAGE<1) WS_PAGE=1;
+  const startI=(WS_PAGE-1)*sizeNum;
+  const pageRows=rows.slice(startI, startI+sizeNum);
+  const fromN = totalRows ? startI+1 : 0, toN = Math.min(startI+sizeNum, totalRows);
+  let pager='<div class="ws-pager"><span class="ws-psize">Rows:';
+  ['5','10','20','all'].forEach(s=>{ pager+=' <button class="ws-szbtn'+(WS_SIZE===s?' on':'')+'" data-wssize="'+s+'">'+(s==='all'?'All':s)+'</button>'; });
+  pager+='</span><span class="ws-prange">'+fromN+'–'+toN+' of '+totalRows+'</span>'+
+    '<button class="ws-pbtn" data-wspage="prev"'+(WS_PAGE<=1?' disabled':'')+' aria-label="Previous page">‹</button>'+
+    '<span class="ws-ppage">'+WS_PAGE+' / '+pages+'</span>'+
+    '<button class="ws-pbtn" data-wspage="next"'+(WS_PAGE>=pages?' disabled':'')+' aria-label="Next page">›</button></div>';
+  html+='<div class="ws-leadbar"><div class="ws-secttl" style="margin:0">Active leads'+(statusF!=='all'?' · '+esc((STATUSES.find(s=>s.key===statusF)||{}).label||statusF):'')+(repF!=='all'?' · '+esc(repF):'')+'</div>'+pager+'</div>';
   html+='<table class="ltab wsleadtab"><thead><tr><th>Date</th><th>Type</th><th>Customer</th><th>Item / details</th><th>Acct</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
-  if(!rows.length) html+='<tr><td colspan="8"><div class="empty">No leads match these filters</div></td></tr>';
-  rows.forEach(l=>{ html+=leadRowHtml(l); });
+  if(!pageRows.length) html+='<tr><td colspan="8"><div class="empty">No leads match these filters</div></td></tr>';
+  pageRows.forEach(l=>{ html+=leadRowHtml(l); });
   html+='</tbody></table>';
   document.getElementById("board").innerHTML=html;
-  document.getElementById("counts").textContent=rows.length+" shown · "+LEADS.length+" in window";
-  document.querySelectorAll('#board [data-wsstage]').forEach(el=>{ el.onclick=function(){ document.getElementById("statusFilter").value=this.getAttribute('data-wsstage'); renderBoard(); }; });
-  document.querySelectorAll('#board [data-wsrep]').forEach(el=>{ el.onclick=function(){ document.getElementById("repFilter").value=this.getAttribute('data-wsrep'); renderBoard(); }; });
+  document.getElementById("counts").textContent=totalRows+" shown · "+LEADS.length+" in window";
+  document.querySelectorAll('#board [data-wsstage]').forEach(el=>{ el.onclick=function(){ WS_PAGE=1; document.getElementById("statusFilter").value=this.getAttribute('data-wsstage'); renderBoard(); }; });
+  document.querySelectorAll('#board [data-wsrep]').forEach(el=>{ el.onclick=function(){ WS_PAGE=1; document.getElementById("repFilter").value=this.getAttribute('data-wsrep'); renderBoard(); }; });
+  document.querySelectorAll('#board [data-wssize]').forEach(el=>{ el.onclick=function(){ WS_SIZE=this.getAttribute('data-wssize'); localStorage.setItem('sg_wssize',WS_SIZE); WS_PAGE=1; renderWorkspace(); }; });
+  document.querySelectorAll('#board [data-wspage]').forEach(el=>{ el.onclick=function(){ if(this.disabled) return; WS_PAGE += (this.getAttribute('data-wspage')==='next'?1:-1); renderWorkspace(); }; });
   wireCards();
 }
 function relBadge(l){ const e=(l.custEmail||'').toLowerCase(); const info=CONTACTS_BY_EMAIL[e]; return (info&&info.rep)?('<span class="tag relbadge" title="Existing relationship — keep with this rep">🤝 '+esc(info.rep)+'</span>'):''; }
