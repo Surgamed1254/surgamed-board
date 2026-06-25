@@ -279,6 +279,7 @@ body.modern #newLook{ background:#4f46e5; border-color:#4f46e5; box-shadow:0 1px
     <button class="custbtn" id="itemLookup" style="background:#0b66c3;border-color:#0b66c3">📦 Item lookup</button>
     <button class="custbtn" id="mySig" style="background:#5a6b7b;border-color:#5a6b7b">✍️ My signature</button>
     <button class="custbtn" id="teamActivity" style="display:none;background:#5b3fc4;border-color:#5b3fc4">👥 Team activity</button>
+    <button class="custbtn" id="refreshBtn" style="background:#0f7a4d;border-color:#0f7a4d" title="Refresh now — auto-refreshes every 90s">↻ Refresh</button>
     <span class="whoami" id="whoami"></span>
     <button class="signout" id="signout">Sign out</button>
     <span class="counts" id="counts"></span>
@@ -357,7 +358,9 @@ async function showApp(session){
   loadMySignature();
   // Presence: record this user's "last seen" now and every minute while the board is open.
   markPresence(u); setInterval(()=>markPresence(u), 60000);
-  document.addEventListener("visibilitychange",()=>{ if(!document.hidden) markPresence(u); });
+  // Auto-refresh the leads so new inquiries/orders appear without a manual reload.
+  setInterval(()=>{ if(!document.hidden) load(true); }, 90000);
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ markPresence(u); load(true); } });
   // Team-activity view is visible only to the admin (Meir).
   if(ADMINS.includes((u.email||"").toLowerCase())){ const ta=document.getElementById("teamActivity"); ta.style.display=""; ta.onclick=openTeamActivity; }
   // Dense "Workspace" view — manager dashboard, available only to admins (Meir + Shaya).
@@ -799,9 +802,10 @@ async function enrichOrders(){
     }catch(e){}
   }
 }
-async function load(){
-  document.getElementById("errbox").innerHTML="";
-  document.getElementById("board").innerHTML='<div class="loading">Loading leads…</div>';
+async function load(silent){
+  // Silent refresh: don't disturb a rep who has a lead open, and don't flash the "Loading…" placeholder.
+  if(silent){ const ov=document.getElementById('detailOverlay'); if(ov && ov.style.display!=='none') return; }
+  if(!silent){ document.getElementById("errbox").innerHTML=""; document.getElementById("board").innerHTML='<div class="loading">Loading leads…</div>'; }
   const wv=document.getElementById("window").value;
   const cutoff = wv==='rot' ? rotationStartMs() : (Date.now()-parseInt(wv,10)*86400000);
   try{
@@ -818,14 +822,18 @@ async function load(){
       await sb.from("lead_history").insert(reassigned.map(o=>({lead_id:o.id, actor:"system", action:"Owner set to "+o.owner+" — applied new 6 PM ET / weekend rotation rule"})));
     }
     renderBoard();
+    LAST_REFRESH=Date.now(); stampRefresh();
     document.getElementById("footnote").innerHTML =
       "<b>Shared board.</b> Each lead is owned by the rep on rotation the day it arrived and stays theirs until Closed. "+
       "Tap any lead for the full email. Status, ownership &amp; history are saved for the whole team. Changes are stamped with your name ("+esc(ME)+").";
   }catch(e){
-    document.getElementById("board").innerHTML="";
-    document.getElementById("errbox").innerHTML='<div class="err">Couldn’t load leads: '+esc(String(e.message||e))+'</div>';
+    if(!silent){ document.getElementById("board").innerHTML="";
+      document.getElementById("errbox").innerHTML='<div class="err">Couldn’t load leads: '+esc(String(e.message||e))+'</div>'; }
   }
 }
+let LAST_REFRESH=0;
+function stampRefresh(){ const el=document.getElementById("refreshBtn"); if(el) el.title="Last updated "+new Date(LAST_REFRESH).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); }
+async function manualRefresh(){ const b=document.getElementById("refreshBtn"); if(b){ b.disabled=true; b.textContent="↻ Refreshing…"; } await load(true); if(b){ b.disabled=false; b.textContent="↻ Refresh"; } }
 
 function renderRota(){
   const ref=businessRef();
@@ -1441,7 +1449,8 @@ document.getElementById("repFilter").onchange=renderBoard;
 document.getElementById("statusFilter").onchange=renderBoard;
 (function(){ const v=document.getElementById("viewSel"); if(v){ v.value=VIEW; v.onchange=function(){ VIEW=this.value; localStorage.setItem('sg_view',VIEW); renderBoard(); }; } })();
 document.getElementById("hideClosed").onchange=renderBoard;
-document.getElementById("window").onchange=load;
+document.getElementById("window").onchange=()=>load();
+document.getElementById("refreshBtn").onclick=manualRefresh;
 sb.auth.onAuthStateChange((e, session)=>{ if(session) showApp(session); });
 boot();
 </script>
