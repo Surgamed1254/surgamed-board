@@ -464,13 +464,15 @@ function isNoise(email){
   const s=(email.subject||"").toLowerCase(), snd=(email.sender||"").toLowerCase();
   if(/dotmed-mail\.com|cloud-protect\.net|mailer-daemon|postmaster|@facebookmail|linkedin\.com|github\.com|indeed\.com|upwork\.com|godaddy|paypal\.com|anthropic\.com|intuit|quickbooks|stripe\.com|squareup|@amazon|billing@/.test(snd)) return true;
   if(/(no-?reply|do-not-reply|noreply)/.test(snd) && !isAuto(snd)) return true;
-  if(/listing download|parts alerts|equipment.*alert|forums|quarantine|daily digest|expiring|reminder|out of office|undeliverable|automatic reply|^read:|^not read:|receipt|your invoice|updated your invoice|we sent your invoice|invoice #|payment received/.test(s)) return true;
+  if(/listing download|parts alerts|equipment.*alert|forums|quarantine|daily digest|expiring|reminder|out of office|undeliverable|automatic reply|^read:|^not read:|receipt|your invoice|updated your invoice|we sent your invoice|invoice #|payment received|listings have been uploaded|listing upload has started|upload has started|upload has been completed|upload has finished|has been published/.test(s)) return true;
   return false;
 }
 function isInquiry(email){
   if(isNoise(email)) return false;
   const snd=(email.sender||"").toLowerCase();
-  if(isAuto(snd)) return /sent you this email regarding/i.test(email.summary||"");
+  // dotMed relays real buyer emails (listing questions, shopping-cart questions, etc.) via auto@dotmed.
+  // System notices (uploads, reminders, digests…) are already removed by isNoise above, so accept the rest.
+  if(isAuto(snd)) return true;
   if(ourAddr(snd)) return false;
   return true;
 }
@@ -498,6 +500,8 @@ function extractLead(email,catKey){
       const mi=/([A-Za-z][\w .'\-]+?)\s+of\s+(.+?)\s+sent you this email/i.exec(s);
       if(mi){ custName=mi[1].trim(); company=mi[2].trim(); }
       else { const m2=/^\s*([A-Za-z][\w .'\-]+?)\s+sent you this email/i.exec(s); if(m2) custName=m2[1].trim(); }
+      // Cart questions etc. carry the buyer's name in the relay sender's display name ("Sepehr Lalezari <auto@dotmed.com>").
+      if(!custName){ const sn=senderName(email.sender); if(sn && !/dot\s*med/i.test(sn)) custName=sn; }
       custEmail=firstCustomerEmail(s); phone=firstPhone(s);
       const ii=/regarding Listing\s*#?\d+,\s*(.+?)\.(?:\s|$|\r|\n)/i.exec(s); if(ii) item=ii[1].trim();
     } else item=normSubject(subj);
