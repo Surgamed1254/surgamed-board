@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>SurgaMed · WhatsApp CRM</title>
 <style>
-  :root{--bg:#f4f6f9;--panel:#fff;--ink:#1d2733;--muted:#647387;--line:#e3e8ef;--blue:#185fa5;--blueS:#e8f1fb;--green:#1b9e6b;--greenS:#e6f6ee;--amber:#b7791f;--amberS:#fdf3e2;--red:#c0392b;--redS:#fdecea;--shadow:0 1px 3px rgba(16,24,40,.1)}
+  :root{--bg:#f4f6f9;--panel:#fff;--ink:#1d2733;--muted:#647387;--line:#e3e8ef;--blue:#185fa5;--blueS:#e8f1fb;--green:#1b9e6b;--greenS:#e6f6ee;--amber:#b7791f;--amberS:#fdf3e2;--red:#c0392b;--redS:#fdecea;--purple:#6b46c1;--purpleS:#efe9fb;--shadow:0 1px 3px rgba(16,24,40,.1)}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  header.top{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20}
+  header.top{background:var(--panel);border-bottom:1px solid var(--line);padding:9px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20}
   .brand{font-weight:700;font-size:15px;color:var(--blue)}
   .badge{font-size:11px;font-weight:600;border-radius:999px;padding:2px 10px}
   .badge.live{background:var(--greenS);color:var(--green)}
@@ -16,42 +16,72 @@
   .spacer{flex:1}
   .who{color:var(--muted);font-size:12px}
   .btn{border:none;border-radius:7px;padding:7px 13px;font:13px inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff}
+  .btn.sm{padding:4px 9px;font-size:12px}
+  .btn.ghost{background:#fff;color:var(--blue);border:1px solid var(--line)}
   .gate{max-width:560px;margin:60px auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:28px;text-align:center;box-shadow:var(--shadow)}
   .gate h2{margin:0 0 8px}
-  .wrap{display:grid;grid-template-columns:340px 1fr;gap:0;height:calc(100vh - 49px)}
-  .list{border-right:1px solid var(--line);background:#fff;overflow:auto}
-  .lhead{padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff}
-  .conv{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+  .wrap{display:grid;grid-template-columns:360px 1fr;gap:0;height:calc(100vh - 48px)}
+  .list{border-right:1px solid var(--line);background:#fff;overflow:auto;display:flex;flex-direction:column}
+  .filters{padding:9px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:5}
+  .filters input[type=search]{width:100%;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font:13px inherit;margin-bottom:7px}
+  .frow{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+  .frow select{border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:11.5px inherit;background:#fff;color:var(--ink)}
+  .chip{font-size:11px;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:3px 9px;cursor:pointer;background:#fff;color:var(--muted);user-select:none}
+  .chip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .lcount{padding:6px 13px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--line)}
+  .convs{flex:1}
+  .conv{padding:10px 13px;border-bottom:1px solid var(--line);cursor:pointer}
   .conv:hover{background:#f8fafc}
   .conv.active{background:var(--blueS)}
-  .conv .nm{font-weight:600}
+  .conv .nm{font-weight:600;display:flex;align-items:center;gap:6px}
   .conv .sub{color:var(--muted);font-size:11.5px;margin-top:2px}
-  .pill{display:inline-block;font-size:10.5px;font-weight:600;border-radius:999px;padding:1px 8px;margin-top:4px}
-  .pill.rep{background:var(--redS);color:var(--red)}
-  .pill.cust{background:#eef1f5;color:var(--muted)}
-  .pill.closed{background:var(--greenS);color:var(--green)}
-  .pill.follow{background:var(--amberS);color:var(--amber)}
-  .detail{overflow:auto;padding:18px 22px}
+  .conv .row2{margin-top:5px;display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+  .pill{display:inline-block;font-size:10.5px;font-weight:600;border-radius:999px;padding:1px 8px}
+  .pill.rep{background:var(--redS);color:var(--red)} .pill.cust{background:#eef1f5;color:var(--muted)}
+  .pill.closed{background:var(--greenS);color:var(--green)} .pill.follow{background:var(--amberS);color:var(--amber)}
+  .pill.won{background:var(--greenS);color:var(--green)} .pill.lost{background:var(--redS);color:var(--red)}
+  .pill.new{background:var(--blueS);color:var(--blue)} .pill.in_progress{background:#eaf2ff;color:#2563eb}
+  .pill.quoted{background:var(--purpleS);color:var(--purple)} .pill.awaiting_customer{background:#eef1f5;color:var(--muted)}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .dot.urgent{background:var(--red)} .dot.high{background:var(--amber)} .dot.normal{background:#9aa6b5} .dot.low{background:#cbd5e1}
+  .star{color:#d8a800;font-weight:700}
+  .flagx{color:var(--red);font-weight:700}
+  .detail{overflow:auto;padding:16px 20px}
   .empty{color:var(--muted);text-align:center;margin-top:80px}
-  .pcard{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;box-shadow:var(--shadow);margin-bottom:14px}
-  .pname{font-size:18px;font-weight:700}
-  .meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;color:var(--muted);font-size:12px}
+  .pcard{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;box-shadow:var(--shadow);margin-bottom:13px}
+  .pname{font-size:18px;font-weight:700;display:flex;align-items:center;gap:9px}
+  .iconbtn{cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:600;color:var(--muted)}
+  .iconbtn.on.vip{background:#fff7df;color:#b8860b;border-color:#ecd98a}
+  .iconbtn.on.rev{background:var(--redS);color:var(--red);border-color:#f0b6b6}
+  .meta{display:flex;flex-wrap:wrap;gap:13px;margin-top:9px;color:var(--muted);font-size:12px}
   .meta b{color:var(--ink)}
+  .ctrls{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:4px}
+  .field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px}
+  .field select,.field input{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:13px inherit;background:#fff;color:var(--ink)}
   .na{font-weight:700;border-radius:7px;padding:3px 10px;display:inline-block}
   .na.reply{background:var(--redS);color:var(--red)} .na.follow{background:var(--amberS);color:var(--amber)} .na.wait{background:#eef1f5;color:var(--muted)} .na.none{background:var(--greenS);color:var(--green)}
-  h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:18px 2px 8px}
+  h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:16px 2px 8px}
   .msgs{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;box-shadow:var(--shadow)}
   .msg{max-width:72%;padding:7px 11px;border-radius:12px;margin:6px 0;font-size:13px;clear:both}
   .msg.in{background:#eef2f6;float:left;border-bottom-left-radius:3px}
   .msg.out{background:var(--blueS);float:right;border-bottom-right-radius:3px}
   .msg .t{font-size:10px;color:var(--muted);margin-top:3px}
   .clear{clear:both}
+  .notes{background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:10px 12px}
+  .note{padding:7px 0;border-bottom:1px dashed var(--line)}
+  .note:last-child{border-bottom:none}
+  .note .who{font-weight:600;color:var(--ink)}
+  .noteadd{display:flex;gap:7px;margin-top:9px}
+  .noteadd input{flex:1;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font:13px inherit}
   .tl{list-style:none;margin:0;padding:0;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
-  .tl li{padding:9px 14px;border-bottom:1px dashed var(--line)}
+  .tl li{padding:8px 13px;border-bottom:1px dashed var(--line);display:flex;gap:9px}
   .tl li:last-child{border-bottom:none}
+  .tl .ic{font-size:14px;width:18px;text-align:center}
   .tl .ty{font-weight:600}
   .tl .t{font-size:11px;color:var(--muted)}
   .test-banner{background:var(--amberS);color:var(--amber);border:1px solid #f0dcb3;border-radius:8px;padding:6px 12px;font-size:12px;margin:0 0 12px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d2733;color:#fff;padding:8px 16px;border-radius:8px;font-size:12.5px;box-shadow:0 4px 16px rgba(0,0,0,.2);opacity:0;transition:opacity .2s;z-index:50}
+  .toast.show{opacity:1}
 </style>
 </head>
 <body>
@@ -64,113 +94,267 @@
 </header>
 <div id="gate" class="gate" style="display:none"></div>
 <div id="app" class="wrap" style="display:none">
-  <div class="list"><div class="lhead" id="lhead">WhatsApp conversations</div><div id="convs"></div></div>
-  <div class="detail" id="detail"><div class="empty">Select a conversation to view the customer, messages and timeline.</div></div>
+  <div class="list">
+    <div class="filters">
+      <input type="search" id="q" placeholder="Search name, company, phone, email…" autocomplete="off"/>
+      <div class="frow">
+        <select id="fRep"><option value="">All reps</option></select>
+        <select id="fStatus"><option value="">Any status</option></select>
+        <select id="fPriority"><option value="">Any priority</option></select>
+        <span class="chip" data-flag="vip">★ VIP</span>
+        <span class="chip" data-flag="review">⚑ Review</span>
+        <span class="chip" data-flag="due">⏰ Follow-up due</span>
+      </div>
+    </div>
+    <div class="lcount" id="lcount">—</div>
+    <div class="convs" id="convs"></div>
+  </div>
+  <div class="detail" id="detail"><div class="empty">Select a conversation to view the customer, manager controls, messages and timeline.</div></div>
 </div>
+<div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SB_URL="https://ecjemcrpbzeocoiwslcu.supabase.co";
 const SB_KEY="sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
+const MANAGER_FN=SB_URL+"/functions/v1/manager";
 const MANAGERS=["mweinreb@surgamed.com","sgluck@surgamed.com","orders@surgamed.com"];
+
+const STATUSES=[["new","New"],["in_progress","In progress"],["quoted","Quoted"],["awaiting_customer","Awaiting customer"],["won","Won"],["lost","Lost"],["closed","Closed"]];
+const PRIORITIES=[["urgent","Urgent"],["high","High"],["normal","Normal"],["low","Low"]];
+const statusName=s=>(STATUSES.find(x=>x[0]===s)||[,s||"New"])[1];
+const TLICON={whatsapp_in:"💬",whatsapp_out:"📤",customer_created:"✨",note:"📝",order:"📦",shipment:"🚚",email:"✉️",dotmed:"🩺",payment:"💳",ai_summary:"🤖"};
 
 // ---------- pure helpers (unit-testable) ----------
 function fmtAgo(t){ if(!t) return "—"; const d=new Date(t),h=(Date.now()-d.getTime())/3.6e6; if(h<1) return Math.max(1,Math.round(h*60))+"m ago"; if(h<24) return Math.round(h)+"h ago"; return Math.round(h/24)+"d ago"; }
+function fmtDate(t){ if(!t) return "—"; const d=new Date(t); return d.toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
 function lastMsg(msgs){ return msgs&&msgs.length?msgs[msgs.length-1]:null; }
-function statusLabel(conv,msgs){ if(conv.status==="closed") return "Closed"; const l=lastMsg(msgs); if(l&&l.direction==="in") return "Waiting on rep"; if(conv.follow_up_needed) return "Follow-up due"; return "Waiting on customer"; }
-function statusClass(conv,msgs){ const s=statusLabel(conv,msgs); return s==="Closed"?"closed":s==="Waiting on rep"?"rep":s==="Follow-up due"?"follow":"cust"; }
-function nextAction(conv,msgs){ if(conv.status==="closed") return "No action"; const l=lastMsg(msgs); if(l&&l.direction==="in") return "Reply to WhatsApp"; if(conv.follow_up_needed) return "Follow Up"; return "Waiting on Customer"; }
-function naClass(a){ return a==="Reply to WhatsApp"?"reply":a==="Follow Up"?"follow":a==="No action"?"none":"wait"; }
+function dueSoon(conv){ if(!conv.follow_up_date) return false; const d=new Date(conv.follow_up_date+"T23:59:59"); return d.getTime()<=Date.now()+0; }
+function statusLabel(conv,msgs){
+  if(conv.manager_status) return statusName(conv.manager_status);
+  if(conv.status==="closed") return "Closed";
+  const l=lastMsg(msgs); if(l&&l.direction==="in") return "Waiting on rep";
+  if(conv.follow_up_needed) return "Follow-up due"; return "Waiting on customer";
+}
+function statusClass(conv){ const s=conv.manager_status||(conv.status==="closed"?"closed":"new"); return ["new","in_progress","quoted","awaiting_customer","won","lost","closed"].includes(s)?s:"cust"; }
+function nextAction(conv,msgs){
+  if(conv.next_action_override) return conv.next_action_override;
+  if(["won","lost","closed"].includes(conv.manager_status)) return "No action";
+  if(conv.status==="closed") return "No action";
+  const l=lastMsg(msgs); if(l&&l.direction==="in") return "Reply to WhatsApp";
+  if(dueSoon(conv)) return "Follow up (due)";
+  if(conv.follow_up_needed||conv.follow_up_date) return "Follow Up";
+  return "Waiting on Customer";
+}
+function naClass(a){ return /reply/i.test(a)?"reply":/follow/i.test(a)?"follow":/no action/i.test(a)?"none":"wait"; }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function matchesFilters(row,f){
+  const c=row.customers||{}, msgs=row._msgs||[];
+  if(f.q){ const blob=(c.name+" "+c.company+" "+c.phone+" "+c.email+" "+c.assigned_rep).toLowerCase(); if(!blob.includes(f.q.toLowerCase())) return false; }
+  if(f.rep){ if(f.rep==="__none"){ if(c.assigned_rep) return false; } else if(c.assigned_rep!==f.rep) return false; }
+  if(f.status && (row.manager_status||"new")!==f.status) return false;
+  if(f.priority && (row.priority||"normal")!==f.priority) return false;
+  if(f.vip && !c.vip) return false;
+  if(f.review && !c.review_flag) return false;
+  if(f.due && !dueSoon(row)) return false;
+  return true;
+}
+
+// ---------- demo data (safe; mirrors live schema shapes) ----------
+function iso(min){ return new Date(Date.now()-min*6e4).toISOString(); }
+const DEMO_REPS=[{id:1,name:"Jennifer"},{id:2,name:"Mirian"},{id:3,name:"Deysi"},{id:4,name:"Tehila"},{id:5,name:"Main Office"}];
+const DEMO={ convs:[
+  {id:9001,status:"open",manager_status:"quoted",priority:"high",follow_up_needed:false,follow_up_date:null,last_message_at:iso(12),
+   customers:{id:8001,name:"ZZ_WATEST — Dr. Demo Buyer",company:"Demo General Hospital",phone:"+19999990001",email:"demo.buyer@example.com",assigned_rep:"Deysi",vip:true,review_flag:false,country:"US",preferred_language:"en",last_contact_at:iso(12)},
+   _msgs:[{direction:"in",text:"Hi, do you have the Hologic Selenia in stock?",ts:iso(40)},{direction:"out",text:"Yes — sending you the quote now.",ts:iso(30)},{direction:"in",text:"Great, what's the lead time?",ts:iso(12)}],
+   _tl:[{type:"customer_created",source:"whatsapp",title:"Customer created from WhatsApp",ts:iso(41)},{type:"whatsapp_in",source:"whatsapp",title:"WhatsApp from Dr. Demo Buyer",body:"Hi, do you have…",ts:iso(40)},{type:"note",source:"manager",rep:"sgluck@surgamed.com",title:"Quoted $48k — chasing PO",ts:iso(28)}]},
+  {id:9002,status:"open",manager_status:"in_progress",priority:"urgent",follow_up_needed:true,follow_up_date:new Date(Date.now()-864e5).toISOString().slice(0,10),last_message_at:iso(180),
+   customers:{id:8002,name:"ZZ_WATEST — Clinica Norte",company:"Clínica Norte",phone:"+19999990002",email:"compras@clinicanorte.example",assigned_rep:"Mirian",vip:false,review_flag:true,country:"MX",preferred_language:"es",last_contact_at:iso(180)},
+   _msgs:[{direction:"in",text:"¿Tienen sondas Foley 16Fr disponibles?",ts:iso(200)},{direction:"out",text:"Sí, tenemos stock. ¿Cuántas cajas necesita?",ts:iso(190)},{direction:"in",text:"Necesito 20 cajas para el lunes.",ts:iso(180)}],
+   _tl:[{type:"whatsapp_in",source:"whatsapp",title:"WhatsApp from Clínica Norte",body:"¿Tienen sondas…",ts:iso(200)},{type:"note",source:"manager",rep:"mweinreb@surgamed.com",title:"Flagged for review — verify credit terms",ts:iso(160)}]},
+  {id:9003,status:"open",manager_status:"new",priority:"normal",follow_up_needed:false,follow_up_date:null,last_message_at:iso(50),
+   customers:{id:8003,name:"ZZ_WATEST — Mercy Surgical",company:"Mercy Surgical Center",phone:"+19999990003",email:"ops@mercysurg.example",assigned_rep:"",vip:false,review_flag:false,country:"US",preferred_language:"en",last_contact_at:iso(50)},
+   _msgs:[{direction:"in",text:"Do you carry Medtronic LigaSure?",ts:iso(50)}],
+   _tl:[{type:"customer_created",source:"whatsapp",title:"Customer created from WhatsApp",ts:iso(51)},{type:"whatsapp_in",source:"whatsapp",title:"WhatsApp from Mercy Surgical",body:"Do you carry…",ts:iso(50)}]},
+  {id:9004,status:"open",manager_status:"won",priority:"low",follow_up_needed:false,follow_up_date:null,last_message_at:iso(2880),
+   customers:{id:8004,name:"ZZ_WATEST — Dr. Aria Patel",company:"Patel Orthopedics",phone:"+19999990004",email:"aria@patelortho.example",assigned_rep:"Jennifer",vip:true,review_flag:false,country:"US",preferred_language:"en",last_contact_at:iso(2880)},
+   _msgs:[{direction:"in",text:"Order received, thank you!",ts:iso(2900)},{direction:"out",text:"Glad it arrived! Let us know if you need anything else.",ts:iso(2880)}],
+   _tl:[{type:"order",source:"paypal",title:"Order #SM-10231 paid — $12,400",ts:iso(3000)},{type:"shipment",source:"shipstation",title:"Shipped via UPS 1Z… ",ts:iso(2950)},{type:"note",source:"manager",rep:"sgluck@surgamed.com",title:"Closed won",ts:iso(2880)}]},
+  {id:9005,status:"open",manager_status:"awaiting_customer",priority:"normal",follow_up_needed:true,follow_up_date:new Date(Date.now()+2*864e5).toISOString().slice(0,10),last_message_at:iso(600),
+   customers:{id:8005,name:"ZZ_WATEST — Hospital Sur",company:"Hospital del Sur",phone:"+19999990005",email:"compras@hospitalsur.example",assigned_rep:"Tehila",vip:false,review_flag:false,country:"AR",preferred_language:"es",last_contact_at:iso(600)},
+   _msgs:[{direction:"in",text:"Me pueden enviar la cotización formal?",ts:iso(620)},{direction:"out",text:"Enviada. Quedo atento a su confirmación.",ts:iso(600)}],
+   _tl:[{type:"whatsapp_out",source:"whatsapp",title:"Quote sent",ts:iso(600)}]}
+]};
+
+// ---------- runtime ----------
+const $=id=>document.getElementById(id);
+let SB=null, STATE={convs:[],reps:[],live:false}, FILTERS={q:"",rep:"",status:"",priority:"",vip:false,review:false,due:false}, OPEN=null;
+function setMode(live){ const m=$("mode"); STATE.live=live; m.textContent=live?"LIVE":"DEMO"; m.className="badge "+(live?"live":"demo"); }
+function showApp(){ $("gate").style.display="none"; $("app").style.display="grid"; }
+function showGate(html){ $("app").style.display="none"; $("gate").style.display="block"; $("gate").innerHTML=html; }
+function toast(t){ const e=$("toast"); e.textContent=t; e.classList.add("show"); clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove("show"),1900); }
+
+function fillFilterSelects(){
+  $("fStatus").innerHTML='<option value="">Any status</option>'+STATUSES.map(s=>`<option value="${s[0]}">${s[1]}</option>`).join("");
+  $("fPriority").innerHTML='<option value="">Any priority</option>'+PRIORITIES.map(p=>`<option value="${p[0]}">${p[1]}</option>`).join("");
+  const reps=STATE.reps.map(r=>`<option value="${esc(r.name)}">${esc(r.name)}</option>`).join("");
+  $("fRep").innerHTML='<option value="">All reps</option><option value="__none">Unassigned</option>'+reps;
+}
+function convRowHtml(row){
+  const c=row.customers||{}, ms=row.manager_status||"new", pr=row.priority||"normal";
+  const vip=c.vip?'<span class="star" title="VIP">★</span>':"", rev=c.review_flag?'<span class="flagx" title="Needs review">⚑</span>':"";
+  const due=dueSoon(row)?'<span class="pill follow">⏰ '+fmtDate(row.follow_up_date)+'</span>':"";
+  return `<div class="conv" data-cid="${c.id}">
+    <div class="nm">${esc(c.name||("Customer #"+c.id))} ${vip} ${rev}</div>
+    <div class="sub">${esc(c.assigned_rep||"Unassigned")} · ${esc(c.company||c.phone||"")}</div>
+    <div class="row2"><span class="dot ${pr}" title="Priority: ${pr}"></span><span class="pill ${ms}">${esc(statusName(ms))}</span> ${due} <span class="sub">${fmtAgo(row.last_message_at)}</span></div>
+  </div>`;
+}
+function renderList(){
+  const rows=STATE.convs.filter(r=>matchesFilters(r,FILTERS));
+  $("convs").innerHTML=rows.map(convRowHtml).join("")||'<div class="empty" style="margin:30px">No conversations match.</div>';
+  $("lcount").textContent=rows.length+" of "+STATE.convs.length+" conversations";
+  document.querySelectorAll(".conv").forEach(el=>{ el.classList.toggle("active",Number(el.dataset.cid)===OPEN); el.addEventListener("click",()=>openCustomer(Number(el.dataset.cid))); });
+}
 
 function detailHtml(c, conv, msgs, timeline, isTest){
-  const na=nextAction(conv,msgs), st=statusLabel(conv,msgs);
-  const lastAct=conv.last_message_at||c.last_contact_at;
+  const na=nextAction(conv,msgs), st=statusLabel(conv,msgs), lastAct=conv.last_message_at||c.last_contact_at;
   const banner=isTest?'<div class="test-banner">⚠ TEST customer — safe demo/QA row, not a real conversation.</div>':"";
+  const repOpts='<option value="">Unassigned</option>'+STATE.reps.map(r=>`<option value="${r.id}" ${c.assigned_rep===r.name?"selected":""}>${esc(r.name)}</option>`).join("");
+  const statusOpts=STATUSES.map(s=>`<option value="${s[0]}" ${(conv.manager_status||"new")===s[0]?"selected":""}>${s[1]}</option>`).join("");
+  const prioOpts=PRIORITIES.map(p=>`<option value="${p[0]}" ${(conv.priority||"normal")===p[0]?"selected":""}>${p[1]}</option>`).join("");
   const mhtml=(msgs||[]).map(m=>`<div class="msg ${m.direction==="in"?"in":"out"}">${esc(m.text||"["+(m.media_type||"message")+"]")}<div class="t">${m.direction==="in"?"Customer":"Rep"} · ${fmtAgo(m.ts)}</div></div>`).join("")+'<div class="clear"></div>';
-  const thtml=(timeline||[]).map(e=>`<li><span class="ty">${esc(e.title||e.type)}</span>${e.body?" — "+esc(e.body):""}<div class="t">${esc(e.type)} · ${esc(e.source||"")} · ${fmtAgo(e.ts)}</div></li>`).join("");
+  const notes=(timeline||[]).filter(e=>e.type==="note");
+  const nhtml=notes.map(e=>`<div class="note"><span class="who">${esc((e.rep||"manager").split("@")[0])}</span> · <span class="t">${fmtAgo(e.ts)}</span><div>${esc(e.title||"")}${e.body?" — "+esc(e.body):""}</div></div>`).join("")||'<div class="t">No internal notes yet.</div>';
+  const thtml=(timeline||[]).map(e=>`<li><span class="ic">${TLICON[e.type]||"•"}</span><div><span class="ty">${esc(e.title||e.type)}</span>${e.body?" — "+esc(e.body):""}<div class="t">${esc(e.type)} · ${esc(e.source||"")} · ${fmtAgo(e.ts)}</div></div></li>`).join("");
   return `${banner}
   <div class="pcard">
-    <div class="pname">${esc(c.name||("Customer #"+c.id))}</div>
+    <div class="pname">${esc(c.name||("Customer #"+c.id))}
+      <span class="iconbtn vip ${c.vip?"on":""}" data-act="vip">★ VIP</span>
+      <span class="iconbtn rev ${c.review_flag?"on":""}" data-act="review">⚑ Review</span>
+    </div>
     <div class="meta">
-      <span><b>Rep:</b> ${esc(c.assigned_rep||"Unassigned")}</span>
       <span><b>Phone:</b> ${esc(c.phone||"—")}</span>
       <span><b>Company:</b> ${esc(c.company||"—")}</span>
       <span><b>Email:</b> ${esc(c.email||"—")}</span>
-      <span><b>Status:</b> ${esc(st)}</span>
+      <span><b>Country:</b> ${esc(c.country||"—")}</span>
+      <span><b>Lang:</b> ${esc(c.preferred_language||"—")}</span>
       <span><b>Last activity:</b> ${fmtAgo(lastAct)}</span>
-      <span><b>Next action:</b> <span class="na ${naClass(na)}">${esc(na)}</span></span>
     </div>
+  </div>
+  <div class="pcard">
+    <div class="ctrls">
+      <div class="field"><label>Assigned rep</label><select data-act="assign_rep">${repOpts}</select></div>
+      <div class="field"><label>Status</label><select data-act="set_status">${statusOpts}</select></div>
+      <div class="field"><label>Priority</label><select data-act="set_priority">${prioOpts}</select></div>
+      <div class="field"><label>Follow-up date</label><input type="date" data-act="set_follow_up" value="${conv.follow_up_date||""}"/></div>
+      <div class="field"><label>Next action (auto: ${esc(na)})</label><input type="text" data-act="set_next_action" placeholder="Override…" value="${esc(conv.next_action_override||"")}"/></div>
+      <div class="field"><label>Current next action</label><div><span class="na ${naClass(na)}">${esc(na)}</span></div></div>
+    </div>
+  </div>
+  <h3 class="sec">Internal notes (managers only)</h3>
+  <div class="notes"><div id="noteList">${nhtml}</div>
+    <div class="noteadd"><input type="text" id="noteInput" placeholder="Add an internal note…"/><button class="btn sm" id="noteAdd">Add</button></div>
   </div>
   <h3 class="sec">Open WhatsApp conversation</h3>
   <div class="msgs">${mhtml||'<div class="empty" style="margin:20px">No messages.</div>'}</div>
   <h3 class="sec">Timeline</h3>
   <ul class="tl">${thtml||'<li>No timeline events.</li>'}</ul>`;
 }
-function convRowHtml(row){
-  const c=row.customers||{}, st=statusLabel(row,row._msgs||[]);
-  return `<div class="conv" data-cid="${c.id}"><div class="nm">${esc(c.name||("Customer #"+c.id))}</div><div class="sub">${esc(c.assigned_rep||"Unassigned")} · ${esc(c.company||c.phone||"")}</div><span class="pill ${statusClass(row,row._msgs||[])}">${esc(st)}</span> <span class="sub">${fmtAgo(row.last_message_at)}</span></div>`;
+
+// ---------- manager actions (demo: mutate locally; live: POST to gated function) ----------
+async function callFn(action,payload){
+  const { data:{ session } }=await SB.auth.getSession();
+  const r=await fetch(MANAGER_FN,{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+(session&&session.access_token||"")},body:JSON.stringify({action,...payload})});
+  const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||("HTTP "+r.status)); return j;
+}
+function localNote(row,title,body){ (row._tl=row._tl||[]).unshift({type:"note",source:"manager",rep:(STATE.email||"demo"),title,body,ts:new Date().toISOString()}); }
+async function mgrAction(row,action,payload){
+  try{
+    if(STATE.live){ await callFn(action,payload); }
+    // optimistic local apply (keeps demo working + instant feedback in live)
+    const c=row.customers;
+    if(action==="assign_rep"){ const rep=STATE.reps.find(r=>r.id===payload.rep_id); c.assigned_rep=rep?rep.name:""; localNote(row,"Assigned to "+(rep?rep.name:"unassigned")); }
+    if(action==="set_status"){ row.manager_status=payload.manager_status; localNote(row,"Status → "+statusName(payload.manager_status)); }
+    if(action==="set_priority"){ row.priority=payload.priority; localNote(row,"Priority → "+payload.priority); }
+    if(action==="set_follow_up"){ row.follow_up_date=payload.follow_up_date||null; row.follow_up_needed=!!payload.follow_up_date; localNote(row,payload.follow_up_date?"Follow-up set for "+payload.follow_up_date:"Follow-up cleared"); }
+    if(action==="set_next_action"){ row.next_action_override=payload.next_action_override||null; localNote(row,payload.next_action_override?"Next action: "+payload.next_action_override:"Next action cleared (auto)"); }
+    if(action==="toggle_vip"){ c.vip=payload.vip; localNote(row,payload.vip?"Marked VIP":"VIP removed"); }
+    if(action==="toggle_review"){ c.review_flag=payload.review_flag; localNote(row,payload.review_flag?"Flagged for review":"Review flag cleared"); }
+    if(action==="add_note"){ localNote(row,"Internal note",payload.body); }
+    toast(STATE.live?"Saved":"Saved (demo)");
+    renderList(); openCustomer(c.id,true);
+  }catch(e){ toast("⚠ "+e.message); }
+}
+function wireDetail(row){
+  const c=row.customers, conv=row;
+  document.querySelectorAll('[data-act]').forEach(el=>{
+    const a=el.dataset.act;
+    if(el.tagName==="SELECT"){ el.addEventListener("change",()=>{
+      if(a==="assign_rep") mgrAction(row,"assign_rep",{customer_id:c.id,rep_id:Number(el.value)||null});
+      if(a==="set_status") mgrAction(row,"set_status",{conversation_id:conv.id,manager_status:el.value});
+      if(a==="set_priority") mgrAction(row,"set_priority",{conversation_id:conv.id,priority:el.value});
+    }); }
+    else if(el.tagName==="INPUT" && a==="set_follow_up"){ el.addEventListener("change",()=>mgrAction(row,"set_follow_up",{conversation_id:conv.id,follow_up_date:el.value||null})); }
+    else if(el.tagName==="INPUT" && a==="set_next_action"){ el.addEventListener("change",()=>mgrAction(row,"set_next_action",{conversation_id:conv.id,next_action_override:el.value||null})); }
+    else if(a==="vip"){ el.addEventListener("click",()=>mgrAction(row,"toggle_vip",{customer_id:c.id,vip:!c.vip})); }
+    else if(a==="review"){ el.addEventListener("click",()=>mgrAction(row,"toggle_review",{customer_id:c.id,review_flag:!c.review_flag})); }
+  });
+  const add=$("noteAdd"), inp=$("noteInput");
+  if(add) add.addEventListener("click",()=>{ const v=(inp.value||"").trim(); if(!v) return; inp.value=""; mgrAction(row,"add_note",{customer_id:c.id,body:v}); });
+  if(inp) inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ add.click(); } });
 }
 
-// ---------- demo data (safe; mirrors live schema shapes) ----------
-const DEMO={
-  convs:[{id:9001,status:"open",last_message_at:new Date(Date.now()-12*6e4).toISOString(),follow_up_needed:false,
-    customers:{id:8001,name:"ZZ_WATEST — Dr. Demo Buyer",company:"Demo General Hospital",phone:"+19999990001",email:"demo.buyer@example.com",assigned_rep:"Deysi",last_contact_at:new Date(Date.now()-12*6e4).toISOString()},
-    _msgs:[{direction:"in",text:"Hi, do you have the Hologic Selenia in stock?",ts:new Date(Date.now()-40*6e4).toISOString()},
-           {direction:"out",text:"Yes — sending you the quote now.",ts:new Date(Date.now()-30*6e4).toISOString()},
-           {direction:"in",text:"Great, what's the lead time?",ts:new Date(Date.now()-12*6e4).toISOString()}],
-    _tl:[{type:"customer_created",source:"whatsapp",title:"Customer created from WhatsApp",ts:new Date(Date.now()-41*6e4).toISOString()},
-         {type:"whatsapp_in",source:"whatsapp",title:"WhatsApp from Dr. Demo Buyer",body:"Hi, do you have…",ts:new Date(Date.now()-40*6e4).toISOString()},
-         {type:"note",source:"slack",title:"Assigned to Deysi via Slack",ts:new Date(Date.now()-35*6e4).toISOString()}]}]
-};
-
-// ---------- runtime ----------
-const $=id=>document.getElementById(id);
-let SB=null, STATE={convs:[]};
-function setMode(live){ const m=$("mode"); m.textContent=live?"LIVE":"DEMO"; m.className="badge "+(live?"live":"demo"); }
-function showApp(){ $("gate").style.display="none"; $("app").style.display="grid"; }
-function showGate(html){ $("app").style.display="none"; $("gate").style.display="block"; $("gate").innerHTML=html; }
-
-function renderList(){
-  $("convs").innerHTML=STATE.convs.map(convRowHtml).join("")||'<div class="empty" style="margin:30px">No WhatsApp conversations yet.</div>';
-  document.querySelectorAll(".conv").forEach(el=>el.addEventListener("click",()=>openCustomer(Number(el.dataset.cid))));
-}
-async function openCustomer(cid){
+async function openCustomer(cid,keep){
+  OPEN=cid;
   document.querySelectorAll(".conv").forEach(e=>e.classList.toggle("active",Number(e.dataset.cid)===cid));
-  const row=STATE.convs.find(r=>(r.customers||{}).id===cid); if(!row) return;
+  const row=STATE.convs.find(r=>(r.customers||{}).id===cid); if(!row){ return; }
   let msgs=row._msgs, tl=row._tl;
-  if(SB){ // live fetch
+  if(SB && STATE.live){
     const m=await SB.from("messages").select("*").eq("customer_id",cid).is("deleted_at",null).order("ts");
     const t=await SB.from("timeline_events").select("*").eq("customer_id",cid).is("deleted_at",null).order("ts",{ascending:false});
-    msgs=m.data||[]; tl=t.data||[]; row._msgs=msgs;
+    msgs=m.data||row._msgs||[]; tl=t.data||row._tl||[]; row._msgs=msgs; row._tl=tl;
   }
   const isTest=/ZZ_WATEST/i.test(row.customers.name||"");
   $("detail").innerHTML=detailHtml(row.customers,row,msgs,tl,isTest);
+  wireDetail(row);
 }
 function deepLinkCustomer(){ const m=(location.hash||"").match(/customer=(\d+)/); return m?Number(m[1]):null; }
 
 async function loadLive(){
+  const reps=await SB.from("reps").select("id,name").is("deleted_at",null).order("id");
+  STATE.reps=reps.data||[];
   const r=await SB.from("wa_conversations")
-    .select("id,status,last_message_at,unread_count,follow_up_needed,customers(id,name,company,phone,email,assigned_rep,last_contact_at)")
+    .select("id,status,manager_status,priority,last_message_at,unread_count,follow_up_needed,follow_up_date,next_action_override,customers(id,name,company,phone,email,assigned_rep,vip,review_flag,country,preferred_language,last_contact_at)")
     .is("deleted_at",null).order("last_message_at",{ascending:false});
   STATE.convs=r.data||[];
-  renderList();
+  fillFilterSelects(); renderList();
   const dl=deepLinkCustomer(); if(dl) openCustomer(dl);
 }
+function wireFilters(){
+  $("q").addEventListener("input",e=>{ FILTERS.q=e.target.value; renderList(); });
+  $("fRep").addEventListener("change",e=>{ FILTERS.rep=e.target.value; renderList(); });
+  $("fStatus").addEventListener("change",e=>{ FILTERS.status=e.target.value; renderList(); });
+  $("fPriority").addEventListener("change",e=>{ FILTERS.priority=e.target.value; renderList(); });
+  document.querySelectorAll(".chip[data-flag]").forEach(ch=>ch.addEventListener("click",()=>{ const f=ch.dataset.flag; FILTERS[f]=!FILTERS[f]; ch.classList.toggle("on",FILTERS[f]); renderList(); }));
+}
 async function boot(){
+  wireFilters();
   const demo=/[?&]demo=1/.test(location.search);
-  if(demo || typeof supabase==="undefined"){ setMode(false); STATE.convs=DEMO.convs; showApp(); renderList(); const dl=deepLinkCustomer(); if(dl) openCustomer(dl); return; }
+  if(demo || typeof supabase==="undefined"){ setMode(false); STATE.reps=DEMO_REPS; STATE.convs=DEMO.convs; STATE.email="demo@surgamed.com"; fillFilterSelects(); showApp(); renderList(); const dl=deepLinkCustomer(); if(dl) openCustomer(dl); return; }
   SB=supabase.createClient(SB_URL,SB_KEY);
   setMode(true);
   const { data:{ session } }=await SB.auth.getSession();
   if(!session){ showGate(`<h2>WhatsApp CRM — Managers only</h2><p class="who">Sign in with your SurgaMed Microsoft account to view live WhatsApp conversations.</p><p><button class="btn" id="si2">Sign in with Microsoft</button></p><p class="who">Or open <a href="?demo=1">demo mode</a>.</p>`);
     $("si2").addEventListener("click",()=>SB.auth.signInWithOAuth({provider:"azure",options:{redirectTo:location.href}})); return; }
-  const email=(session.user.email||"").toLowerCase();
-  $("who").textContent=email;
+  const email=(session.user.email||"").toLowerCase(); STATE.email=email; $("who").textContent=email;
   if(!MANAGERS.includes(email)){ showGate(`<h2>Managers only</h2><p class="who">${esc(email)} doesn't have access to the WhatsApp CRM. Ask an admin.</p>`); return; }
   showApp(); await loadLive();
 }
 if(typeof document!=="undefined" && document.getElementById("app")) boot();
+
+// ---------- expose pure helpers for self-test ----------
+if(typeof window!=="undefined") window.__crm={statusLabel,nextAction,matchesFilters,dueSoon,naClass,statusName};
 </script>
 </body>
 </html>
