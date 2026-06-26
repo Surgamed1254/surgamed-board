@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SurgaMed · WhatsApp Coexistence Onboarding (Admin)</title>
+<style>
+  :root{--bg:#f4f6f9;--panel:#fff;--ink:#1d2733;--muted:#647387;--line:#e3e8ef;--blue:#185fa5;--green:#1b9e6b;--greenS:#e6f6ee;--amber:#b7791f;--amberS:#fdf3e2;--red:#c0392b;--redS:#fdecea}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:720px;margin:32px auto;padding:0 18px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px 24px;box-shadow:0 1px 3px rgba(16,24,40,.1);margin-bottom:16px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--blue)}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 4px}
+  .note{background:var(--amberS);color:var(--amber);border:1px solid #f0dcb3;border-radius:8px;padding:10px 12px;font-size:13px;margin:14px 0}
+  ol{margin:10px 0 0 18px;padding:0}
+  ol li{margin:6px 0}
+  button#go{background:#1877f2;color:#fff;border:none;border-radius:8px;padding:12px 18px;font:15px inherit;font-weight:600;cursor:pointer}
+  button#go:disabled{background:#9db8e6;cursor:not-allowed}
+  .result{background:var(--greenS);border:1px solid #b7e3cd;border-radius:8px;padding:14px 16px;margin-top:14px;display:none}
+  .result h3{margin:0 0 8px;font-size:14px;color:var(--green)}
+  .kv{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:6px 0;word-break:break-all}
+  .err{background:var(--redS);border:1px solid #f0b6b6;border-radius:8px;padding:12px 14px;margin-top:14px;color:var(--red);display:none}
+  code{background:#eef1f5;border-radius:4px;padding:1px 5px;font-size:12.5px}
+  .cfgwarn{color:var(--red);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>WhatsApp Coexistence onboarding</h1>
+    <p class="sub">Internal admin tool · SurgaMed CRM production app (App ID 1231523598981623)</p>
+    <p class="sub">Connects a rep's existing <b>WhatsApp Business app</b> number to the Cloud API in <b>Coexistence</b> mode — the number stays live on the phone (no migration, chat history preserved). The same flow works for <b>every</b> rep; nothing here is hardcoded to one person or number.</p>
+
+    <div class="note" id="cfgnote"></div>
+
+    <p class="sub" style="margin-top:14px"><b>How to onboard a rep:</b></p>
+    <ol>
+      <li>The rep's phone has the latest <b>WhatsApp Business</b> app and the number is <b>not</b> on any other WABA.</li>
+      <li>Click <b>Connect a WhatsApp Business App</b> below.</li>
+      <li>In the Meta popup, choose <b>“Connect a WhatsApp Business App”</b> (the Coexistence option — <span class="cfgwarn">never</span> a "migrate" / "move number" option).</li>
+      <li>Scan the QR shown, on the phone, from <b>WhatsApp Business → Settings → Linked devices → Link a device</b>.</li>
+      <li>On success, the issued <b>Phone Number ID</b> and <b>WABA ID</b> appear below — copy them for the rep's mapping.</li>
+    </ol>
+
+    <p style="margin-top:18px"><button id="go" disabled>Connect a WhatsApp Business App</button></p>
+
+    <div class="result" id="result">
+      <h3>✅ Connected — copy these for the rep mapping</h3>
+      <div class="kv" id="rPhoneId"></div>
+      <div class="kv" id="rWaba"></div>
+      <p class="sub">Map the <b>Phone Number ID</b> to the rep's <code>reps.phone_number_id</code>. Do not enable ingestion until mapping is confirmed.</p>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<script>
+const APP_ID = "1231523598981623";
+const GRAPH_VERSION = "v25.0";
+const CONFIG_ID = "1331373832515324";
+
+const $=id=>document.getElementById(id);
+function setCfgNote(){
+  const ok = CONFIG_ID && !/REPLACE_WITH/.test(CONFIG_ID);
+  $("cfgnote").innerHTML = ok
+    ? `Embedded Signup configuration: <code>${CONFIG_ID}</code> (must be a <b>WhatsApp Business App onboarding / Coexistence</b> config, not standard Cloud API migration).`
+    : `<span class="cfgwarn">Config not set yet.</span> Paste the Embedded Signup <code>config_id</code> (created in Meta for <b>“Connect a WhatsApp Business App”</b> / Coexistence) into <code>CONFIG_ID</code> in this file, then redeploy.`;
+  $("go").disabled = !ok || typeof FB==="undefined";
+}
+
+window.fbAsyncInit = function(){
+  FB.init({ appId: APP_ID, autoLogAppEvents: true, xfbml: true, version: GRAPH_VERSION });
+  setCfgNote();
+};
+(function(d,s,id){ var js,fjs=d.getElementsByTagName(s)[0]; if(d.getElementById(id))return;
+  js=d.createElement(s); js.id=id; js.src="https://connect.facebook.net/en_US/sdk.js"; fjs.parentNode.insertBefore(js,fjs);
+}(document,"script","facebook-jssdk"));
+
+// Capture the session info Embedded Signup posts back (WABA + phone number id).
+window.addEventListener("message", (event)=>{
+  if(!/facebook\.com$/.test(new URL(event.origin).hostname)) return;
+  let data; try{ data = typeof event.data==="string"? JSON.parse(event.data): event.data; }catch(_){ return; }
+  if(data && data.type==="WA_EMBEDDED_SIGNUP"){
+    if(data.event==="FINISH" || data.event==="FINISH_ONLY_WABA" || data.event==="FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING"){
+      const d2 = data.data || {};
+      $("rPhoneId").textContent = "Phone Number ID: " + (d2.phone_number_id || "(pending — see Activity log)");
+      $("rWaba").textContent = "WABA ID: " + (d2.waba_id || d2.business_id || "(see WhatsApp Manager)");
+      $("result").style.display="block";
+    } else if(data.event==="CANCEL"){
+      $("err").textContent = "Onboarding cancelled at step: " + (data.data && data.data.current_step || "unknown") + ". Nothing was connected.";
+      $("err").style.display="block";
+    }
+  }
+});
+
+function launch(){
+  $("err").style.display="none"; $("result").style.display="none";
+  FB.login(function(resp){
+    if(!(resp && resp.authResponse)){
+      $("err").textContent = "Login window closed without completing. Nothing was connected.";
+      $("err").style.display="block";
+    }
+  }, {
+    config_id: CONFIG_ID,
+    response_type: "code",
+    override_default_response_type: true,
+    extras: { setup: {}, featureType: "whatsapp_business_app_onboarding" }
+  });
+}
+$("go").addEventListener("click", launch);
+</script>
+</body>
+</html>
