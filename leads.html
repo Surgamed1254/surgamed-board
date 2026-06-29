@@ -319,7 +319,7 @@ let MY_EMAIL = ""; // signed-in user's email
 let MY_SIG = "";       // signed-in user's saved email signature
 let MY_SIG_HTML = false; // whether the signature is HTML
 let CONTACTS_BY_EMAIL = {}; // customer_email -> {rep, count} established-relationship map
-let SHIP_BY_EMAIL = {}; // customer_email -> shipment summary from CRM shipments table
+let SHIP_BY_EMAIL = {}; let SHIP_BY_LISTING = {}; // customer_email -> shipment summary from CRM shipments table
 let STATE = {};
 let LEADS = [];
 let TOKEN = "";
@@ -635,27 +635,29 @@ async function applyContactOwnership(){
 // ---- Shipping status from the CRM shipments table (real-time, webhook-fed) ----
 const SHIP_STATUS_RANK = { delivered:4, shipped:3, label_created:2, voided:1 };
 async function prefetchShipments(){
-  SHIP_BY_EMAIL={};
+  SHIP_BY_EMAIL={}; SHIP_BY_LISTING={};
   const emails=new Set(LEADS.map(l=>(l.custEmail||'').toLowerCase()).filter(Boolean));
-  if(!emails.size) return;
+  const listings=new Set(LEADS.map(l=>String(l.listing||'')).filter(Boolean));
+  if(!emails.size && !listings.size) return;
   try{
-    const { data:ships } = await sb.from('shipments').select('status,carrier,tracking_number,tracking_url,ship_date,delivery_status,recipient_email,customer_id').order('ship_date',{ascending:false}).limit(5000);
+    const { data:ships } = await sb.from('shipments').select('status,carrier,tracking_number,tracking_url,ship_date,delivery_status,recipient_email,customer_id,dotmed_listings').order('ship_date',{ascending:false}).limit(5000);
     if(!ships||!ships.length) return;
     const ids=[...new Set(ships.map(s=>s.customer_id).filter(v=>v!=null))];
     const idEmail={};
     for(let i=0;i<ids.length;i+=200){ const { data:cs }=await sb.from('customers').select('id,email').in('id',ids.slice(i,i+200)); (cs||[]).forEach(c=>{ if(c.email) idEmail[c.id]=String(c.email).toLowerCase(); }); }
     ships.forEach(s=>{
+      const rec={status:s.status,carrier:s.carrier,tracking:s.tracking_number,trackingUrl:s.tracking_url,shipDate:s.ship_date,delivery:s.delivery_status};
+      (s.dotmed_listings||[]).forEach(ln=>{ const k=String(ln); if(listings.has(k) && !SHIP_BY_LISTING[k]) SHIP_BY_LISTING[k]=rec; });
       const keys=[];
       if(s.recipient_email) keys.push(String(s.recipient_email).toLowerCase());
       if(s.customer_id!=null && idEmail[s.customer_id]) keys.push(idEmail[s.customer_id]);
-      const rec={status:s.status,carrier:s.carrier,tracking:s.tracking_number,trackingUrl:s.tracking_url,shipDate:s.ship_date,delivery:s.delivery_status};
       [...new Set(keys)].forEach(e=>{ if(!emails.has(e)) return; (SHIP_BY_EMAIL[e]=SHIP_BY_EMAIL[e]||[]).push(rec); });
     });
   }catch(e){}
 }
-// Scope shipments to this order: only those shipped on/after the order date (1-day buffer), so an older order's tracking doesn't bleed onto this lead.
+// Scope to this order: exact match on dotMed listing# (from item SKU) when available; else shipments shipped on/after the order date.
 function shipCutoff(l){ const d=new Date(l&&l.date); if(isNaN(d.getTime())) return null; return new Date(d.getTime()-86400000).toISOString().slice(0,10); }
-function shipsForLead(l){ const e=(l&&l.custEmail||'').toLowerCase(); const arr=SHIP_BY_EMAIL[e]; if(!arr||!arr.length) return []; const cut=shipCutoff(l); return cut? arr.filter(s=>!s.shipDate || String(s.shipDate).slice(0,10)>=cut) : arr.slice(); }
+function shipsForLead(l){ const ln=String((l&&l.listing)||''); if(ln && SHIP_BY_LISTING[ln]) return [SHIP_BY_LISTING[ln]]; const e=(l&&l.custEmail||'').toLowerCase(); const arr=SHIP_BY_EMAIL[e]; if(!arr||!arr.length) return []; const cut=shipCutoff(l); return cut? arr.filter(s=>!s.shipDate || String(s.shipDate).slice(0,10)>=cut) : arr.slice(); }
 function shipBadge(l){
   const list=shipsForLead(l); if(!list.length) return '';
   const rankOf=s=> (String(s.delivery||'').toLowerCase()==='delivered')?5:(SHIP_STATUS_RANK[s.status]||0);
@@ -727,9 +729,11 @@ function renderShipping(list){
 async function loadShipping(l){
   const box=document.getElementById("shipBox"); if(!box) return;
   const email=(l.custEmail||'').toLowerCase();
+  const ln=String((l&&l.listing)||'');
   try{
     let rows=[];
-    if(email){
+    if(ln){ const ex=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number').contains('dotmed_listings',[ln]); rows=(ex.data||[]).slice(); }
+    if(!rows.length && email){
       const a=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number').ilike('recipient_email',email);
       rows=(a.data||[]).slice();
       const c=await sb.from('customers').select('id').ilike('email',email).maybeSingle();
