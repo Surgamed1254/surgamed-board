@@ -639,38 +639,36 @@ async function prefetchShipments(){
   const emails=new Set(LEADS.map(l=>(l.custEmail||'').toLowerCase()).filter(Boolean));
   if(!emails.size) return;
   try{
-    const { data:ships } = await sb.from('shipments')
-      .select('status,carrier,tracking_number,tracking_url,ship_date,delivery_status,recipient_email,customer_id')
-      .order('ship_date',{ascending:false}).limit(4000);
+    const { data:ships } = await sb.from('shipments').select('status,carrier,tracking_number,tracking_url,ship_date,delivery_status,recipient_email,customer_id').order('ship_date',{ascending:false}).limit(5000);
     if(!ships||!ships.length) return;
     const ids=[...new Set(ships.map(s=>s.customer_id).filter(v=>v!=null))];
     const idEmail={};
-    for(let i=0;i<ids.length;i+=200){
-      const { data:cs } = await sb.from('customers').select('id,email').in('id',ids.slice(i,i+200));
-      (cs||[]).forEach(c=>{ if(c.email) idEmail[c.id]=String(c.email).toLowerCase(); });
-    }
-    ships.forEach(sp=>{
+    for(let i=0;i<ids.length;i+=200){ const { data:cs }=await sb.from('customers').select('id,email').in('id',ids.slice(i,i+200)); (cs||[]).forEach(c=>{ if(c.email) idEmail[c.id]=String(c.email).toLowerCase(); }); }
+    ships.forEach(s=>{
       const keys=[];
-      if(sp.recipient_email) keys.push(String(sp.recipient_email).toLowerCase());
-      if(sp.customer_id!=null && idEmail[sp.customer_id]) keys.push(idEmail[sp.customer_id]);
-      [...new Set(keys)].forEach(e=>{
-        if(!emails.has(e)) return;
-        const prev=SHIP_BY_EMAIL[e], rank=SHIP_STATUS_RANK[sp.status]||0;
-        if(!prev){ SHIP_BY_EMAIL[e]={status:sp.status,carrier:sp.carrier,tracking:sp.tracking_number,trackingUrl:sp.tracking_url,shipDate:sp.ship_date,delivery:sp.delivery_status,count:1}; }
-        else { prev.count++; if(rank>(SHIP_STATUS_RANK[prev.status]||0)){ Object.assign(prev,{status:sp.status,carrier:sp.carrier,tracking:sp.tracking_number,trackingUrl:sp.tracking_url,shipDate:sp.ship_date,delivery:sp.delivery_status}); } }
-      });
+      if(s.recipient_email) keys.push(String(s.recipient_email).toLowerCase());
+      if(s.customer_id!=null && idEmail[s.customer_id]) keys.push(idEmail[s.customer_id]);
+      const rec={status:s.status,carrier:s.carrier,tracking:s.tracking_number,trackingUrl:s.tracking_url,shipDate:s.ship_date,delivery:s.delivery_status};
+      [...new Set(keys)].forEach(e=>{ if(!emails.has(e)) return; (SHIP_BY_EMAIL[e]=SHIP_BY_EMAIL[e]||[]).push(rec); });
     });
   }catch(e){}
 }
+// Scope shipments to this order: only those shipped on/after the order date (1-day buffer), so an older order's tracking doesn't bleed onto this lead.
+function shipCutoff(l){ const d=new Date(l&&l.date); if(isNaN(d.getTime())) return null; return new Date(d.getTime()-86400000).toISOString().slice(0,10); }
+function shipsForLead(l){ const e=(l&&l.custEmail||'').toLowerCase(); const arr=SHIP_BY_EMAIL[e]; if(!arr||!arr.length) return []; const cut=shipCutoff(l); return cut? arr.filter(s=>!s.shipDate || String(s.shipDate).slice(0,10)>=cut) : arr.slice(); }
 function shipBadge(l){
-  const e=(l.custEmail||'').toLowerCase(); const sp=SHIP_BY_EMAIL[e]; if(!sp) return '';
-  const delivered=String(sp.delivery||'').toLowerCase()==='delivered';
-  const eff=delivered?'delivered':(sp.status||'');
+  const list=shipsForLead(l); if(!list.length) return '';
+  const rankOf=s=> (String(s.delivery||'').toLowerCase()==='delivered')?5:(SHIP_STATUS_RANK[s.status]||0);
+  let best=list[0]; list.forEach(s=>{ if(rankOf(s)>rankOf(best)) best=s; });
+  const delivered=String(best.delivery||'').toLowerCase()==='delivered';
+  const eff=delivered?'delivered':(best.status||'');
   const MAP={ delivered:['✅ Delivered','#1d7a3f'], shipped:['📦 Shipped','#1d7a3f'], label_created:['📦 Label','#9a5b14'], voided:['📦 Voided','#c0392b'] };
   const m=MAP[eff]||['📦 Shipment','#5a6b7b'];
-  const tip=[sp.carrier?('Carrier: '+sp.carrier):'', sp.tracking?('Tracking: '+sp.tracking):'', (sp.shipDate?('Ship date: '+String(sp.shipDate).slice(0,10)):''), (sp.count>1?(sp.count+' shipments'):'')].filter(Boolean).join('  •  ');
-  return '<span class="tag shipbadge" title="'+esc(tip)+'" style="background:'+m[1]+'1a;color:'+m[1]+';border:1px solid '+m[1]+'55">'+m[0]+(sp.count>1?(' ×'+sp.count):'')+'</span>';
+  const n=list.length;
+  const tip=[best.carrier?('Carrier: '+best.carrier):'', best.tracking?('Tracking: '+best.tracking):'', best.shipDate?('Ship date: '+String(best.shipDate).slice(0,10)):''].filter(Boolean).join('  •  ');
+  return '<span class="tag shipbadge" title="'+esc(tip)+'" style="background:'+m[1]+'1a;color:'+m[1]+';border:1px solid '+m[1]+'55">'+m[0]+(n>1?(' ×'+n):'')+'</span>';
 }
+
 // ---- Real email history: every message to/from this customer, live from orders@ ----
 function renderEmailList(items){
   if(!items||!items.length) return '<div style="color:#9aa7b4;font-size:12px">No emails found with this customer yet.</div>';
@@ -737,6 +735,7 @@ async function loadShipping(l){
       const c=await sb.from('customers').select('id').ilike('email',email).maybeSingle();
       if(c&&c.data&&c.data.id){ const b=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number').eq('customer_id',c.data.id); (b.data||[]).forEach(x=>rows.push(x)); }
       const seen=new Set(); rows=rows.filter(x=>{ const k=(x.order_number||'')+'|'+(x.tracking_number||''); if(seen.has(k))return false; seen.add(k); return true; });
+      const cut=shipCutoff(l); if(cut) rows=rows.filter(x=>!x.ship_date || String(x.ship_date).slice(0,10)>=cut);
     }
     const mapped=rows.map(x=>({status:(String(x.delivery_status||'').toLowerCase()==='delivered'?'delivered':x.status), carrier:x.carrier, tracking:x.tracking_number, trackingUrl:x.tracking_url, shipDate:x.ship_date}));
     box.innerHTML=renderShipping(mapped);
