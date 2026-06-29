@@ -143,6 +143,7 @@ function nextAction(cu,msgs){
   return "Waiting on Customer";
 }
 function naClass(a){ return /reply/i.test(a)?"reply":/follow/i.test(a)?"follow":/no action/i.test(a)?"none":"wait"; }
+function cleanName(s){ return String(s==null?'':s).replace(/&#x?[0-9a-fA-F]+;/g,'').replace(/[\u0000-\u001F]+/g,' ').replace(/\uFFFD+/g,'').replace(/\s+/g,' ').trim(); }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function matchesFilters(cu,f){
   if(f.q){ const blob=(cu.name+" "+cu.company+" "+cu.phone+" "+cu.email+" "+cu.assigned_rep).toLowerCase(); if(!blob.includes(f.q.toLowerCase())) return false; }
@@ -189,7 +190,7 @@ function rowHtml(cu){
   const vip=cu.vip?'<span class="star" title="VIP">★</span>':"", rev=cu.review_flag?'<span class="flagx" title="Review">⚑</span>':"";
   const due=dueSoon(cu)?'<span class="pill follow">⏰ '+fmtDate(cu.follow_up_date)+'</span>':"";
   return `<div class="row" data-cid="${cu.id}">
-    <div class="nm">${esc(cu.name||cu.email||("Customer #"+cu.id))} ${vip} ${rev}</div>
+    <div class="nm">${esc(cleanName(cu.name)||cu.email||("Customer #"+cu.id))} ${vip} ${rev}</div>
     <div class="sub">${esc(cu.assigned_rep||"Unassigned")} · ${esc(cu.company||cu.email||cu.phone||"")}</div>
     <div class="r2">${badgesHtml(cu._badges)} <span class="dot ${cu.priority||'normal'}" title="Priority"></span><span class="pill ${statusClass(cu)}">${esc(statusLabel(cu))}</span> ${due} <span class="sub">${fmtAgo(cu.last_contact_at)}</span></div>
   </div>`;
@@ -216,7 +217,7 @@ function detailHtml(cu, msgs, timeline, isTest){
     : `<h3 class="sec">Conversation</h3><div class="msgs"><div class="t">No WhatsApp conversation — this customer came from ${esc((cu._badges||["email"]).join(", "))}. See timeline below.</div></div>`;
   return `${banner}
   <div class="pcard">
-    <div class="pname">${esc(cu.name||cu.email||("Customer #"+cu.id))} ${badgesHtml(cu._badges)}
+    <div class="pname">${esc(cleanName(cu.name)||cu.email||("Customer #"+cu.id))} ${badgesHtml(cu._badges)}
       <span class="iconbtn vip ${cu.vip?"on":""}" data-act="vip">★ VIP</span>
       <span class="iconbtn rev ${cu.review_flag?"on":""}" data-act="review">⚑ Review</span>
     </div>
