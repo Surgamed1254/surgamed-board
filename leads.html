@@ -295,7 +295,7 @@ const SB_URL = "https://ecjemcrpbzeocoiwslcu.supabase.co";
 const SB_KEY = "sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
 const FN_URL = SB_URL + "/functions/v1/leads";
 const sb = createClient(SB_URL, SB_KEY);
-const BUILD = "listview-enrich-1"; // feature marker
+const BUILD = "ship-badges-1"; // feature marker
 
 const REPS = ["Deysi","Mirian","Jennifer","Tehila"];
 const CATS = [
@@ -319,6 +319,7 @@ let MY_EMAIL = ""; // signed-in user's email
 let MY_SIG = "";       // signed-in user's saved email signature
 let MY_SIG_HTML = false; // whether the signature is HTML
 let CONTACTS_BY_EMAIL = {}; // customer_email -> {rep, count} established-relationship map
+let SHIP_BY_EMAIL = {}; // customer_email -> shipment summary from CRM shipments table
 let STATE = {};
 let LEADS = [];
 let TOKEN = "";
@@ -631,6 +632,45 @@ async function applyContactOwnership(){
   }
 }
 
+// ---- Shipping status from the CRM shipments table (real-time, webhook-fed) ----
+const SHIP_STATUS_RANK = { delivered:4, shipped:3, label_created:2, voided:1 };
+async function prefetchShipments(){
+  SHIP_BY_EMAIL={};
+  const emails=new Set(LEADS.map(l=>(l.custEmail||'').toLowerCase()).filter(Boolean));
+  if(!emails.size) return;
+  try{
+    const { data:ships } = await sb.from('shipments')
+      .select('status,carrier,tracking_number,tracking_url,ship_date,delivery_status,recipient_email,customer_id')
+      .order('ship_date',{ascending:false}).limit(4000);
+    if(!ships||!ships.length) return;
+    const ids=[...new Set(ships.map(s=>s.customer_id).filter(v=>v!=null))];
+    const idEmail={};
+    for(let i=0;i<ids.length;i+=200){
+      const { data:cs } = await sb.from('customers').select('id,email').in('id',ids.slice(i,i+200));
+      (cs||[]).forEach(c=>{ if(c.email) idEmail[c.id]=String(c.email).toLowerCase(); });
+    }
+    ships.forEach(sp=>{
+      const keys=[];
+      if(sp.recipient_email) keys.push(String(sp.recipient_email).toLowerCase());
+      if(sp.customer_id!=null && idEmail[sp.customer_id]) keys.push(idEmail[sp.customer_id]);
+      [...new Set(keys)].forEach(e=>{
+        if(!emails.has(e)) return;
+        const prev=SHIP_BY_EMAIL[e], rank=SHIP_STATUS_RANK[sp.status]||0;
+        if(!prev){ SHIP_BY_EMAIL[e]={status:sp.status,carrier:sp.carrier,tracking:sp.tracking_number,trackingUrl:sp.tracking_url,shipDate:sp.ship_date,delivery:sp.delivery_status,count:1}; }
+        else { prev.count++; if(rank>(SHIP_STATUS_RANK[prev.status]||0)){ Object.assign(prev,{status:sp.status,carrier:sp.carrier,tracking:sp.tracking_number,trackingUrl:sp.tracking_url,shipDate:sp.ship_date,delivery:sp.delivery_status}); } }
+      });
+    });
+  }catch(e){}
+}
+function shipBadge(l){
+  const e=(l.custEmail||'').toLowerCase(); const sp=SHIP_BY_EMAIL[e]; if(!sp) return '';
+  const delivered=String(sp.delivery||'').toLowerCase()==='delivered';
+  const eff=delivered?'delivered':(sp.status||'');
+  const MAP={ delivered:['✅ Delivered','#1d7a3f'], shipped:['📦 Shipped','#1d7a3f'], label_created:['📦 Label','#9a5b14'], voided:['📦 Voided','#c0392b'] };
+  const m=MAP[eff]||['📦 Shipment','#5a6b7b'];
+  const tip=[sp.carrier?('Carrier: '+sp.carrier):'', sp.tracking?('Tracking: '+sp.tracking):'', (sp.shipDate?('Ship date: '+String(sp.shipDate).slice(0,10)):''), (sp.count>1?(sp.count+' shipments'):'')].filter(Boolean).join('  •  ');
+  return '<span class="tag shipbadge" title="'+esc(tip)+'" style="background:'+m[1]+'1a;color:'+m[1]+';border:1px solid '+m[1]+'55">'+m[0]+(sp.count>1?(' ×'+sp.count):'')+'</span>';
+}
 // ---- Real email history: every message to/from this customer, live from orders@ ----
 function renderEmailList(items){
   if(!items||!items.length) return '<div style="color:#9aa7b4;font-size:12px">No emails found with this customer yet.</div>';
@@ -820,6 +860,7 @@ async function load(silent){
     LEADS.forEach(l=>(l.cats||[]).forEach(c=>KNOWN_CATS.add(c)));
     await enrichOrders();
     await applyContactOwnership();
+    await prefetchShipments();
     if(owners.length){ await sb.from("lead_state").upsert(owners.map(o=>({id:o.id,owner:o.owner,category:o.category,status:"new",updated_by:"rotation"}))); }
     if(reassigned.length){
       await sb.from("lead_state").upsert(reassigned.map(o=>({id:o.id,owner:o.owner,updated_by:"rotation (6 PM ET rule)"})));
@@ -901,7 +942,7 @@ function leadRowHtml(l){
     '<td class="lcust" data-detail="'+l.id+'"><b>'+esc(titleCase(l.display))+'</b>'+(l.hasPhone?' ☎':'')+'<div class="lsub">'+esc(l.title)+'</div></td>'+
     '<td class="litem">'+esc(l.item||'')+(l.deal?'<div class="lsub">'+esc(l.deal)+'</div>':'')+'</td>'+
     '<td><span class="tag acct'+(l.acct.sd?' sd':'')+'">'+l.acct.t+'</span></td>'+
-    '<td>'+repSel+relBadge(l)+'</td>'+
+    '<td>'+repSel+relBadge(l)+shipBadge(l)+'</td>'+
     '<td><span class="statusbadge" style="background:'+so.color+'"></span>'+statSel+'</td>'+
     '<td class="lact"><a class="mailact" data-id="'+l.id+'" href="'+replyHref+'"'+(l.custEmail?'':' target="_blank" rel="noopener"')+'>'+(l.custEmail?'Reply':'Open')+'</a><button data-act="wa" data-id="'+l.id+'">WA</button><button data-act="call" data-id="'+l.id+'">Call</button>'+(l.webLink?'<a class="mailact" data-id="'+l.id+'" href="'+l.webLink+'" target="_blank" rel="noopener">Outlook</a>':'')+'</td>'+
   '</tr>';
@@ -985,7 +1026,7 @@ function cardHtml(l){
     '<div class="cardhead" data-detail="'+l.id+'"><div class="from">'+esc(titleCase(l.display))+'</div>'+
     '<div class="ttl">'+esc(l.title)+'</div>'+(l.item?'<div class="item">'+esc(l.item)+'</div>':'')+
     '<div class="cardhint">▸ tap for full email</div></div>'+
-    '<div class="meta"><span class="tag rep" title="Owner">'+rep+'</span>'+relBadge(l)+
+    '<div class="meta"><span class="tag rep" title="Owner">'+rep+'</span>'+relBadge(l)+shipBadge(l)+
       (l.deal?'<span class="tag deal">'+esc(l.deal)+'</span>':'')+
       (l.hasPhone?'<span class="tag ph" title="Phone on file">☎</span>':'')+
       '<span class="tag date">'+fmtDate(l.date)+'</span>'+
@@ -1085,7 +1126,7 @@ async function openDetail(id){
   let custHtml = '<h4 id="custHdr" style="cursor:pointer;user-select:none"><span id="custCaret"></span> Customer purchase history <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="custBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up prior orders…</div></div>';
   let suggHtml = '<h4 id="suggHdr" style="cursor:pointer;user-select:none"><span id="suggCaret"></span> 💡 Suggested items to pitch (live inventory) <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="suggBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Finding in-stock matches…</div></div>';
   let catHtml = '<h4>Tags (Outlook categories) — click to add or remove</h4><div id="tagsBox" style="margin-bottom:14px"></div>';
-  let shipHtml = (l.cat==='orders') ? '<h4>📦 Shipping status (ShipStation)</h4><div id="shipBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up tracking…</div></div>' : '';
+  let shipHtml = '<h4>📦 Shipping status (ShipStation)</h4><div id="shipBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up tracking…</div></div>';
   let contactHtml = '<h4>📧 Email history with this customer <span style="color:#9aa7b4;font-weight:400;font-size:10px">(live — orders@ + every rep\'s mailbox, sent &amp; received)</span></h4>'+
     '<div id="emailBox" style="margin-bottom:8px"><div style="color:#9aa7b4;font-size:12px">Loading emails…</div></div>'+
     '<div id="composeWrap" style="margin:0 0 18px"><input id="composeSubject" placeholder="Subject" value="'+esc("Re: "+(l.title||"DOTmed"))+'" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;margin-bottom:6px"><textarea id="composeBody" placeholder="Write a reply — sends from your own email, signed by you, and shows up above" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
@@ -1099,7 +1140,7 @@ async function openDetail(id){
   renderHist(l.id);
   loadEmailThread(l);
   loadCustHistory(l);
-  if(l.cat==='orders') loadShipping(l);
+  loadShipping(l);
   { const sbtn=document.getElementById("sendBtn"); if(sbtn) sbtn.onclick=()=>sendReply(l); }
   // Draft: keep whatever the rep typed (subject + body) per lead, so closing & reopening doesn't lose it.
   (function(){
