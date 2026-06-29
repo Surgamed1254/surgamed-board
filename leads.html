@@ -945,7 +945,7 @@ function leadRowHtml(l){
   return '<tr>'+
     '<td class="nowrap">'+fmtDate(l.date)+'</td>'+
     '<td><span class="tag" style="background:#eef1f5;color:#5a6b7b">'+esc(catLabel)+'</span></td>'+
-    '<td class="lcust" data-detail="'+l.id+'"><b>'+esc(titleCase(l.display))+'</b>'+(l.hasPhone?' ☎':'')+'<div class="lsub">'+esc(l.title)+'</div></td>'+
+    '<td class="lcust" data-detail="'+l.id+'"><b>'+esc(dispName(l))+'</b>'+(l.hasPhone?' ☎':'')+'<div class="lsub">'+esc(l.title)+'</div></td>'+
     '<td class="litem">'+esc(l.item||'')+(l.deal?'<div class="lsub">'+esc(l.deal)+'</div>':'')+'</td>'+
     '<td><span class="tag acct'+(l.acct.sd?' sd':'')+'">'+l.acct.t+'</span></td>'+
     '<td>'+repSel+relBadge(l)+shipBadge(l)+'</td>'+
@@ -1029,7 +1029,7 @@ function cardHtml(l){
   let statSel='<select data-id="'+l.id+'" data-k="status">'; STATUSES.forEach(s=>{ statSel+='<option value="'+s.key+'"'+(s.key===stt?' selected':'')+'>'+s.label+'</option>'; }); statSel+='</select>';
   const replyHref = l.custEmail ? ("mailto:"+encodeURIComponent(l.custEmail)+"?subject="+encodeURIComponent("Re: "+(l.title||"DOTmed"))) : (l.webLink||"#");
   return '<div class="card">'+
-    '<div class="cardhead" data-detail="'+l.id+'"><div class="from">'+esc(titleCase(l.display))+'</div>'+
+    '<div class="cardhead" data-detail="'+l.id+'"><div class="from">'+esc(dispName(l))+'</div>'+
     '<div class="ttl">'+esc(l.title)+'</div>'+(l.item?'<div class="item">'+esc(l.item)+'</div>':'')+
     '<div class="cardhint">▸ tap for full email</div></div>'+
     '<div class="meta"><span class="tag rep" title="Owner">'+rep+'</span>'+relBadge(l)+shipBadge(l)+
@@ -1046,6 +1046,8 @@ function cardHtml(l){
       '<button data-act="call" data-id="'+l.id+'">Call</button>'+
       (l.webLink?'<a class="mailact" data-id="'+l.id+'" href="'+l.webLink+'" target="_blank" rel="noopener">Outlook</a>':'')+'</div></div>';
 }
+function cleanName(s){ return String(s==null?'':s).replace(/&#x?[0-9a-fA-F]+;/g,'').replace(/[\u0000-\u001F]+/g,' ').replace(/\uFFFD+/g,'').replace(/\s+/g,' ').trim(); }
+function dispName(l){ const raw=cleanName(l&&l.display||''); if(raw) return titleCase(raw); const e=(l&&l.custEmail)||''; if(e) return titleCase(e.split('@')[0].replace(/[._-]+/g,' ')); const co=cleanName(l&&l.company||''); if(co) return titleCase(co); return 'dotMed lead'; }
 function findLead(id){ return LEADS.find(l=>l.id===id); }
 function wireCards(){
   document.querySelectorAll("#board select[data-id][data-k]").forEach(sel=>{
@@ -1118,7 +1120,7 @@ async function renderHist(id){
 }
 async function openDetail(id){
   const l=findLead(id); if(!l)return; const o=ensureOverlay(); o.style.display="flex";
-  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>'+esc(titleCase(l.display))+'</h3><div class="msub">'+esc((CATS.find(c=>c.key===l.cat)||{}).label)+' · '+fmtDate(l.date)+' · '+l.acct.t+'</div></div><div class="mbody"><div class="loading">Loading full email…</div></div></div>';
+  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>'+esc(dispName(l))+'</h3><div class="msub">'+esc((CATS.find(c=>c.key===l.cat)||{}).label)+' · '+fmtDate(l.date)+' · '+l.acct.t+'</div></div><div class="mbody"><div class="loading">Loading full email…</div></div></div>';
   document.getElementById("mClose").onclick=closeDetail;
   let msg=null,err=null;
   try{ msg=await fetchMessage(l.uri); if(msg.error) err=msg.error; }catch(e){ err=String(e.message||e); }
