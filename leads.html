@@ -728,13 +728,19 @@ function renderShipping(list){
 }
 async function loadShipping(l){
   const box=document.getElementById("shipBox"); if(!box) return;
+  const email=(l.custEmail||'').toLowerCase();
   try{
-    const u=FN_URL+"?shipstation=1&email="+encodeURIComponent(l.custEmail||"")+"&name="+encodeURIComponent(l.display||"")+"&items="+encodeURIComponent(l.item||"");
-    const r=await fetch(u,{headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY}});
-    const d=await r.json();
-    if(d.error){ box.innerHTML='<div style="color:#9aa7b4;font-size:12px">'+esc(d.error)+'</div>'; return; }
-    box.innerHTML=renderShipping(d.shipments||[]);
-  }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load tracking: '+esc(String(e.message||e))+'</div>'; }
+    let rows=[];
+    if(email){
+      const a=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number').ilike('recipient_email',email);
+      rows=(a.data||[]).slice();
+      const c=await sb.from('customers').select('id').ilike('email',email).maybeSingle();
+      if(c&&c.data&&c.data.id){ const b=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number').eq('customer_id',c.data.id); (b.data||[]).forEach(x=>rows.push(x)); }
+      const seen=new Set(); rows=rows.filter(x=>{ const k=(x.order_number||'')+'|'+(x.tracking_number||''); if(seen.has(k))return false; seen.add(k); return true; });
+    }
+    const mapped=rows.map(x=>({status:(String(x.delivery_status||'').toLowerCase()==='delivered'?'delivered':x.status), carrier:x.carrier, tracking:x.tracking_number, trackingUrl:x.tracking_url, shipDate:x.ship_date}));
+    box.innerHTML=renderShipping(mapped);
+  }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load shipping: '+esc(String(e.message||e))+'</div>'; }
 }
 // Send a reply/compose from inside the board (goes out via orders@, signed by the rep,
 // then appears in the email history above). Records a real rep-attributed contact.
