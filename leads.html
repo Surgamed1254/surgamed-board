@@ -715,6 +715,26 @@ async function toggleEmailNS(i, id, mbx){
   catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t open this email: '+esc(String(e.message||e))+'</div>'; }
 }
 function topEmail(rows){ const c={}; (rows||[]).forEach(r=>{ const e=(r.customer_email||"").toLowerCase(); if(e)c[e]=(c[e]||0)+1; }); let best="",n=0; for(const k in c){ if(c[k]>n){n=c[k];best=k;} } return best; }
+function distinctCustomers(rows){
+  const by={};
+  (rows||[]).forEach(function(r){
+    const email=(r.customer_email||"").toLowerCase();
+    const key=email||("name:"+(r.customer_name||"").toLowerCase());
+    const c=by[key]||(by[key]={name:r.customer_name||"",email:r.customer_email||"",orders:0,last:""});
+    c.orders++; if((r.order_date||"")>c.last)c.last=r.order_date||"";
+    if(!c.name&&r.customer_name)c.name=r.customer_name;
+    if(!c.email&&r.customer_email)c.email=r.customer_email;
+  });
+  return Object.values(by).sort(function(a,b){ return (b.last>a.last?1:(b.last<a.last?-1:0)); });
+}
+function renderCustPicker(custs){
+  let h='<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">';
+  custs.forEach(function(c){
+    h+='<a href="#" class="custpick" data-email="'+esc(c.email||"")+'" data-name="'+esc(c.name||"")+'" style="border:1px solid #cdd6df;border-radius:8px;padding:6px 10px;font-size:12px;text-decoration:none;color:#1d2733;background:#fff;line-height:1.35"><b>'+esc(c.name||"(unknown)")+'</b>'+(c.email?'<br><span style="color:#5a6b7b">'+esc(c.email)+'</span>':'<br><span style="color:#c0392b">no email on file</span>')+'<br><span style="color:#9aa7b4">'+c.orders+' order'+(c.orders===1?'':'s')+'</span></a>';
+  });
+  h+='</div>';
+  return h;
+}
 // Reusable: render full email history for an email into any container (used by item + customer lookup)
 async function emailHistoryInto(email, mountEl, ns){
   if(!mountEl) return;
@@ -1391,7 +1411,19 @@ function openCustSearch(){
   document.getElementById("mClose").onclick=closeDetail;
   const q=document.getElementById("custQ"), go=document.getElementById("custGo"), res=document.getElementById("custResults");
   async function run(){ const v=q.value.trim(); if(!v)return; res.innerHTML='<div style="color:#9aa7b4;font-size:12px">Searching…</div>';
-    try{ const isEmail=/@/.test(v); const rows=await getPurchases(isEmail?v:"", isEmail?"":v); const em = isEmail ? v : topEmail(rows); res.innerHTML=renderPurchases(rows)+'<div class="bdhead" style="margin-top:16px">✉️ Email history'+(em?(' · '+esc(em)):'')+'</div><div id="custEmailBox"></div>'; emailHistoryInto(em, document.getElementById("custEmailBox"), "cust"); }
+    try{
+      const isEmail=/@/.test(v);
+      const rows=await getPurchases(isEmail?v:"", isEmail?"":v);
+      const custs=distinctCustomers(rows);
+      let sec;
+      if(isEmail){ sec='<div class="bdhead" style="margin-top:16px">✉️ Email history · '+esc(v)+'</div><div id="custEmailBox"></div>'; }
+      else if(custs.length<=1){ const em1=(custs[0]&&custs[0].email)||topEmail(rows); sec='<div class="bdhead" style="margin-top:16px">✉️ Email history'+(em1?(' · '+esc(em1)):'')+'</div><div id="custEmailBox"></div>'; }
+      else { sec='<div class="bdhead" style="margin-top:16px">✉️ Email history — select a customer ('+custs.length+' matches)</div>'+renderCustPicker(custs)+'<div id="custEmailBox"><div style="color:#9aa7b4;font-size:12px;padding:6px 0">Pick a customer above to load their email history.</div></div>'; }
+      res.innerHTML=renderPurchases(rows)+sec;
+      if(isEmail){ emailHistoryInto(v, document.getElementById("custEmailBox"), "cust"); }
+      else if(custs.length<=1){ const em2=(custs[0]&&custs[0].email)||topEmail(rows); if(em2) emailHistoryInto(em2, document.getElementById("custEmailBox"), "cust"); }
+      res.querySelectorAll(".custpick").forEach(function(el){ el.onclick=function(ev){ ev.preventDefault(); res.querySelectorAll(".custpick").forEach(function(x){ x.style.borderColor="#cdd6df"; x.style.background="#fff"; }); this.style.borderColor="#0b66c3"; this.style.background="#eaf3fd"; emailHistoryInto(this.dataset.email, document.getElementById("custEmailBox"), "cust"); }; });
+    }
     catch(e){ res.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; } }
   go.onclick=run; q.addEventListener("keydown",e=>{ if(e.key==="Enter")run(); }); q.focus();
 }
