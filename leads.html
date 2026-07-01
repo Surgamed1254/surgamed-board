@@ -275,8 +275,8 @@ body.modern #newLook{ background:#4f46e5; border-color:#4f46e5; box-shadow:0 1px
       </select>
     </label>
     <label><input type="checkbox" id="hideClosed"> Hide closed</label>
-    <button class="custbtn" id="custLookup">🔎 Customer lookup</button>
-    <button class="custbtn" id="itemLookup" style="background:#0b66c3;border-color:#0b66c3">📦 Item lookup</button>
+    <button class="custbtn" id="custLookup">🔎 Lookup</button>
+    <button class="custbtn" id="itemLookup" style="display:none">📦 Item lookup</button>
     <button class="custbtn" id="mySig" style="background:#5a6b7b;border-color:#5a6b7b">✍️ My signature</button>
     <button class="custbtn" id="teamActivity" style="display:none;background:#5b3fc4;border-color:#5b3fc4">👥 Team activity</button>
     <button class="custbtn" id="refreshBtn" style="background:#0f7a4d;border-color:#0f7a4d" title="Refresh now — auto-refreshes every 90s">↻ Refresh</button>
@@ -1427,7 +1427,7 @@ function openCustSearch(){
     catch(e){ res.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; } }
   go.onclick=run; q.addEventListener("keydown",e=>{ if(e.key==="Enter")run(); }); q.focus();
 }
-document.getElementById("custLookup").onclick=openCustSearch;
+document.getElementById("custLookup").onclick=openLookup;
 
 // ---- Item lookup: who bought a given item + how many are in stock ----
 async function getItemBuyers(q){
@@ -1515,7 +1515,52 @@ function openItemSearch(){
   res.onclick=function(e){ const a=e.target.closest(".buyname"); if(!a)return; e.preventDefault(); toggleBuyer(a.dataset.bi,a.dataset.email,a.dataset.name,a); };
   go.onclick=run; q.addEventListener("keydown",e=>{ if(e.key==="Enter")run(); }); q.focus();
 }
-document.getElementById("itemLookup").onclick=openItemSearch;
+document.getElementById("itemLookup").onclick=openLookup;
+// ---- Unified Lookup: one box; email jumps to customer, name/item shows both sections (more matches first) ----
+async function showCustDetail(email, name, mountEl, ns){
+  if(!mountEl) return;
+  mountEl.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading…</div>';
+  try{
+    const rows=await getPurchases(email||"", name||"");
+    const em=email||topEmail(rows);
+    const hdr='<div class="bdhead">📇 <b>'+esc(name||email||"(unknown)")+'</b>'+(em?(' · '+esc(em)):'')+' — order history</div>';
+    mountEl.innerHTML=hdr+renderPurchases(rows)+'<div class="bdhead" style="margin-top:12px">✉️ Email history</div><div id="'+ns+'_box"></div>';
+    emailHistoryInto(em, document.getElementById(ns+'_box'), ns);
+  }catch(e){ mountEl.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
+}
+function openLookup(){
+  const o=ensureOverlay(); o.style.display="flex";
+  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>Lookup</h3><div class="msub">Search a customer (email or name) or an item (name, brand, model, SKU) — SurgaMed + ShortDated</div></div>'+
+    '<div class="mbody"><div style="display:flex;gap:6px;margin-bottom:14px"><input id="lkQ" placeholder="Email, customer name, or item / brand / model / SKU…" style="flex:1;padding:8px 10px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><button id="lkGo" class="custbtn" style="padding:8px 16px">Search</button></div>'+
+    '<div id="lkResults"><div style="color:#9aa7b4;font-size:12px">Type an email, a customer name, or an item and press Search.</div></div></div></div>';
+  document.getElementById("mClose").onclick=closeDetail;
+  const q=document.getElementById("lkQ"), go=document.getElementById("lkGo"), res=document.getElementById("lkResults");
+  function wireCustPicker(){
+    res.querySelectorAll(".custpick").forEach(function(el){ el.onclick=function(ev){ ev.preventDefault();
+      res.querySelectorAll(".custpick").forEach(function(x){ x.style.borderColor="#cdd6df"; x.style.background="#fff"; });
+      this.style.borderColor="#0b66c3"; this.style.background="#eaf3fd";
+      showCustDetail(this.dataset.email, this.dataset.name, document.getElementById("lkCustDetail"), "lkc");
+    }; });
+  }
+  async function run(){
+    const v=q.value.trim(); if(v.length<2){ res.innerHTML='<div style="color:#9aa7b4;font-size:12px">Enter at least 2 characters.</div>'; return; }
+    res.innerHTML='<div style="color:#9aa7b4;font-size:12px">Searching…</div>';
+    try{
+      if(/@/.test(v)){ res.innerHTML='<div id="lkOne"></div>'; showCustDetail(v, "", document.getElementById("lkOne"), "lk1"); return; }
+      const parts=await Promise.all([getItemStock(v),getItemBuyers(v),getPurchases("",v)]);
+      const stock=parts[0], buyers=parts[1], custRows=parts[2];
+      const custs=distinctCustomers(custRows);
+      const custN=custs.length, itemN=distinctCustomers(buyers).length;
+      const custSec='<h3 style="font-size:13px;margin:6px 0 2px">👥 Customers matching “'+esc(v)+'” ('+custN+')</h3>'+
+        (custN? (renderCustPicker(custs)+'<div id="lkCustDetail"><div style="color:#9aa7b4;font-size:12px;padding:4px 0">Pick a customer above to see their orders & email history.</div></div>') : '<div style="color:#9aa7b4;font-size:12px">No customers by that name.</div>');
+      const itemSec='<h3 style="font-size:13px;margin:16px 0 2px">📦 Items matching “'+esc(v)+'”</h3>'+renderItemStock(stock)+renderItemBuyers(buyers);
+      res.innerHTML=(custN>=itemN)?(custSec+itemSec):(itemSec+custSec);
+      wireCustPicker();
+      res.onclick=function(e){ const a=e.target.closest(".buyname"); if(!a)return; e.preventDefault(); toggleBuyer(a.dataset.bi,a.dataset.email,a.dataset.name,a); };
+    }catch(e){ res.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
+  }
+  go.onclick=run; q.addEventListener("keydown",function(e){ if(e.key==="Enter")run(); }); q.focus();
+}
 
 // ---- Per-rep email signature (added to every email sent from the board) ----
 async function loadMySignature(){
