@@ -1181,6 +1181,25 @@ async function renderHist(id){
   box.innerHTML=data.map(e=>{ const d=new Date(e.ts), ds=isNaN(d.getTime())?e.ts:d.toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
     return '<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #f0f3f6"><span style="color:#7b8a99">'+esc(ds)+'</span> &middot; '+esc(e.action)+' <span style="color:#9aa7b4">('+esc(e.actor||"—")+')</span></div>'; }).join("");
 }
+function toggleSection(hdr){
+  const collapsed = !(hdr.getAttribute('data-collapsed')==='1');
+  hdr.setAttribute('data-collapsed', collapsed?'1':'0');
+  let el=hdr.nextElementSibling;
+  while(el && !/^H[1-6]$/.test(el.tagName)){ el.style.display=collapsed?'none':''; el=el.nextElementSibling; }
+  const car=hdr.querySelector('.gcar'); if(car) car.textContent=collapsed?'▸':'▾';
+}
+function initCollapsibles(root, sel){
+  if(!root) return;
+  root.querySelectorAll(sel||'h4').forEach(function(hdr){
+    if(hdr.id==='custHdr'||hdr.id==='suggHdr') return;   // these have their own toggles
+    if(hdr.dataset.cinit) return; hdr.dataset.cinit='1';
+    hdr.style.cursor='pointer'; hdr.style.userSelect='none';
+    const car=document.createElement('span'); car.className='gcar'; car.textContent='▾';
+    car.style.cssText='margin-right:5px;font-size:11px;color:#9aa7b4;display:inline-block';
+    hdr.insertBefore(car, hdr.firstChild);
+    hdr.addEventListener('click', function(){ toggleSection(hdr); });
+  });
+}
 async function openDetail(id){
   const l=findLead(id); if(!l)return; const o=ensureOverlay(); o.style.display="flex";
   o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>'+esc(dispName(l))+'</h3><div class="msub">'+esc((CATS.find(c=>c.key===l.cat)||{}).label)+' · '+fmtDate(l.date)+' · '+l.acct.t+'</div></div><div class="mbody"><div class="loading">Loading full email…</div></div></div>';
@@ -1207,6 +1226,7 @@ async function openDetail(id){
   mb.innerHTML = kvHtml + shipHtml + contactHtml + custHtml + suggHtml + catHtml + '<h4>History</h4><div id="histBox"></div>'+
     '<div style="margin:8px 0 16px;display:flex;gap:6px"><input id="noteIn" placeholder="Add a note…" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="noteBtn" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>'+
     '<h4>Full email</h4><pre class="bodytext">'+linkify(text||"(no text content)")+'</pre>';
+  initCollapsibles(mb);
   renderTags(l);
   renderHist(l.id);
   loadEmailThread(l);
@@ -1556,6 +1576,7 @@ function openLookup(){
       const itemSec='<h3 style="font-size:13px;margin:16px 0 2px">📦 Items matching “'+esc(v)+'”</h3>'+renderItemStock(stock)+renderItemBuyers(buyers);
       res.innerHTML=(custN>=itemN)?(custSec+itemSec):(itemSec+custSec);
       wireCustPicker();
+      initCollapsibles(res, "h3");
       res.onclick=function(e){ const a=e.target.closest(".buyname"); if(!a)return; e.preventDefault(); toggleBuyer(a.dataset.bi,a.dataset.email,a.dataset.name,a); };
     }catch(e){ res.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
   }
