@@ -690,6 +690,45 @@ function renderEmailList(items){
   h+='</tbody></table>';
   return h;
 }
+function renderEmailListNS(items, ns){
+  if(!items||!items.length) return '<div style="color:#9aa7b4;font-size:12px">No emails found with this customer yet.</div>';
+  let h='<table class="phtab"><thead><tr><th>Subject</th><th>Date</th><th>Sent By</th><th></th></tr></thead><tbody>';
+  items.forEach((m,i)=>{
+    const icon = m.dir==='out' ? '✉️' : '\U0001F4E8';
+    const who = m.dir==='out' ? ('to '+esc((m.to&&m.to[0])||'')) : ('from '+esc(m.fromName||m.from||''));
+    const sentBy = m.dir==='out' ? ('<b>'+esc(m.sentBy||'SurgaMed')+'</b>') : '<span style="color:#9aa7b4">customer</span>';
+    const d=new Date(m.date), ds=isNaN(d.getTime())?String(m.date||'').slice(0,16):d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+    h+='<tr class="emrow"><td><a href="#" class="emlink" data-ei="'+ns+'_'+i+'" data-id="'+esc(m.id)+'" data-mbx="'+esc(m.mailbox||'')+'">'+icon+' '+esc(m.subject||'(no subject)')+'</a>'+(m.hasAttachments?' \U0001F4CE':'')+'<div class="lsub">'+who+'</div></td><td class="nowrap">'+esc(ds)+'</td><td>'+sentBy+'</td><td>'+(m.webLink?'<a href="'+esc(m.webLink)+'" target="_blank" rel="noopener" title="Open in Outlook">↗</a>':'')+'</td></tr>';
+    h+='<tr class="emdetail" id="emd'+ns+'_'+i+'" style="display:none"><td colspan="4"><div class="emwrap" id="emw'+ns+'_'+i+'"></div></td></tr>';
+  });
+  h+='</tbody></table>';
+  return h;
+}
+async function toggleEmailNS(i, id, mbx){
+  const det=document.getElementById("emd"+i), wrap=document.getElementById("emw"+i);
+  if(!det) return;
+  if(det.style.display!=="none"){ det.style.display="none"; return; }
+  det.style.display="";
+  if(wrap.dataset.loaded) return;
+  wrap.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading email…</div>';
+  try{ const m=await fetchMessage(id, mbx); const text=htmlToText((m&&m.body&&m.body.content)||(m&&m.summary)||""); wrap.innerHTML='<pre class="bodytext" style="margin:6px 0">'+linkify(text||"(no text content)")+'</pre>'; wrap.dataset.loaded="1"; }
+  catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t open this email: '+esc(String(e.message||e))+'</div>'; }
+}
+function topEmail(rows){ const c={}; (rows||[]).forEach(r=>{ const e=(r.customer_email||"").toLowerCase(); if(e)c[e]=(c[e]||0)+1; }); let best="",n=0; for(const k in c){ if(c[k]>n){n=c[k];best=k;} } return best; }
+// Reusable: render full email history for an email into any container (used by item + customer lookup)
+async function emailHistoryInto(email, mountEl, ns){
+  if(!mountEl) return;
+  email=(email||"").trim();
+  if(!email){ mountEl.innerHTML='<div style="color:#9aa7b4;font-size:12px">No email address on file to look up.</div>'; return; }
+  mountEl.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading email history…</div>';
+  try{
+    const r=await fetch(FN_URL+"?thread="+encodeURIComponent(email),{headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY}});
+    const d=await r.json();
+    if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
+    mountEl.innerHTML=renderEmailListNS(d.items, ns);
+    mountEl.onclick=function(e){ const a=e.target.closest(".emlink"); if(!a)return; e.preventDefault(); toggleEmailNS(a.dataset.ei, a.dataset.id, a.dataset.mbx); };
+  }catch(e){ mountEl.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load emails: '+esc(String(e.message||e))+'</div>'; }
+}
 async function loadEmailThread(l){
   const box=document.getElementById("emailBox"); if(!box) return;
   const email=(l.custEmail||"").trim();
@@ -1352,7 +1391,7 @@ function openCustSearch(){
   document.getElementById("mClose").onclick=closeDetail;
   const q=document.getElementById("custQ"), go=document.getElementById("custGo"), res=document.getElementById("custResults");
   async function run(){ const v=q.value.trim(); if(!v)return; res.innerHTML='<div style="color:#9aa7b4;font-size:12px">Searching…</div>';
-    try{ const isEmail=/@/.test(v); const rows=await getPurchases(isEmail?v:"", isEmail?"":v); res.innerHTML=renderPurchases(rows); }
+    try{ const isEmail=/@/.test(v); const rows=await getPurchases(isEmail?v:"", isEmail?"":v); const em = isEmail ? v : topEmail(rows); res.innerHTML=renderPurchases(rows)+'<div class="bdhead" style="margin-top:16px">✉️ Email history'+(em?(' · '+esc(em)):'')+'</div><div id="custEmailBox"></div>'; emailHistoryInto(em, document.getElementById("custEmailBox"), "cust"); }
     catch(e){ res.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; } }
   go.onclick=run; q.addEventListener("keydown",e=>{ if(e.key==="Enter")run(); }); q.focus();
 }
@@ -1424,7 +1463,9 @@ async function toggleBuyer(idx, email, name, link){
   try{
     const rows=await getPurchases(email,name);
     const hdr='<div class="bdhead">📇 <b>'+esc(name||"(unknown)")+'</b>'+(email?' · '+esc(email):'')+' — complete order history across both accounts</div>';
-    wrap.innerHTML=hdr+renderPurchases(rows);
+    var _bem = email || (rows.find(function(r){return r.customer_email;})||{}).customer_email || "";
+    wrap.innerHTML=hdr+renderPurchases(rows)+'<div class="bdhead" style="margin-top:14px">✉️ Email history</div><div id="bemail'+idx+'"></div>';
+    emailHistoryInto(_bem, document.getElementById('bemail'+idx), 'b'+idx);
     wrap.dataset.loaded='1';
   }catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px;padding:6px 0">Couldn’t load history: '+esc(String(e.message||e))+'</div>'; }
 }
