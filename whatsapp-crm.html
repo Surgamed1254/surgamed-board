@@ -191,7 +191,7 @@ function nextAction(cu,msgs){
 function naClass(a){ return /reply/i.test(a)?"reply":/follow/i.test(a)?"follow":/no action/i.test(a)?"none":"wait"; }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 // strip the garbled HTML-entity sender names that occasionally arrive from Outlook
-function cleanName(s){ if(!s) return ""; let x=String(s).replace(/&#x?[0-9a-fA-F]+;/g,"").replace(/[ -]/g," ").replace(/\s+/g," ").trim(); return /[A-Za-z0-9]/.test(x)?x:""; }
+function cleanName(s){ if(!s) return ""; let x=String(s).replace(/&#x?[0-9a-fA-F]+;/g,"").replace(/[\u0000-\u001f]/g," ").replace(/\s+/g," ").trim(); return /[A-Za-z0-9]/.test(x)?x:""; }
 function dispName(cu){ return cleanName(cu.name)||cu.email||("Customer #"+cu.id); }
 function htmlToText(h){ if(!h) return ""; if(!/[<&]/.test(h)) return h; const d=document.createElement("div"); d.innerHTML=h; return (d.textContent||d.innerText||"").replace(/\n{3,}/g,"\n\n").trim(); }
 function linkify(t){ return esc(t).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>'); }
