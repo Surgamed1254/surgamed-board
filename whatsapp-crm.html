@@ -313,6 +313,7 @@ async function sendReply(cu){
 }
 
 // ---------- shipping & tracking ----------
+function trkUrl(c,t){if(!t)return '#';c=(''+c).toLowerCase();var e=encodeURIComponent(t);if(c.indexOf('fedex')>-1)return 'https://www.fedex.com/fedextrack/?trknbr='+e;if(c.indexOf('usps')>-1||c.indexOf('stamps')>-1)return 'https://tools.usps.com/tracking/'+e;if(c.indexOf('ups')>-1)return 'https://www.ups.com/track?tracknum='+e;return 'https://tools.usps.com/tracking/'+e;}
 function renderShipping(list){
   if(!list||!list.length) return '<div class="t" style="color:var(--muted)">No matching ShipStation shipment found for this customer yet.</div>';
   const COL={shipped:'#1d7a3f',delivered:'#1d7a3f',awaiting_shipment:'#9a5b14',label_created:'#9a5b14',on_hold:'#9a5b14',cancelled:'#c0392b',voided:'#c0392b'};
@@ -320,7 +321,7 @@ function renderShipping(list){
   list.forEach(s=>{
     const stt=(s.status||'').replace(/_/g,' ');
     const badge='<span class="statusbadge" style="background:'+(COL[s.status]||'#5a6b7b')+'"></span>'+esc(stt||'—');
-    const trk=s.tracking?('<a href="'+esc(s.trackingUrl||'#')+'" target="_blank" rel="noopener">'+esc(s.tracking)+'</a>'):'<span style="color:var(--muted)">not shipped yet</span>';
+    const trk=s.tracking?('<a href="'+esc(s.trackingUrl||trkUrl(s.carrier,s.tracking))+'" target="_blank" rel="noopener">'+esc(s.tracking)+'</a>'):'<span style="color:var(--muted)">not shipped yet</span>';
     h+='<tr><td>'+badge+'</td><td>'+esc(s.carrier||'')+'</td><td>'+trk+'</td><td class="nowrap">'+esc(String(s.shipDate||'').slice(0,10))+'</td></tr>';
   });
   return h+'</tbody></table>';
@@ -355,6 +356,24 @@ async function loadPurchases(cu){
   }catch(e){ box.innerHTML='<div class="t" style="color:var(--red)">Couldn’t load orders: '+esc(String(e.message||e))+'</div>'; }
 }
 
+function toggleSection(hdr){
+  const collapsed=!(hdr.getAttribute('data-collapsed')==='1');
+  hdr.setAttribute('data-collapsed',collapsed?'1':'0');
+  let el=hdr.nextElementSibling;
+  while(el && !/^H[1-6]$/.test(el.tagName)){ el.style.display=collapsed?'none':''; el=el.nextElementSibling; }
+  const car=hdr.querySelector('.gcar'); if(car) car.textContent=collapsed?'▸':'▾';
+}
+function initCollapsibles(root,sel){
+  if(!root) return;
+  root.querySelectorAll(sel||'h3.sec').forEach(function(hdr){
+    if(hdr.dataset.cinit) return; hdr.dataset.cinit='1';
+    hdr.style.cursor='pointer'; hdr.style.userSelect='none';
+    const car=document.createElement('span'); car.className='gcar'; car.textContent='▾';
+    car.style.cssText='margin-right:5px;font-size:11px;color:var(--muted);display:inline-block';
+    hdr.insertBefore(car,hdr.firstChild);
+    hdr.addEventListener('click',function(){ toggleSection(hdr); });
+  });
+}
 function detailHtml(cu, msgs, timeline, isTest){
   const na=nextAction(cu,msgs);
   const banner=isTest?'<div class="test-banner">⚠ TEST customer — safe demo/QA row.</div>':"";
@@ -457,7 +476,7 @@ async function openCustomer(cid,keep){
     cu._msgs=msgs; cu._tl=tl;
   }
   const isTest=/ZZ_WATEST/i.test(cu.name||"");
-  $("detail").innerHTML=detailHtml(cu,msgs,tl,isTest); wireDetail(cu);
+  $("detail").innerHTML=detailHtml(cu,msgs,tl,isTest); wireDetail(cu); initCollapsibles($("detail"),"h3.sec");
   // load the heavy sections (email / shipping / orders)
   loadEmailThread(cu); loadShipping(cu); loadPurchases(cu);
 }
