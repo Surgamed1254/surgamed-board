@@ -6,6 +6,9 @@ const { MS_TENANT_ID:TENANT, MS_CLIENT_ID:CLIENT, MS_CLIENT_SECRET:SECRET } = pr
 const GRAPH = 'https://graph.microsoft.com/v1.0';
 
 // If a rep renames a file / tab, update it here.
+// basis: 'paid' = count only paid rows, bucket by the paid-date column (col with header "paid"), amount from "total paid" (fallback TOTAL).
+// basis: 'paidflag' = count only rows whose "paid" column says PAID, bucket by order date, amount from TOTAL.
+// no basis = all rows, bucket by order date, amount from TOTAL.
 const REPS = [
   { rep:'Tehila',   user:'tcohen@surgamed.com', path:'Tehila/Tehila - Ventas.xlsx',          sheet:'Sheet1' },
   { rep:'Deysi',    user:'dcalvo@surgamed.com', path:'Deysi Sales list NEW COMPUTER.xlsx',    sheet:'Deysi Sales', basis:'paid' },
@@ -73,7 +76,9 @@ const monthStart=new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMon
 const monthRows=all.filter(o=>o.date>=monthStart && o.date<=todayUTC);
 const byRep={};
 for(const o of monthRows){ (byRep[o.rep]=byRep[o.rep]||{rev:0,ord:0,units:0}); byRep[o.rep].rev+=o.total; byRep[o.rep].ord++; byRep[o.rep].units+=o.qty; }
-const reps=Object.entries(byRep).map(([r,v])=>[r,Math.round(v.rev*100)/100,v.ord,Math.round(v.units)]).sort((a,b)=>b[1]-a[1]);
+// Always list every rep whose file loaded (0 if no sales this month) so nobody drops off the board.
+const okFiles = new Set(files.filter(f=>f[1]).map(f=>f[0]));
+const reps=REPS.filter(R=>okFiles.has(R.rep)).map(R=>{ const v=byRep[R.rep]||{rev:0,ord:0,units:0}; return [R.rep, Math.round(v.rev*100)/100, v.ord, Math.round(v.units)]; }).sort((a,b)=>b[1]-a[1]);
 const totals={revenue:0,orders:0,units:0};
 reps.forEach(r=>{totals.revenue+=r[1];totals.orders+=r[2];totals.units+=r[3];});
 totals.revenue=Math.round(totals.revenue*100)/100; totals.aov=totals.orders?Math.round(totals.revenue/totals.orders*100)/100:0;
