@@ -10,7 +10,7 @@ const GRAPH = 'https://graph.microsoft.com/v1.0';
 // basis: 'paidflag' = count only rows whose "paid" column says PAID, bucket by order date, amount from TOTAL.
 // no basis = all rows, bucket by order date, amount from TOTAL.
 const REPS = [
-  { rep:'Tehila',   user:'tcohen@surgamed.com', path:'Tehila/Tehila - Ventas.xlsx',          sheet:'Sheet1' },
+  { rep:'Tehila',   user:'tcohen@surgamed.com', path:'Tehila/Tehila - Ventas.xlsx',          sheet:'Sheet1', basis:'paid' },
   { rep:'Deysi',    user:'dcalvo@surgamed.com', path:'Deysi Sales list NEW COMPUTER.xlsx',    sheet:'Deysi Sales', basis:'paid' },
   { rep:'Mirian',   user:'malejo@surgamed.com', path:'MIRI - PAYPAL SENT ORDERS.xlsx',        sheet:'Sheet1', basis:'paidflag' },
   { rep:'Jennifer', user:'jlugo@surgamed.com',  path:'Desktop/Jennifer Lugo Saless.xlsx',     sheet:'Invoiced-Sales', basis:'paid' },
