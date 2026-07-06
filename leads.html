@@ -335,6 +335,10 @@ let WS_SIZE = localStorage.getItem('sg_wssize') || '10';         // page size: '
 
 function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function signinErr(m){ const e=document.getElementById("signinErr"); e.style.display="block"; e.textContent=m; }
+// ---- Access control ----
+// SurgaMed staff (any @surgamed.com address) plus explicitly approved external partners.
+const EXTERNAL_ALLOW=["david@medstocksupply.com","rafael@getmaelstrom.com"];
+function isAllowed(email){ email=(email||"").toLowerCase().trim(); if(!email) return false; if(email.endsWith("@surgamed.com")) return true; return EXTERNAL_ALLOW.includes(email); }
 
 document.getElementById("msBtn").onclick = async () => {
   const { error } = await sb.auth.signInWithOAuth({
@@ -351,6 +355,15 @@ async function showApp(session){
   if (booted) return; booted=true;
   TOKEN = session.access_token;
   const u = session.user;
+  // Reject anyone who authenticates but isn't on the allow list.
+  if(!isAllowed(u && u.email)){
+    booted=false;
+    document.getElementById("signin").style.display="flex";
+    document.getElementById("app").style.display="none";
+    signinErr("This account ("+((u&&u.email)||"")+") isn\u2019t authorized for the SurgaMed board. Ask an admin to add you.");
+    try{ await sb.auth.signOut(); }catch(e){}
+    return;
+  }
   ME = (u.user_metadata && (u.user_metadata.name || u.user_metadata.full_name)) || u.email || "unknown";
   document.getElementById("whoami").innerHTML = "Signed in as <b>"+esc(ME)+"</b>";
   // Default each rep's view to their own leads; they can switch to Everyone or anyone specific.
