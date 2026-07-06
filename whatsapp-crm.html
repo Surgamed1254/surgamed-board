@@ -176,6 +176,9 @@ function badgeFor(ev){ const s=(ev.source||"").toLowerCase(), t=(ev.type||"").to
 function fmtAgo(t){ if(!t) return "—"; const d=new Date(t),h=(Date.now()-d.getTime())/3.6e6; if(h<1) return Math.max(1,Math.round(h*60))+"m ago"; if(h<24) return Math.round(h)+"h ago"; return Math.round(h/24)+"d ago"; }
 function fmtDate(t){ if(!t) return "—"; return new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
 function fmtMoney(n){ n=Number(n)||0; return "$"+n.toLocaleString(undefined,{maximumFractionDigits:0}); }
+const OWNERSHIP_MONTHS = 3; // customer opens to any rep once no rep has closed a sale in over this many months
+function repFirst(name){ return String(name||'').trim().split(/\s+/)[0]||''; }
+function monthsAgoISO(months){ const d=new Date(); d.setMonth(d.getMonth()-months); return d.toISOString().slice(0,10); }
 function lastMsg(msgs){ return msgs&&msgs.length?msgs[msgs.length-1]:null; }
 function dueSoon(cu){ if(!cu.follow_up_date) return false; return new Date(cu.follow_up_date+"T23:59:59").getTime()<=Date.now(); }
 function statusLabel(cu){ return statusName(cu.manager_status||"new"); }
@@ -338,10 +341,59 @@ async function loadShipping(cu){
 }
 
 // ---------- purchase / order history ----------
+// Sales-rep intel: who closed sales with this customer, what they bought, last rep, and the
+// 3-month ownership status (owned by a rep, or open to all reps).
+function renderRepIntel(rows){
+  const attr=(rows||[]).filter(r=>r.rep && String(r.rep).trim());
+  if(!attr.length) return '';
+  const byRep={}, seen={};
+  attr.forEach(r=>{
+    const rp=r.rep.trim(); const g=byRep[rp]||(byRep[rp]={rep:rp,orders:new Set(),items:{},last:'',rev:0});
+    const on=String(r.order_number||r.invoice||('d'+(r.order_date||'')));
+    g.orders.add(on);
+    const ok=rp+'|'+on; if(!seen[ok] && r.order_total!=null && r.order_total!==''){ seen[ok]=1; g.rev+=Number(r.order_total)||0; }
+    const it=(r.item||'').split(/[-–]/)[0].trim().slice(0,46); if(it) g.items[it]=(g.items[it]||0)+(Number(r.qty)||1);
+    const d=(r.order_date||'').slice(0,10); if(d>g.last) g.last=d;
+  });
+  const reps=Object.values(byRep).sort((a,b)=>(b.last||'').localeCompare(a.last||''));
+  const lastRep=reps[0].rep, lastDate=reps[0].last;
+  const cutoff=monthsAgoISO(OWNERSHIP_MONTHS);
+  const open=!(lastDate && lastDate>=cutoff);
+  let badge;
+  if(open){
+    badge='<span style="background:#e8f5ec;color:#1d7a3f;border:1px solid #b7e0c4;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">🔓 OPEN to all reps</span> <span style="color:var(--muted);font-size:11px">no rep has closed a sale in over '+OWNERSHIP_MONTHS+' months — anyone can work this account</span>';
+  }else{
+    const exp=new Date(lastDate); exp.setMonth(exp.getMonth()+OWNERSHIP_MONTHS);
+    const dl=Math.max(0,Math.ceil((exp-Date.now())/86400000));
+    badge='<span style="background:#eaf3fd;color:#0b66c3;border:1px solid #bcd8f5;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">🔒 '+esc(lastRep)+' owns this account</span> <span style="color:var(--muted);font-size:11px">'+dl+' day'+(dl===1?'':'s')+' left unless another closed sale resets it</span>';
+  }
+  let h='<div style="border:1px solid #dbe6f0;background:#f7fbff;border-radius:10px;padding:10px 12px;margin:0 0 12px">';
+  h+='<div style="font-size:13px;margin-bottom:4px">🏅 Last sale: <b>'+esc(lastRep)+'</b> · '+esc(lastDate||'—')+'</div>';
+  h+='<div style="margin-bottom:6px">'+badge+'</div>';
+  h+='<table class="phtab"><thead><tr><th>Rep who closed sales</th><th>Orders</th><th>Last sale</th><th>Revenue</th><th>Top items bought</th></tr></thead><tbody>';
+  reps.forEach(g=>{ const tops=Object.keys(g.items).sort((a,b)=>g.items[b]-g.items[a]).slice(0,3).map(esc).join(', ');
+    h+='<tr><td><b>'+esc(g.rep)+'</b></td><td>'+g.orders.size+'</td><td class="nowrap">'+esc(g.last||'')+'</td><td>'+(g.rev?fmtMoney(g.rev):'—')+'</td><td>'+tops+'</td></tr>'; });
+  h+='</tbody></table></div>';
+  return h;
+}
+// Most recent known ship-to location for this customer (from imported order shipping fields).
+function renderShipTo(rows){
+  const withLoc=(rows||[]).filter(r=>r.ship_city||r.ship_state||r.ship_postal);
+  if(!withLoc.length) return '';
+  withLoc.sort((a,b)=>String(b.order_date||'').localeCompare(String(a.order_date||'')));
+  const r=withLoc[0];
+  const loc=[r.ship_city, r.ship_state, r.ship_postal].filter(Boolean).join(', ');
+  const line2=[r.ship_address1, r.ship_address2].filter(Boolean).join(', ');
+  const who=r.ship_name||r.company||'';
+  const uniq=[...new Set(withLoc.map(x=>[x.ship_city,x.ship_state].filter(Boolean).join(', ')).filter(Boolean))];
+  const more=uniq.length>1?(' <span style="color:var(--muted);font-size:11px">(+'+(uniq.length-1)+' other ship-to location'+(uniq.length-1===1?'':'s')+')</span>'):'';
+  return '<div style="border:1px solid #e3e9ef;background:#fbfdff;border-radius:8px;padding:8px 12px;margin:0 0 12px;font-size:12px">'+
+    '📍 <b>Ships to:</b> '+(who?esc(who)+' — ':'')+esc(loc||'—')+(line2?(' <span style="color:var(--muted)">('+esc(line2)+')</span>'):'')+more+'</div>';
+}
 function renderPurchases(rows){
   if(!rows||!rows.length) return '<div class="t" style="color:var(--muted)">No past orders found for this customer.</div>';
-  let h='<table class="phtab"><thead><tr><th>Date</th><th>Item</th><th>Source</th><th>Price</th></tr></thead><tbody>';
-  rows.forEach(p=>{ const src=p.account==="ShortDated Surgical"?"ShortDated":(p.account||"");
+  let h=renderRepIntel(rows)+renderShipTo(rows)+'<table class="phtab"><thead><tr><th>Date</th><th>Item</th><th>Source</th><th>Price</th></tr></thead><tbody>';
+  rows.forEach(p=>{ const src=p.source||(p.account==="ShortDated Surgical"?"ShortDated":(p.account||""));
     h+='<tr><td class="nowrap">'+esc(String(p.order_date||'').slice(0,10))+'</td><td>'+esc(p.item||'')+'</td><td>'+esc(src)+'</td><td class="nowrap">'+(p.price!=null?fmtMoney(p.price):'')+'</td></tr>'; });
   return h+'</tbody></table>';
 }
@@ -351,7 +403,7 @@ async function loadPurchases(cu){
   const email=(cu.email||"").toLowerCase().trim();
   if(!email){ box.innerHTML='<div class="t" style="color:var(--muted)">No email on file to look up orders.</div>'; return; }
   try{
-    const {data}=await SB.from("purchases").select("account,order_date,item,price,listing").ilike("customer_email",email).order("order_date",{ascending:false}).limit(300);
+    const {data}=await SB.from("purchases").select("account,order_date,item,price,listing,qty,rep,source,invoice,order_number,order_total,ship_name,company,ship_address1,ship_address2,ship_city,ship_state,ship_postal").ilike("customer_email",email).order("order_date",{ascending:false}).limit(500);
     box.innerHTML=renderPurchases(data||[]);
   }catch(e){ box.innerHTML='<div class="t" style="color:var(--red)">Couldn’t load orders: '+esc(String(e.message||e))+'</div>'; }
 }
