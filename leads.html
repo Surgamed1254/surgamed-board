@@ -319,6 +319,10 @@ let MY_EMAIL = ""; // signed-in user's email
 let MY_SIG = "";       // signed-in user's saved email signature
 let MY_SIG_HTML = false; // whether the signature is HTML
 let CONTACTS_BY_EMAIL = {}; // customer_email -> {rep, count} established-relationship map
+let SALE_OWNER = {};        // customer_email -> {rep, repFirst, date, open} from closed (rep-attributed) sales
+const OWNERSHIP_MONTHS = 3; // a customer is open to any rep once no rep has closed a sale in over this many months
+function repFirst(name){ return String(name||'').trim().split(/\s+/)[0]||''; }
+function monthsAgoISO(months){ const d=new Date(); d.setMonth(d.getMonth()-months); return d.toISOString().slice(0,10); }
 let SHIP_BY_EMAIL = {}; let SHIP_BY_LISTING = {}; // customer_email -> shipment summary from CRM shipments table
 let STATE = {};
 let LEADS = [];
@@ -599,6 +603,31 @@ async function loadContacts(l){
 }
 // Build the customer→primary-rep map and auto-assign matching leads to that rep
 // (so repeat customers stay with the rep who already deals with them).
+// ---- Closed-sale ownership ----
+// A rep "owns" a customer for OWNERSHIP_MONTHS after their most recent closed (rep-attributed)
+// sale. If no rep has closed a sale with that customer in over OWNERSHIP_MONTHS, the customer
+// becomes open to any rep. Only a closed sale resets this clock.
+async function loadSalesOwnership(){
+  SALE_OWNER={};
+  const emails=[...new Set(LEADS.map(l=>(l.custEmail||'').toLowerCase()).filter(Boolean))];
+  if(!emails.length) return;
+  let rows=[];
+  try{
+    for(let i=0;i<emails.length;i+=60){
+      const chunk=emails.slice(i,i+60);
+      const { data } = await sb.from('purchases').select('customer_email,rep,order_date').not('rep','is',null).in('customer_email',chunk);
+      rows=rows.concat(data||[]);
+    }
+  }catch(e){ return; }
+  const byEmail={};
+  rows.forEach(r=>{ const e=(r.customer_email||'').toLowerCase(); const rp=(r.rep||'').trim(); if(!e||!rp) return;
+    const d=r.order_date||''; const cur=byEmail[e];
+    if(!cur || d>cur.date){ byEmail[e]={rep:rp, date:d}; }
+  });
+  const cutoff=monthsAgoISO(OWNERSHIP_MONTHS);
+  Object.keys(byEmail).forEach(e=>{ const o=byEmail[e];
+    SALE_OWNER[e]={rep:o.rep, repFirst:repFirst(o.rep), date:o.date, open:!(o.date && o.date>=cutoff)}; });
+}
 async function applyContactOwnership(){
   CONTACTS_BY_EMAIL={};
   const emails=[...new Set(LEADS.map(l=>(l.custEmail||'').toLowerCase()).filter(Boolean))];
@@ -610,23 +639,33 @@ async function applyContactOwnership(){
       const { data } = await sb.from('contacts').select('customer_email,rep,created_at').not('message_id','is',null).in('customer_email',chunk);
       rows=rows.concat(data||[]);
     }
-  }catch(e){ return; }
+  }catch(e){ /* contacts optional */ }
   const byEmail={};
   rows.forEach(r=>{ const e=(r.customer_email||'').toLowerCase(); if(!e) return; (byEmail[e]=byEmail[e]||[]).push(r); });
   Object.keys(byEmail).forEach(e=>{ const pr=primaryRep(byEmail[e]); if(pr) CONTACTS_BY_EMAIL[e]={rep:pr, count:byEmail[e].length}; });
-  // Auto-assign: leads still on their rotation owner (no manual reassignment) go to the primary rep.
+  // Auto-assign: leads still on their rotation owner (no manual reassignment).
+  // Closed-sale ownership wins over email-contact ownership; a customer with no closed sale in
+  // over OWNERSHIP_MONTHS is OPEN and is left on rotation for any rep to pick up.
   const assigns=[];
   LEADS.forEach(l=>{
     const e=(l.custEmail||'').toLowerCase(); if(!e) return;
-    const info=CONTACTS_BY_EMAIL[e]; if(!info||!REPS.includes(info.rep)) return;
     if(st(l.id).assignee) return;          // respect a manual reassignment
-    if(effRep(l)===info.rep) return;        // already with them
-    assigns.push({id:l.id, rep:info.rep});
+    const so=SALE_OWNER[e];
+    if(so){
+      if(so.open) return;                                  // freed: no rep sold to them recently → open to all
+      if(!REPS.includes(so.repFirst)) return;              // owned by a non-rotation seller (admin/other): leave as-is
+      if(effRep(l)===so.repFirst) return;                  // already with them
+      assigns.push({id:l.id, rep:so.repFirst, why:'closed a sale with this customer'});
+      return;
+    }
+    const info=CONTACTS_BY_EMAIL[e]; if(!info||!REPS.includes(info.rep)) return;
+    if(effRep(l)===info.rep) return;
+    assigns.push({id:l.id, rep:info.rep, why:'already deals with this customer'});
   });
   if(assigns.length){
     try{
       await sb.from('lead_state').upsert(assigns.map(a=>({id:a.id, assignee:a.rep, updated_by:'contact-history'})));
-      await sb.from('lead_history').insert(assigns.map(a=>({lead_id:a.id, actor:'system', action:'Auto-assigned to '+a.rep+' — '+a.rep+' already deals with this customer'})));
+      await sb.from('lead_history').insert(assigns.map(a=>({lead_id:a.id, actor:'system', action:'Auto-assigned to '+a.rep+' — '+a.rep+' '+a.why})));
       assigns.forEach(a=>{ STATE[a.id]=Object.assign({id:a.id}, STATE[a.id]||{}, {assignee:a.rep, updated_by:'contact-history'}); });
     }catch(e){}
   }
@@ -928,6 +967,7 @@ async function load(silent){
     LEADS=all;
     LEADS.forEach(l=>(l.cats||[]).forEach(c=>KNOWN_CATS.add(c)));
     await enrichOrders();
+    await loadSalesOwnership();
     await applyContactOwnership();
     await prefetchShipments();
     if(owners.length){ await sb.from("lead_state").upsert(owners.map(o=>({id:o.id,owner:o.owner,category:o.category,updated_by:"rotation"}))); }
@@ -1336,11 +1376,60 @@ function renderFieldBanner(rows){
     '<div class="fieldsub" style="opacity:.8">Best guess from purchase history — verify with the customer.</div></div>';
 }
 
+// Sales-rep intel for a single customer: who closed sales, what they bought, last rep, and
+// the 3-month ownership status (owned by a rep, or open to all reps).
+function renderRepIntel(rows){
+  const attr=(rows||[]).filter(r=>r.rep && String(r.rep).trim());
+  if(!attr.length) return '';
+  const byRep={}, seen={};
+  attr.forEach(r=>{
+    const rp=r.rep.trim(); const g=byRep[rp]||(byRep[rp]={rep:rp,orders:new Set(),items:{},last:'',rev:0});
+    const on=String(r.order_number||r.invoice||('d'+(r.order_date||'')));
+    g.orders.add(on);
+    const ok=rp+'|'+on; if(!seen[ok] && r.order_total!=null && r.order_total!==''){ seen[ok]=1; g.rev+=Number(r.order_total)||0; }
+    const it=(r.item||'').split(/[-–]/)[0].trim().slice(0,46); if(it) g.items[it]=(g.items[it]||0)+(Number(r.qty)||1);
+    const d=r.order_date||''; if(d>g.last) g.last=d;
+  });
+  const reps=Object.values(byRep).sort((a,b)=>(b.last||'').localeCompare(a.last||''));
+  const lastRep=reps[0].rep, lastDate=reps[0].last;
+  const cutoff=monthsAgoISO(OWNERSHIP_MONTHS);
+  const open=!(lastDate && lastDate>=cutoff);
+  let badge;
+  if(open){
+    badge='<span style="background:#e8f5ec;color:#1d7a3f;border:1px solid #b7e0c4;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">🔓 OPEN to all reps</span> <span style="color:#5a6b7b;font-size:11px">no rep has closed a sale in over '+OWNERSHIP_MONTHS+' months — anyone can work this account</span>';
+  }else{
+    const exp=new Date(lastDate); exp.setMonth(exp.getMonth()+OWNERSHIP_MONTHS);
+    const dl=Math.max(0,Math.ceil((exp-Date.now())/86400000));
+    badge='<span style="background:#eaf3fd;color:#0b66c3;border:1px solid #bcd8f5;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">🔒 '+esc(lastRep)+' owns this account</span> <span style="color:#5a6b7b;font-size:11px">'+dl+' day'+(dl===1?'':'s')+' left unless another closed sale resets it</span>';
+  }
+  let h='<div style="border:1px solid #dbe6f0;background:#f7fbff;border-radius:10px;padding:10px 12px;margin:0 0 12px">';
+  h+='<div style="font-size:13px;margin-bottom:4px">🏅 Last sale: <b>'+esc(lastRep)+'</b> · '+esc(lastDate||'—')+'</div>';
+  h+='<div style="margin-bottom:6px">'+badge+'</div>';
+  h+='<table class="phtab"><thead><tr><th>Rep who closed sales</th><th>Orders</th><th>Last sale</th><th>Revenue</th><th>Top items bought</th></tr></thead><tbody>';
+  reps.forEach(g=>{ const tops=Object.keys(g.items).sort((a,b)=>g.items[b]-g.items[a]).slice(0,3).map(esc).join(', ');
+    h+='<tr><td><b>'+esc(g.rep)+'</b></td><td>'+g.orders.size+'</td><td class="nowrap">'+esc(g.last||'')+'</td><td>'+(g.rev?money(g.rev):'—')+'</td><td>'+tops+'</td></tr>'; });
+  h+='</tbody></table></div>';
+  return h;
+}
+// Most recent known ship-to location for this customer (from imported order shipping fields).
+function renderShipTo(rows){
+  const withLoc=(rows||[]).filter(r=>r.ship_city||r.ship_state||r.ship_postal);
+  if(!withLoc.length) return '';
+  withLoc.sort((a,b)=>String(b.order_date||'').localeCompare(String(a.order_date||'')));
+  const r=withLoc[0];
+  const loc=[r.ship_city, r.ship_state, r.ship_postal].filter(Boolean).join(', ');
+  const line2=[r.ship_address1, r.ship_address2].filter(Boolean).join(', ');
+  const who=r.ship_name||r.company||'';
+  const uniq=[...new Set(withLoc.map(x=>[x.ship_city,x.ship_state].filter(Boolean).join(', ')).filter(Boolean))];
+  const more=uniq.length>1?(' <span style="color:#9aa7b4;font-size:11px">(+'+(uniq.length-1)+' other ship-to location'+(uniq.length-1===1?'':'s')+')</span>'):'';
+  return '<div style="border:1px solid #e3e9ef;background:#fbfdff;border-radius:8px;padding:8px 12px;margin:0 0 12px;font-size:12px">'+
+    '📍 <b>Ships to:</b> '+(who?esc(who)+' — ':'')+esc(loc||'—')+(line2?(' <span style="color:#5a6b7b">('+esc(line2)+')</span>'):'')+more+'</div>';
+}
 function renderPurchases(rows){
   if(!rows||!rows.length) return '<div style="color:#9aa7b4;font-size:12px">No prior orders found in the history.</div>';
   const groups={};
   rows.forEach(r=>{ const a=r.account||"SurgaMed"; (groups[a]=groups[a]||[]).push(r); });
-  let h=renderFieldBanner(rows);
+  let h=renderRepIntel(rows)+renderShipTo(rows)+renderFieldBanner(rows);
   Object.keys(groups).sort().forEach(acct=>{
     const list=groups[acct]; let total=0,units=0;
     // "price" from dotMed is already the line subtotal (unit price × qty), so sum it directly.
