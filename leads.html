@@ -337,7 +337,7 @@ function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").repla
 function signinErr(m){ const e=document.getElementById("signinErr"); e.style.display="block"; e.textContent=m; }
 // ---- Access control ----
 // SurgaMed staff (any @surgamed.com address) plus explicitly approved external partners.
-const EXTERNAL_ALLOW=["david@medstocksupply.com","rafael@getmaelstrom.com"];
+const EXTERNAL_ALLOW=["davids@medstocksupply.com","rafael@getmaelstrom.com"];
 function isAllowed(email){ email=(email||"").toLowerCase().trim(); if(!email) return false; if(email.endsWith("@surgamed.com")) return true; return EXTERNAL_ALLOW.includes(email); }
 
 document.getElementById("msBtn").onclick = async () => {
