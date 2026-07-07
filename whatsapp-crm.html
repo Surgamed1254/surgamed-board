@@ -125,6 +125,7 @@
   <span class="brand">SurgaMed · CRM</span>
   <span id="mode" class="badge demo">DEMO</span>
   <button class="btn ghost sm" id="wsToggle" style="display:none">📊 Workspace</button>
+  <button class="btn ghost sm" id="oppBtn" style="display:none">🎯 Opportunities</button>
   <button class="btn ghost sm" id="refreshBtn" style="display:none">↻ Refresh</button>
   <span class="spacer"></span>
   <span class="who" id="who"></span>
@@ -232,7 +233,7 @@ const DEMO_CUST=[
 const $=id=>document.getElementById(id);
 let SB=null, STATE={customers:[],reps:[],live:false,email:""}, FILTERS={q:"",source:"",rep:"",status:"",priority:"",vip:false,review:false,due:false}, OPEN=null, WSVIEW=false;
 function setMode(live){ const m=$("mode"); STATE.live=live; m.textContent=live?"LIVE":"DEMO"; m.className="badge "+(live?"live":"demo"); }
-function showApp(){ $("gate").style.display="none"; $("app").style.display=WSVIEW?"none":"grid"; $("ws").style.display=WSVIEW?"block":"none"; $("wsToggle").style.display=""; $("refreshBtn").style.display=""; }
+function showApp(){ $("gate").style.display="none"; $("app").style.display=WSVIEW?"none":"grid"; $("ws").style.display=WSVIEW?"block":"none"; $("wsToggle").style.display=""; $("refreshBtn").style.display=""; { const _o=$("oppBtn"); if(_o){ _o.style.display=""; _o.onclick=openOpportunities; } } }
 function showGate(html){ $("app").style.display="none"; $("ws").style.display="none"; $("wsToggle").style.display="none"; $("refreshBtn").style.display="none"; $("gate").style.display="block"; $("gate").innerHTML=html; }
 function toast(t){ const e=$("toast"); e.textContent=t; e.classList.add("show"); clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove("show"),1900); }
 async function freshToken(){ try{ const {data:{session}}=await SB.auth.getSession(); return session?session.access_token:""; }catch(e){ return ""; } }
@@ -390,6 +391,74 @@ function renderShipTo(rows){
   return '<div style="border:1px solid #e3e9ef;background:#fbfdff;border-radius:8px;padding:8px 12px;margin:0 0 12px;font-size:12px">'+
     '📍 <b>Ships to:</b> '+(who?esc(who)+' — ':'')+esc(loc||'—')+(line2?(' <span style="color:var(--muted)">('+esc(line2)+')</span>'):'')+more+'</div>';
 }
+// ===== Medstock inventory cross-reference =====
+async function medstockForCustomer(email, purchaseRows){
+  email=(email||'').toLowerCase().trim(); if(!email) return null;
+  let pbi=[];
+  try{ const r=await SB.from('purchase_brand_index').select('brand_key,brand_label,items_bought,last_date').eq('customer_email',email); pbi=r.data||[]; }catch(e){ return null; }
+  if(!pbi.length) return null;
+  const brandKeys=[...new Set(pbi.map(b=>b.brand_key))];
+  let inv=[];
+  try{ const r=await SB.from('medstock_inventory').select('manufacturer,ref,ref_key,description,quantity,exp_date,category,mfg_key').eq('active',true).in('mfg_key',brandKeys).limit(500); inv=r.data||[]; }catch(e){ return null; }
+  if(!inv.length) return null;
+  const items=(purchaseRows||[]).map(r=>String(r.item||'').toUpperCase().replace(/[^A-Z0-9]/g,''));
+  inv.forEach(x=>{ x._strong=!!(x.ref_key && x.ref_key.length>=3 && items.some(it=>it.includes(x.ref_key))); });
+  inv.sort((a,b)=>(b._strong-a._strong)||String(a.manufacturer||'').localeCompare(String(b.manufacturer||'')));
+  return {inv,pbi};
+}
+function renderMedstock(m){
+  if(!m||!m.inv||!m.inv.length) return '';
+  const strong=m.inv.filter(x=>x._strong), soft=m.inv.filter(x=>!x._strong);
+  const brands=[...new Set(m.pbi.map(b=>b.brand_label))];
+  function row(x){ const exp=x.exp_date?(' · exp '+esc(String(x.exp_date))):''; const q=(x.quantity!=null?(' · qty '+x.quantity):'');
+    return '<tr><td>'+(x._strong?'<span style="background:#e6f6ee;color:#1b9e6b;border:1px solid #bfe6d2;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">EXACT MODEL</span> ':'')+esc(x.manufacturer||'')+'</td><td>'+esc(x.ref||'')+'</td><td>'+esc((x.description||'').slice(0,70))+'</td><td class="nowrap">'+esc(x.category||'')+q+exp+'</td></tr>'; }
+  let h='<div style="border:1px solid #cfe6e2;background:#f2fbf9;border-radius:10px;padding:10px 12px;margin:10px 0 12px">';
+  h+='<div style="font-size:13px;margin-bottom:4px">🎯 <b>Medstock matches</b> — current inventory from brands this customer has bought ('+m.inv.length+(strong.length?(', '+strong.length+' exact-model'):'')+')</div>';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:6px">Brands they buy that we stock: '+brands.slice(0,8).map(esc).join(', ')+(brands.length>8?' …':'')+'</div>';
+  h+='<table class="phtab"><thead><tr><th>Brand</th><th>REF</th><th>Description</th><th>List</th></tr></thead><tbody>';
+  (strong.concat(soft)).slice(0,40).forEach(x=>h+=row(x));
+  h+='</tbody></table>';
+  if(m.inv.length>40) h+='<div style="font-size:11px;color:var(--muted);margin-top:4px">Showing 40 of '+m.inv.length+' matches.</div>';
+  h+='</div>'; return h;
+}
+async function injectMedstock(email, purchaseRows, mountEl){
+  if(!mountEl) return;
+  try{ const m=await medstockForCustomer(email, purchaseRows); if(m){ mountEl.insertAdjacentHTML('beforeend', renderMedstock(m)); } }catch(e){}
+}
+function msOverlay(){ let o=document.getElementById('msOverlay'); if(!o){ o=document.createElement('div'); o.id='msOverlay'; o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9999;display:none;align-items:flex-start;justify-content:center;padding:36px 14px;overflow:auto'; o.addEventListener('click',e=>{ if(e.target===o) o.style.display='none'; }); document.body.appendChild(o); } return o; }
+async function openOpportunities(){
+  const o=msOverlay(); o.style.display='flex';
+  o.innerHTML='<div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:920px;width:100%;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.2)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><div style="font-weight:700;font-size:15px">🎯 Medstock Opportunities</div><div class="t">Current Medstock inventory cross-referenced with your past buyers — best call targets first</div></div><button class="btn ghost sm" id="oppClose">Close</button></div><div id="oppBody"><div class="t">Loading…</div></div></div>';
+  document.getElementById('oppClose').onclick=()=>o.style.display='none';
+  const body=document.getElementById('oppBody');
+  try{
+    const { data:brands }=await SB.from('medstock_brand_summary').select('*').order('buyers',{ascending:false}).limit(300);
+    if(!brands||!brands.length){ body.innerHTML='<div class="t">No matches yet.</div>'; return; }
+    let h='<div class="t" style="margin-bottom:8px">'+brands.length+' brands in current Medstock stock that your customers have bought before. Click a brand to see who to call.</div>';
+    h+='<table class="phtab"><thead><tr><th>Brand</th><th>In stock</th><th>Past buyers</th><th>Last bought</th></tr></thead><tbody>';
+    brands.forEach((b,i)=>{ h+='<tr class="opprow" data-bk="'+esc(b.brand_key)+'" data-bl="'+esc(b.brand_label)+'" style="cursor:pointer"><td><b>'+esc(b.brand_label)+'</b></td><td>'+b.items_in_stock+'</td><td>'+b.buyers+'</td><td class="nowrap">'+esc(String(b.last_buy||''))+'</td></tr><tr id="oppd'+i+'"></tr>'; });
+    h+='</tbody></table>';
+    body.innerHTML=h;
+    body.querySelectorAll('.opprow').forEach((el,i)=>{ el.onclick=()=>toggleOppBrand(el.dataset.bk, el.dataset.bl, document.getElementById('oppd'+i)); });
+  }catch(e){ body.innerHTML='<div class="t" style="color:var(--red)">'+esc(String(e.message||e))+'</div>'; }
+}
+async function toggleOppBrand(bk,bl,tr){
+  if(tr.dataset.open==='1'){ tr.dataset.open='0'; tr.innerHTML=''; return; }
+  tr.dataset.open='1'; tr.innerHTML='<td colspan="4" class="t" style="padding:8px 10px">Loading…</td>';
+  try{
+    const rb=await SB.from('purchase_brand_index').select('customer_email,customer_name,items_bought,last_date').eq('brand_key',bk).order('last_date',{ascending:false}).limit(300);
+    const ri=await SB.from('medstock_inventory').select('ref,description,quantity,exp_date,category').eq('active',true).eq('mfg_key',bk).limit(200);
+    const B=rb.data||[], I=ri.data||[];
+    let h='<td colspan="4" style="background:var(--blueS);padding:8px 12px">';
+    h+='<div style="font-weight:600;font-size:12px;margin-bottom:4px">📦 '+I.length+' item(s) in stock — '+esc(bl)+'</div>';
+    h+='<div class="t" style="margin-bottom:8px">'+I.slice(0,12).map(x=>esc(x.ref||'')+' '+esc((x.description||'').slice(0,40))).join(' · ')+(I.length>12?' …':'')+'</div>';
+    h+='<div style="font-weight:600;font-size:12px;margin-bottom:4px">📞 '+B.length+' past buyer(s) to contact</div>';
+    h+='<table class="phtab"><thead><tr><th>Customer</th><th>Email</th><th>Bought</th><th>Last</th></tr></thead><tbody>';
+    B.forEach(x=>{ h+='<tr><td>'+esc(x.customer_name||'')+'</td><td>'+esc(x.customer_email||'')+'</td><td>'+x.items_bought+'</td><td class="nowrap">'+esc(String(x.last_date||''))+'</td></tr>'; });
+    h+='</tbody></table></td>';
+    tr.innerHTML=h;
+  }catch(e){ tr.innerHTML='<td colspan="4" class="t" style="color:var(--red);padding:8px">'+esc(String(e.message||e))+'</td>'; }
+}
 function renderPurchases(rows){
   if(!rows||!rows.length) return '<div class="t" style="color:var(--muted)">No past orders found for this customer.</div>';
   let h=renderRepIntel(rows)+renderShipTo(rows)+'<table class="phtab"><thead><tr><th>Date</th><th>Item</th><th>Source</th><th>Price</th></tr></thead><tbody>';
@@ -399,12 +468,13 @@ function renderPurchases(rows){
 }
 async function loadPurchases(cu){
   const box=$("purchBox"); if(!box) return;
-  if(!STATE.live){ box.innerHTML=renderPurchases(cu._purch||[]); return; }
+  if(!STATE.live){ box.innerHTML=renderPurchases(cu._purch||[]); injectMedstock((cu.email||''), cu._purch||[], box); return; }
   const email=(cu.email||"").toLowerCase().trim();
   if(!email){ box.innerHTML='<div class="t" style="color:var(--muted)">No email on file to look up orders.</div>'; return; }
   try{
     const {data}=await SB.from("purchases").select("account,order_date,item,price,listing,qty,rep,source,invoice,order_number,order_total,ship_name,company,ship_address1,ship_address2,ship_city,ship_state,ship_postal").ilike("customer_email",email).order("order_date",{ascending:false}).limit(500);
     box.innerHTML=renderPurchases(data||[]);
+    injectMedstock(email, data||[], box);
   }catch(e){ box.innerHTML='<div class="t" style="color:var(--red)">Couldn’t load orders: '+esc(String(e.message||e))+'</div>'; }
 }
 
