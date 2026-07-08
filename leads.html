@@ -1519,12 +1519,11 @@ async function toggleOppBrand(bk, bl, tr){
     let h='<td colspan="4" style="background:#f7fbff;padding:8px 12px">';
     h+='<div style="font-weight:600;font-size:12px;margin-bottom:4px">📦 '+I.length+' item(s) in stock — '+esc(bl)+'</div>';
     h+='<div style="font-size:11px;color:#5a6b7b;margin-bottom:8px">'+I.slice(0,12).map(x=>esc(x.ref||'')+' '+esc((x.description||'').slice(0,40))).join(' · ')+(I.length>12?' …':'')+'</div>';
-    h+='<div style="font-weight:600;font-size:12px;margin:8px 0 4px">📞 '+B.length+' past buyer(s) — click a name to open full details & email</div>';
-    B.forEach(x=>{ const rid='ob'+Math.random().toString(36).slice(2,9);
-      h+='<div class="oppbuyer" data-email="'+esc(x.customer_email||'')+'" data-name="'+esc(x.customer_name||'')+'" data-rid="'+rid+'" style="cursor:pointer;padding:6px 8px;border-top:1px solid #eef2f6;display:flex;justify-content:space-between;gap:10px"><span><a href="#" style="color:#0b66c3;font-weight:600">'+esc(x.customer_name||x.customer_email||'(unknown)')+'</a> <span style="color:#9aa7b4;font-size:11px">'+esc(x.customer_email||'')+'</span></span><span style="color:#5a6b7b;font-size:11px;white-space:nowrap">'+x.items_bought+' bought · '+esc(String(x.last_date||''))+'</span></div><div id="'+rid+'" style="display:none;padding:4px 8px 10px"></div>'; });
-    h+='</td>';
+    h+='<div style="font-weight:600;font-size:12px;margin-bottom:4px">📞 '+B.length+' past buyer(s) to contact</div>';
+    h+='<table class="phtab"><thead><tr><th>Customer</th><th>Email</th><th>Bought</th><th>Last</th></tr></thead><tbody>';
+    B.forEach(x=>{ h+='<tr><td>'+esc(x.customer_name||'')+'</td><td>'+esc(x.customer_email||'')+'</td><td>'+x.items_bought+'</td><td class="nowrap">'+esc(String(x.last_date||''))+'</td></tr>'; });
+    h+='</tbody></table></td>';
     tr.innerHTML=h;
-    tr.querySelectorAll('.oppbuyer').forEach(function(el){ el.onclick=function(ev){ ev.preventDefault(); const d=document.getElementById(this.dataset.rid); if(!d) return; if(d.dataset.open==='1'){ d.dataset.open='0'; d.style.display='none'; d.innerHTML=''; return; } d.dataset.open='1'; d.style.display=''; showCustDetail(this.dataset.email, this.dataset.name, d, this.dataset.rid); }; });
   }catch(e){ tr.innerHTML='<td colspan="4" style="color:#c0392b;font-size:12px;padding:8px">'+esc(String(e.message||e))+'</td>'; }
 }
 async function loadCustHistory(l){
@@ -1753,27 +1752,6 @@ function openItemSearch(){
 }
 document.getElementById("itemLookup").onclick=openLookup;
 // ---- Unified Lookup: one box; email jumps to customer, name/item shows both sections (more matches first) ----
-async function sendCustEmail(ns, to, name){
-  to=(to||'').trim();
-  const body=document.getElementById(ns+'_body'), msg=document.getElementById(ns+'_msg'), btn=document.getElementById(ns+'_send'), subjEl=document.getElementById(ns+'_subj');
-  if(!body) return; const text=(body.value||'').trim();
-  if(!text){ body.focus(); return; }
-  if(!to){ if(msg){ msg.style.color='#c0392b'; msg.textContent='No email address on file for this customer.'; } return; }
-  const subj=((subjEl&&subjEl.value)||'').trim()||'SurgaMed — following up';
-  if(!confirm('Send this email to '+to+'?\nIt goes from your inbox ('+(MY_EMAIL||'orders@surgamed.com')+') with your signature.')) return;
-  if(btn) btn.disabled=true; if(msg){ msg.style.color='#5a6b7b'; msg.textContent='Sending…'; }
-  try{
-    const rep=(REPS.includes(MY_REP)?MY_REP:ME);
-    const fromMbx=REPS.includes(MY_REP)?MY_EMAIL:'';
-    const payload={ action:'send', rep, to, subject:subj, text, signature:MY_SIG, html:MY_SIG_HTML, from:fromMbx };
-    const r=await fetch(FN_URL,{method:'POST',headers:{Authorization:'Bearer '+(await freshToken()),apikey:SB_KEY,'content-type':'application/json'},body:JSON.stringify(payload)});
-    const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||('HTTP '+r.status));
-    try{ await sb.from('contacts').insert({ customer_email:to.toLowerCase()||null, customer_name:name||null, rep, rep_email:MY_EMAIL||null, channel:'email', direction:'out', subject:subj, message_id:'board-'+Date.now() }); }catch(e){}
-    body.value=''; if(msg){ msg.style.color='#1d7a3f'; msg.textContent='Sent ✓'; }
-    setTimeout(()=>{ const bx=document.getElementById(ns+'_box'); if(bx) emailHistoryInto(to, bx, ns); }, 1500);
-  }catch(e){ if(msg){ msg.style.color='#c0392b'; msg.textContent='Couldn’t send: '+String(e.message||e); } }
-  if(btn) btn.disabled=false;
-}
 async function showCustDetail(email, name, mountEl, ns){
   if(!mountEl) return;
   mountEl.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading…</div>';
@@ -1781,10 +1759,9 @@ async function showCustDetail(email, name, mountEl, ns){
     const rows=await getPurchases(email||"", name||"");
     const em=email||topEmail(rows);
     const hdr='<div class="bdhead">📇 <b>'+esc(name||email||"(unknown)")+'</b>'+(em?(' · '+esc(em)):'')+' — order history</div>';
-    mountEl.innerHTML=hdr+renderPurchases(rows)+'<div id="'+ns+'_ms"></div><div class="bdhead" style="margin-top:12px">✉️ Email history</div><div id="'+ns+'_box"></div>'+'<div style="margin-top:8px;border-top:1px solid #eef2f6;padding-top:8px">'+'<input id="'+ns+'_subj" placeholder="Subject" value="SurgaMed — following up" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;margin-bottom:6px">'+'<textarea id="'+ns+'_body" placeholder="Write an email — sends from your inbox (' + esc(MY_EMAIL||'orders@surgamed.com') + ') with your signature" style="width:100%;box-sizing:border-box;min-height:60px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+'<div style="margin-top:6px;display:flex;align-items:center;gap:8px"><button id="'+ns+'_send" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send email</button><span id="'+ns+'_msg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
+    mountEl.innerHTML=hdr+renderPurchases(rows)+'<div id="'+ns+'_ms"></div><div class="bdhead" style="margin-top:12px">✉️ Email history</div><div id="'+ns+'_box"></div>';
     injectMedstock(em, rows, document.getElementById(ns+'_ms'));
     emailHistoryInto(em, document.getElementById(ns+'_box'), ns);
-    { const _sb=document.getElementById(ns+'_send'); if(_sb) _sb.onclick=()=>sendCustEmail(ns, em, name||em); }
   }catch(e){ mountEl.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
 }
 function openLookup(){
