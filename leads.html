@@ -1256,8 +1256,9 @@ function initCollapsibles(root, sel){
 }
 async function openDetail(id){
   const l=findLead(id); if(!l)return; const o=ensureOverlay(); o.style.display="flex";
-  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>'+esc(dispName(l))+'</h3><div class="msub">'+esc((CATS.find(c=>c.key===l.cat)||{}).label)+' · '+fmtDate(l.date)+' · '+l.acct.t+'</div></div><div class="mbody"><div class="loading">Loading full email…</div></div></div>';
+  o.innerHTML='<div class="modal"><div class="mhead" style="position:relative"><button class="mnav" id="mPrev" title="Previous" style="position:absolute;left:6px;top:10px;width:28px;height:28px;border:1px solid #cdd6df;border-radius:50%;background:#fff;cursor:pointer;font-size:16px;line-height:1;color:#33414f">‹</button><button class="mnav" id="mNext" title="Next" style="position:absolute;right:46px;top:10px;width:28px;height:28px;border:1px solid #cdd6df;border-radius:50%;background:#fff;cursor:pointer;font-size:16px;line-height:1;color:#33414f">›</button><button class="mclose" id="mClose">×</button><h3>'+esc(dispName(l))+'</h3><div class="msub">'+esc((CATS.find(c=>c.key===l.cat)||{}).label)+' · '+fmtDate(l.date)+' · '+l.acct.t+'</div></div><div class="mbody"><div class="loading">Loading full email…</div></div></div>';
   document.getElementById("mClose").onclick=closeDetail;
+  (function(){ try{ var ids=[].slice.call(document.querySelectorAll('#board [data-detail]')).map(function(e){return e.getAttribute('data-detail');}); var idx=ids.indexOf(l.id); var pv=idx>0?ids[idx-1]:null, nx=(idx>=0&&idx<ids.length-1)?ids[idx+1]:null; var pb=document.getElementById('mPrev'), nb=document.getElementById('mNext'); if(pb){ if(pv){ pb.onclick=function(){openDetail(pv);}; } else { pb.disabled=true; pb.style.opacity=.3; pb.style.cursor='default'; } } if(nb){ if(nx){ nb.onclick=function(){openDetail(nx);}; } else { nb.disabled=true; nb.style.opacity=.3; nb.style.cursor='default'; } } }catch(e){} })();
   let msg=null,err=null;
   try{ msg=await fetchMessage(l.uri); if(msg.error) err=msg.error; }catch(e){ err=String(e.message||e); }
   if(o.style.display==="none") return;
@@ -1531,29 +1532,70 @@ async function loadCustHistory(l){
   try{ rows=await getPurchases(l.custEmail,l.display); box.innerHTML=renderPurchases(rows); }
   catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load history: '+esc(String(e.message||e))+'</div>'; }
   loadSuggestions(rows, l);
-  injectMedstock((l.custEmail||topEmail(rows)), rows, box);
 }
 // Suggest live in-stock inventory based on what the customer has bought: reorders
 // (same listing still in stock) + cross-sell (other in-stock items from their brands).
+function suggSrcRows(list){
+  let s='<table class="phtab"><thead><tr><th>Item</th><th>Source</th><th>Category</th><th>Price</th><th></th></tr></thead><tbody>';
+  list.forEach(r=>{
+    const tag = r.source==='SurgaMed'
+      ? '<span style="color:#9a5b14;font-weight:600">SurgaMed</span> <span style="color:#9aa7b4">· expired, priced to sell</span>'
+      : '<span style="color:#1d7a3f;font-weight:600">'+esc(r.source)+'</span> <span style="color:#9aa7b4">· in-date</span>';
+    const link = r.url? '<a href="'+esc(r.url)+'" target="_blank" rel="noopener">view</a>' : '';
+    s+='<tr><td>'+esc(r.name||'')+(r.ref?(' <span style="color:#9aa7b4">#'+esc(r.ref)+'</span>'):'')+'</td><td style="font-size:11px">'+tag+'</td><td>'+esc(r.category||'')+'</td><td>'+(r.price!=null&&r.price!==''?money(r.price):'')+'</td><td>'+link+'</td></tr>';
+  });
+  return s+'</tbody></table>';
+}
 async function loadSuggestions(rows, l){
   const box=document.getElementById("suggBox"); if(!box) return;
   try{
-    const ids=[...new Set((rows||[]).map(r=>r.listing).filter(Boolean))];
-    const mfgs=[...new Set((rows||[]).map(r=>{ const m=(r.item||'').trim().match(/^[A-Za-z][A-Za-z&.\-]*/); return m?m[0].replace(/[*,()]/g,'').toUpperCase():''; }).filter(w=>w&&w.length>=2))].slice(0,6);
-    if(!ids.length && !mfgs.length){ box.innerHTML='<div style="color:#9aa7b4;font-size:12px">No history to base suggestions on.</div>'; return; }
-    let reorder=[];
-    if(ids.length){ const { data }=await sb.from('listings').select('id,account,mfg,name,category,price,url').in('id',ids).eq('in_stock',true).limit(60); reorder=data||[]; }
-    let cross=[];
-    if(mfgs.length){ const orf=mfgs.map(m=>'mfg.ilike.'+m+'*').join(','); const { data }=await sb.from('listings').select('id,account,mfg,name,category,price,url').or(orf).eq('in_stock',true).limit(60); const ex=new Set([...ids,...reorder.map(r=>r.id)]); cross=(data||[]).filter(r=>!ex.has(r.id)).slice(0,12); }
-    if(!reorder.length && !cross.length){ box.innerHTML='<div style="color:#9aa7b4;font-size:12px">No in-stock matches found in current inventory.</div>'; return; }
-    function tbl(list){ let s='<table class="phtab"><thead><tr><th>Item</th><th>Category</th><th>Price</th><th></th></tr></thead><tbody>'; list.forEach(r=>{ s+='<tr><td>'+esc(r.name||r.mfg||'')+'</td><td>'+esc(r.category||'')+'</td><td>'+(r.price!=null?money(r.price):'')+'</td><td><a href="'+esc(r.url||'#')+'" target="_blank" rel="noopener">view</a></td></tr>'; }); s+='</tbody></table>'; return s; }
-    let h='';
-    if(reorder.length){ h+='<div class="phsum" style="font-weight:600;color:#1d7a3f">🔁 Reorder — bought before &amp; in stock now ('+reorder.length+')</div>'+tbl(reorder);
-      h+='<div style="margin:6px 0 14px"><button id="reorderBtn" class="custbtn" style="background:#1d7a3f;border-color:#1d7a3f;padding:6px 12px">📣 Email customer: these are in stock</button> <span id="reorderMsg" style="font-size:12px;color:#5a6b7b"></span></div>';
+    const NK=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    const boughtTexts=(rows||[]).map(r=>NK(r.item)).filter(Boolean);
+    const boughtHas=tok=>tok&&tok.length>=4&&boughtTexts.some(t=>t.includes(tok));
+    const mfgs=[...new Set((rows||[]).map(r=>{ const m=(r.item||'').trim().match(/^[A-Za-z0-9][A-Za-z0-9&.\-]*/); return m?m[0].replace(/[*,()]/g,'').toUpperCase():''; }).filter(w=>w&&w.length>=2))].slice(0,10);
+    const email=((l&&l.custEmail)||topEmail(rows)||'').toLowerCase();
+    let dm=[];
+    if(mfgs.length){
+      const orf=mfgs.map(m=>'mfg.ilike.'+m+'*').join(',');
+      const { data }=await sb.from('listings').select('id,account,mfg,model,name,category,price,url').or(orf).eq('in_stock',true).limit(500);
+      dm=(data||[]).filter(x=>boughtHas(NK(x.model))).map(x=>({ source:x.account||'SurgaMed', inDate:(x.account!=='SurgaMed'), name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(), ref:x.model, category:x.category, price:x.price, url:x.url }));
     }
-    if(cross.length){ h+='<div class="phsum" style="font-weight:600;color:#0b66c3;margin-top:10px">✨ More from brands they buy ('+cross.length+')</div>'+tbl(cross); }
+    let ms=[];
+    if(email){
+      try{
+        const pbi=await sb.from('purchase_brand_index').select('brand_key').eq('customer_email',email);
+        const bks=[...new Set((pbi.data||[]).map(b=>b.brand_key))];
+        if(bks.length){
+          const { data }=await sb.from('medstock_inventory').select('manufacturer,ref,ref_key,description,category,quantity,exp_date').eq('active',true).in('mfg_key',bks).limit(500);
+          ms=(data||[]).filter(x=>boughtHas(x.ref_key)).map(x=>({ source:'Medstock', inDate:true, name:x.description||((x.manufacturer||'')+' '+(x.ref||'')).trim(), ref:x.ref, category:x.category, price:null, url:null }));
+        }
+      }catch(e){}
+    }
+    let exact=dm.concat(ms);
+    const seen={}; exact=exact.filter(x=>{ const k=x.source+'|'+NK(x.ref); if(seen[k])return false; seen[k]=1; return true; });
+    exact.sort((a,b)=>(b.inDate-a.inDate)||String(a.source).localeCompare(String(b.source)));
+    let similar=[];
+    const cats=[...new Set(exact.map(x=>(x.category||'').trim()).filter(Boolean))].slice(0,4);
+    const exactRefs=new Set(exact.map(x=>NK(x.ref)));
+    if(cats.length){
+      try{
+        const orc=cats.map(c=>'category.ilike.'+c.replace(/[%,()]/g,'')+'*').join(',');
+        const { data }=await sb.from('listings').select('account,mfg,model,name,category,price,url').or(orc).eq('in_stock',true).limit(150);
+        similar=(data||[]).filter(x=>!exactRefs.has(NK(x.model))).map(x=>({ source:x.account||'SurgaMed', inDate:(x.account!=='SurgaMed'), name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(), ref:x.model, category:x.category, price:x.price, url:x.url }));
+        const s2={}; similar=similar.filter(x=>{ const k=NK(x.name); if(!k||s2[k])return false; s2[k]=1; return true; });
+        similar.sort((a,b)=>(b.inDate-a.inDate)); similar=similar.slice(0,5);
+      }catch(e){}
+    }
+    let h='';
+    if(exact.length){
+      h+='<div class="phsum" style="font-weight:600;color:#1d7a3f">🎯 Exact matches in stock — this customer bought these before ('+exact.length+')</div>'+suggSrcRows(exact);
+      h+='<div style="margin:6px 0 14px"><button id="reorderBtn" class="custbtn" style="background:#1d7a3f;border-color:#1d7a3f;padding:6px 12px">📣 Email customer: these are in stock</button> <span id="reorderMsg" style="font-size:12px;color:#5a6b7b"></span></div>';
+    } else {
+      h+='<div style="color:#9aa7b4;font-size:12px">No exact in-stock matches from prior purchases.</div>';
+    }
+    if(similar.length){ h+='<div class="phsum" style="font-weight:600;color:#0b66c3;margin-top:10px">✨ Similar items in stock (same type — worth suggesting) ('+similar.length+')</div>'+suggSrcRows(similar); }
     box.innerHTML=h;
-    if(reorder.length && l){ const rb=document.getElementById("reorderBtn"); if(rb) rb.onclick=()=>sendReorderAlert(l, reorder); }
+    if(exact.length && l){ const rb=document.getElementById("reorderBtn"); if(rb) rb.onclick=()=>sendReorderAlert(l, exact); }
   }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load suggestions: '+esc(String(e.message||e))+'</div>'; }
 }
 // One-click: email the customer (from the rep's own address + signature) that their
