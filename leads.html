@@ -1495,33 +1495,36 @@ async function injectMedstock(email, purchaseRows, mountEl){
 // Opportunities dashboard: current stock cross-referenced with past buyers
 async function openOpportunities(){
   const o=ensureOverlay(); o.style.display="flex";
-  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>🎯 Medstock Opportunities</h3><div class="msub">Current Medstock inventory cross-referenced with your past buyers — best call targets first</div></div><div class="mbody"><div id="oppBody"><div style="color:#9aa7b4;font-size:12px">Loading opportunities…</div></div></div></div>';
+  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>🎯 Opportunities — exact-item matches</h3><div class="msub">Items in stock that customers bought the exact model of before — in-date sources first</div></div><div class="mbody"><div style="margin-bottom:6px"><input id="oppSearch" placeholder="Filter by model / source…" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"></div><div id="oppBody"><div style="color:#9aa7b4;font-size:12px">Loading opportunities…</div></div></div></div>';
   document.getElementById("mClose").onclick=closeDetail;
   const body=document.getElementById("oppBody");
   try{
-    const { data:brands } = await sb.from('medstock_brand_summary').select('*').order('buyers',{ascending:false}).limit(300);
-    if(!brands||!brands.length){ body.innerHTML='<div style="color:#9aa7b4;font-size:12px">No matches yet.</div>'; return; }
-    let h='<div style="font-size:12px;color:#5a6b7b;margin-bottom:8px">'+brands.length+' brands in current Medstock stock that your customers have bought before. Click a brand to see who to call.</div>';
-    h+='<table class="phtab"><thead><tr><th>Brand</th><th>In stock</th><th>Past buyers</th><th>Last bought</th></tr></thead><tbody>';
-    brands.forEach((b,i)=>{ h+='<tr class="opprow" data-bk="'+esc(b.brand_key)+'" data-bl="'+esc(b.brand_label)+'" style="cursor:pointer"><td><b>'+esc(b.brand_label)+'</b></td><td>'+b.items_in_stock+'</td><td>'+b.buyers+'</td><td class="nowrap">'+esc(String(b.last_buy||''))+'</td></tr><tr id="oppd'+i+'"></tr>'; });
-    h+='</tbody></table>';
-    body.innerHTML=h;
-    body.querySelectorAll('.opprow').forEach((el,i)=>{ el.onclick=()=>toggleOppBrand(el.dataset.bk, el.dataset.bl, document.getElementById('oppd'+i)); });
+    const { data:items } = await sb.from('medstock_item_summary').select('*').order('buyers',{ascending:false}).limit(600);
+    if(!items||!items.length){ body.innerHTML='<div style="color:#9aa7b4;font-size:12px">No exact-item matches yet.</div>'; return; }
+    function srcTag(x){ return (/SurgaMed/.test(x.sources)&&!/Medstock|ShortDated/.test(x.sources)) ? '<span style="color:#9a5b14">'+esc(x.sources)+' · expired</span>' : '<span style="color:#1d7a3f">'+esc(x.sources)+' · in-date</span>'; }
+    function render(list){
+      let h='<div style="font-size:12px;color:#5a6b7b;margin-bottom:8px">'+list.length+' in-stock item(s) customers bought the exact model of before. Click an item to see who to call.</div>';
+      h+='<table class="phtab"><thead><tr><th>Item (model)</th><th>Source</th><th>Past buyers</th><th>Last bought</th></tr></thead><tbody>';
+      list.forEach((b,i)=>{ h+='<tr class="opprow" data-rk="'+esc(b.ref_key)+'" data-rl="'+esc(b.ref_label)+'" style="cursor:pointer"><td><b>'+esc(b.ref_label)+'</b></td><td style="font-size:11px">'+srcTag(b)+'</td><td>'+b.buyers+'</td><td class="nowrap">'+esc(String(b.last_buy||'').slice(0,10))+'</td></tr><tr id="oppd'+i+'"></tr>'; });
+      h+='</tbody></table>';
+      body.innerHTML=h;
+      body.querySelectorAll('.opprow').forEach((el,i)=>{ el.onclick=()=>toggleOppItem(el.dataset.rk, el.dataset.rl, document.getElementById('oppd'+i)); });
+    }
+    render(items.slice(0,300));
+    const srch=document.getElementById('oppSearch');
+    if(srch){ srch.oninput=()=>{ const q=srch.value.trim().toUpperCase(); const f=q?items.filter(x=>String(x.ref_label||'').toUpperCase().includes(q)||String(x.sources||'').toUpperCase().includes(q)):items; render(f.slice(0,300)); }; }
   }catch(e){ body.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
 }
-async function toggleOppBrand(bk, bl, tr){
+async function toggleOppItem(rk, rl, tr){
   if(tr.dataset.open==='1'){ tr.dataset.open='0'; tr.innerHTML=''; return; }
   tr.dataset.open='1'; tr.innerHTML='<td colspan="4" style="background:#f7fbff;padding:8px 10px;color:#9aa7b4;font-size:12px">Loading…</td>';
   try{
-    const rb=await sb.from('purchase_brand_index').select('customer_email,customer_name,items_bought,last_date').eq('brand_key',bk).order('last_date',{ascending:false}).limit(300);
-    const ri=await sb.from('medstock_inventory').select('ref,description,quantity,exp_date,category').eq('active',true).eq('mfg_key',bk).limit(200);
-    const B=rb.data||[], I=ri.data||[];
+    const rb=await sb.from('purchase_item_index').select('customer_email,customer_name,times_bought,last_date').eq('ref_key',rk).order('last_date',{ascending:false}).limit(400);
+    const B=rb.data||[];
     let h='<td colspan="4" style="background:#f7fbff;padding:8px 12px">';
-    h+='<div style="font-weight:600;font-size:12px;margin-bottom:4px">📦 '+I.length+' item(s) in stock — '+esc(bl)+'</div>';
-    h+='<div style="font-size:11px;color:#5a6b7b;margin-bottom:8px">'+I.slice(0,12).map(x=>esc(x.ref||'')+' '+esc((x.description||'').slice(0,40))).join(' · ')+(I.length>12?' …':'')+'</div>';
-    h+='<div style="font-weight:600;font-size:12px;margin:8px 0 4px">📞 '+B.length+' past buyer(s) — click a name to open full details & email</div>';
+    h+='<div style="font-weight:600;font-size:12px;margin:2px 0 4px">📞 '+B.length+' customer(s) who bought '+esc(rl)+' before — click a name to open full details & email</div>';
     B.forEach(x=>{ const rid='ob'+Math.random().toString(36).slice(2,9);
-      h+='<div class="oppbuyer" data-email="'+esc(x.customer_email||'')+'" data-name="'+esc(x.customer_name||'')+'" data-rid="'+rid+'" style="cursor:pointer;padding:6px 8px;border-top:1px solid #eef2f6;display:flex;justify-content:space-between;gap:10px"><span><a href="#" style="color:#0b66c3;font-weight:600">'+esc(x.customer_name||x.customer_email||'(unknown)')+'</a> <span style="color:#9aa7b4;font-size:11px">'+esc(x.customer_email||'')+'</span></span><span style="color:#5a6b7b;font-size:11px;white-space:nowrap">'+x.items_bought+' bought · '+esc(String(x.last_date||''))+'</span></div><div id="'+rid+'" style="display:none;padding:4px 8px 10px"></div>'; });
+      h+='<div class="oppbuyer" data-email="'+esc(x.customer_email||'')+'" data-name="'+esc(x.customer_name||'')+'" data-rid="'+rid+'" style="cursor:pointer;padding:6px 8px;border-top:1px solid #eef2f6;display:flex;justify-content:space-between;gap:10px"><span><a href="#" style="color:#0b66c3;font-weight:600">'+esc(x.customer_name||x.customer_email||'(unknown)')+'</a> <span style="color:#9aa7b4;font-size:11px">'+esc(x.customer_email||'')+'</span></span><span style="color:#5a6b7b;font-size:11px;white-space:nowrap">'+x.times_bought+'× · '+esc(String(x.last_date||'').slice(0,10))+'</span></div><div id="'+rid+'" style="display:none;padding:4px 8px 10px"></div>'; });
     h+='</td>';
     tr.innerHTML=h;
     tr.querySelectorAll('.oppbuyer').forEach(function(el){ el.onclick=function(ev){ ev.preventDefault(); const d=document.getElementById(this.dataset.rid); if(!d) return; if(d.dataset.open==='1'){ d.dataset.open='0'; d.style.display='none'; d.innerHTML=''; return; } d.dataset.open='1'; d.style.display=''; showCustDetail(this.dataset.email, this.dataset.name, d, this.dataset.rid); }; });
