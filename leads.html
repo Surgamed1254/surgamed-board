@@ -1479,18 +1479,20 @@ function renderMedstock(m){
   const brands=[...new Set(m.pbi.map(b=>b.brand_label))];
   function row(x){ const exp=x.exp_date?(' · exp '+esc(String(x.exp_date))):''; const q=(x.quantity!=null?(' · qty '+x.quantity):'');
     return '<tr><td>'+(x._strong?'<span style="background:#e8f5ec;color:#1d7a3f;border:1px solid #b7e0c4;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">EXACT MODEL</span> ':'')+esc(x.manufacturer||'')+'</td><td>'+esc(x.ref||'')+'</td><td>'+esc((x.description||'').slice(0,70))+'</td><td class="nowrap">'+esc(x.category||'')+q+exp+'</td></tr>'; }
+  const uid='ms'+Math.random().toString(36).slice(2,8);
   let h='<div style="border:1px solid #cfe6e2;background:#f2fbf9;border-radius:10px;padding:10px 12px;margin:10px 0 12px">';
-  h+='<div style="font-size:13px;margin-bottom:4px">🎯 <b>Medstock matches</b> — current inventory from brands this customer has bought ('+m.inv.length+(strong.length?(', '+strong.length+' exact-model'):'')+')</div>';
+  h+='<div class="sg-hdr" data-target="'+uid+'" style="font-size:13px;margin-bottom:4px;cursor:pointer;user-select:none">🎯 <span class="sgcx">▾</span> <b>Medstock matches</b> — current inventory from brands this customer has bought ('+m.inv.length+(strong.length?(', '+strong.length+' exact-model'):'')+')</div>';
+  h+='<div id="'+uid+'">';
   h+='<div style="font-size:11px;color:#5a6b7b;margin-bottom:6px">Brands they buy that we stock: '+brands.slice(0,8).map(esc).join(', ')+(brands.length>8?' …':'')+'</div>';
   h+='<table class="phtab"><thead><tr><th>Brand</th><th>REF</th><th>Description</th><th>List</th></tr></thead><tbody>';
   (strong.concat(soft)).slice(0,40).forEach(x=>h+=row(x));
   h+='</tbody></table>';
   if(m.inv.length>40) h+='<div style="font-size:11px;color:#9aa7b4;margin-top:4px">Showing 40 of '+m.inv.length+' matches.</div>';
-  h+='</div>'; return h;
+  h+='</div></div>'; return h;
 }
 async function injectMedstock(email, purchaseRows, mountEl){
   if(!mountEl) return;
-  try{ const m=await medstockForCustomer(email, purchaseRows); if(m){ mountEl.insertAdjacentHTML('beforeend', renderMedstock(m)); } }catch(e){}
+  try{ const m=await medstockForCustomer(email, purchaseRows); if(m){ mountEl.insertAdjacentHTML('beforeend', renderMedstock(m)); wireSuggToggles(mountEl); } }catch(e){}
 }
 // Opportunities dashboard: current stock cross-referenced with past buyers
 async function openOpportunities(){
@@ -1550,6 +1552,22 @@ function suggSrcRows(list){
   });
   return s+'</tbody></table>';
 }
+// Collapsible AI-similar section with a "click here for more" beyond the first 5.
+function simSectionHtml(sim, uid){
+  if(!sim||!sim.length) return '';
+  const head=sim.slice(0,5), rest=sim.slice(5);
+  let h='<div class="sg-hdr" data-target="'+uid+'_b" style="font-weight:600;color:#0b66c3;margin-top:10px;cursor:pointer;user-select:none"><span class="sgcx">▾</span> ✨ AI-suggested similar items in stock — SurgaMed · ShortDated · Medstock ('+sim.length+')</div>';
+  h+='<div id="'+uid+'_b">'+suggSrcRows(head);
+  if(rest.length){ h+='<div id="'+uid+'_m" style="display:none">'+suggSrcRows(rest)+'</div>'; h+='<div style="margin:4px 0 2px"><a href="#" class="sg-more" data-target="'+uid+'_m" data-n="'+rest.length+'" style="color:#0b66c3;font-size:12px;text-decoration:none">▾ Click here for '+rest.length+' more AI suggestion'+(rest.length===1?'':'s')+'</a></div>'; }
+  h+='</div>';
+  return h;
+}
+// Wire minimize (.sg-hdr) and show-more (.sg-more) toggles inside a container.
+function wireSuggToggles(root){
+  if(!root) return;
+  root.querySelectorAll('.sg-hdr').forEach(function(hd){ if(hd._wired) return; hd._wired=1; hd.onclick=function(){ const el=document.getElementById(this.getAttribute('data-target')); if(!el)return; const show=(el.style.display==='none'); el.style.display=show?'':'none'; const cx=this.querySelector('.sgcx'); if(cx)cx.textContent=show?'▾':'▸'; }; });
+  root.querySelectorAll('.sg-more').forEach(function(a){ if(a._wired) return; a._wired=1; a.onclick=function(ev){ ev.preventDefault(); const el=document.getElementById(this.getAttribute('data-target')); if(!el)return false; const sh=(el.style.display==='none'); el.style.display=sh?'':'none'; const n=this.getAttribute('data-n'); this.innerHTML=sh?'▴ Show fewer':('▾ Click here for '+n+' more AI suggestion'+(n==='1'?'':'s')); return false; }; });
+}
 // Shared: AI-ranked "similar items" candidate pool across ALL THREE inventories
 // (SurgaMed + ShortDated via `listings`, and Medstock via `medstock_inventory`).
 // Returns up to 5 clinically-similar in-stock items, or a top-5 fallback if the AI is unavailable.
@@ -1574,8 +1592,8 @@ async function aiSimilarFor(rows, email, excludeRefs){
   }catch(e){}
   pool=pool.filter(x=>x.name && x.ref && !excludeRefs.has(NK(x.ref)));
   const s2={}; pool=pool.filter(x=>{ const k=NK(x.name); if(!k||s2[k])return false; s2[k]=1; return true; });
-  pool.sort((a,b)=>(b.inDate-a.inDate)); pool=pool.slice(0,40);
-  let similar=pool.slice(0,5);
+  pool.sort((a,b)=>(b.inDate-a.inDate)); pool=pool.slice(0,50);
+  let similar=pool.slice(0,15);
   if(pool.length){ try{ const _bn=(rows||[]).map(r=>r.item).filter(Boolean).slice(0,25); const _rr=await fetch(SB_URL+'/functions/v1/similar-items',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({bought:_bn,candidates:pool.map(x=>({ref:x.ref,name:x.name,category:x.category,source:x.source}))})}); if(_rr.ok){ const _dd=await _rr.json(); if(_dd.items&&_dd.items.length){ const _br={}; pool.forEach(x=>_br[String(x.ref)]=x); similar=_dd.items.map(p=>Object.assign({},_br[String(p.ref)]||{},{reason:p.reason})).filter(x=>x.ref); } } }catch(e){} }
   return similar;
 }
@@ -1617,8 +1635,9 @@ async function loadSuggestions(rows, l){
     } else {
       h+='<div style="color:#9aa7b4;font-size:12px">No exact in-stock matches from prior purchases.</div>';
     }
-    if(similar.length){ h+='<div class="phsum" style="font-weight:600;color:#0b66c3;margin-top:10px">✨ Similar items in stock (same type — worth suggesting) ('+similar.length+')</div>'+suggSrcRows(similar); }
+    h+=simSectionHtml(similar, 'sg_ld');
     box.innerHTML=h;
+    wireSuggToggles(box);
     if(exact.length && l){ const rb=document.getElementById("reorderBtn"); if(rb) rb.onclick=()=>sendReorderAlert(l, exact); }
   }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load suggestions: '+esc(String(e.message||e))+'</div>'; }
 }
@@ -1806,7 +1825,7 @@ async function showCustDetail(email, name, mountEl, ns){
     const hdr='<div class="bdhead">📇 <b>'+esc(name||email||"(unknown)")+'</b>'+(em?(' · '+esc(em)):'')+' — order history</div>';
     mountEl.innerHTML=hdr+renderPurchases(rows)+'<div id="'+ns+'_ms"></div><div id="'+ns+'_sim"></div><div class="bdhead" style="margin-top:12px">✉️ Email history</div><div id="'+ns+'_box"></div>'+'<div style="margin-top:8px;border-top:1px solid #eef2f6;padding-top:8px">'+'<input id="'+ns+'_subj" placeholder="Subject" value="SurgaMed — following up" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;margin-bottom:6px">'+'<textarea id="'+ns+'_body" placeholder="Write an email — sends from your inbox (' + esc(MY_EMAIL||'orders@surgamed.com') + ') with your signature" style="width:100%;box-sizing:border-box;min-height:60px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+'<div style="margin-top:6px;display:flex;align-items:center;gap:8px"><button id="'+ns+'_send" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send email</button><span id="'+ns+'_msg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
     injectMedstock(em, rows, document.getElementById(ns+'_ms'));
-    (async()=>{ try{ const sim=await aiSimilarFor(rows, em, new Set()); const el=document.getElementById(ns+'_sim'); if(el&&sim&&sim.length){ el.innerHTML='<div class="bdhead" style="margin-top:10px">✨ AI-suggested similar items in stock — SurgaMed · ShortDated · Medstock ('+sim.length+')</div>'+suggSrcRows(sim); } }catch(e){} })();
+    (async()=>{ try{ const sim=await aiSimilarFor(rows, em, new Set()); const el=document.getElementById(ns+'_sim'); if(el&&sim&&sim.length){ el.innerHTML=simSectionHtml(sim, ns+'_sg'); wireSuggToggles(el); } }catch(e){} })();
     emailHistoryInto(em, document.getElementById(ns+'_box'), ns);
     { const _sb=document.getElementById(ns+'_send'); if(_sb) _sb.onclick=()=>sendCustEmail(ns, em, name||em); }
   }catch(e){ mountEl.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
