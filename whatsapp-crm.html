@@ -397,7 +397,7 @@ function suggSrcRows(list){
   let s='<table class="phtab"><thead><tr><th>Item</th><th>Source</th><th>Category</th><th>Price</th></tr></thead><tbody>';
   list.forEach(r=>{
     const tag = r.source==='SurgaMed' ? '<span style="color:#9a5b14;font-weight:600">SurgaMed</span> <span class="t">· expired, priced to sell</span>' : '<span style="color:#1b9e6b;font-weight:600">'+esc(r.source)+'</span> <span class="t">· in-date</span>';
-    s+='<tr><td>'+esc(r.name||'')+(r.ref?(' <span class="t">#'+esc(r.ref)+'</span>'):'')+'</td><td style="font-size:11px">'+tag+'</td><td>'+esc(r.category||'')+'</td><td>'+(r.price!=null&&r.price!==''?fmtMoney(r.price):'')+'</td></tr>';
+    s+='<tr><td>'+esc(r.name||'')+(r.ref?(' <span class="t">#'+esc(r.ref)+'</span>'):'')+(r.reason?(' <span style="color:#0f766e;font-size:11px">— '+esc(r.reason)+'</span>'):'')+'</td><td style="font-size:11px">'+tag+'</td><td>'+esc(r.category||'')+'</td><td>'+(r.price!=null&&r.price!==''?fmtMoney(r.price):'')+'</td></tr>';
   });
   return s+'</tbody></table>';
 }
@@ -414,7 +414,8 @@ async function suggestFor(email, purchaseRows){
   let exact=dm.concat(ms); const seen={}; exact=exact.filter(x=>{const k=x.source+'|'+NK(x.ref); if(seen[k])return false; seen[k]=1; return true;});
   exact.sort((a,b)=>(b.inDate-a.inDate)||String(a.source).localeCompare(String(b.source)));
   let similar=[]; const cats=[...new Set(exact.map(x=>(x.category||'').trim()).filter(Boolean))].slice(0,4); const er=new Set(exact.map(x=>NK(x.ref)));
-  if(cats.length){ try{ const orc=cats.map(c=>'category.ilike.'+c.replace(/[%,()]/g,'')+'*').join(','); const {data}=await SB.from('listings').select('account,mfg,model,name,category,price,url').or(orc).eq('in_stock',true).limit(150); similar=(data||[]).filter(x=>!er.has(NK(x.model))).map(x=>({source:x.account||'SurgaMed',inDate:(x.account!=='SurgaMed'),name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(),ref:x.model,category:x.category,price:x.price,url:x.url})); const s2={}; similar=similar.filter(x=>{const k=NK(x.name); if(!k||s2[k])return false; s2[k]=1; return true;}); similar.sort((a,b)=>(b.inDate-a.inDate)); similar=similar.slice(0,5); }catch(e){} }
+  if(cats.length){ try{ const orc=cats.map(c=>'category.ilike.'+c.replace(/[%,()]/g,'')+'*').join(','); const {data}=await SB.from('listings').select('account,mfg,model,name,category,price,url').or(orc).eq('in_stock',true).limit(150); similar=(data||[]).filter(x=>!er.has(NK(x.model))).map(x=>({source:x.account||'SurgaMed',inDate:(x.account!=='SurgaMed'),name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(),ref:x.model,category:x.category,price:x.price,url:x.url})); const s2={}; similar=similar.filter(x=>{const k=NK(x.name); if(!k||s2[k])return false; s2[k]=1; return true;}); similar.sort((a,b)=>(b.inDate-a.inDate)); const _pool=similar.slice(0,30); similar=_pool.slice(0,5);
+        try{ const _bn=(purchaseRows||[]).map(r=>r.item).filter(Boolean).slice(0,25); const _rr=await fetch(SB_URL+'/functions/v1/similar-items',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({bought:_bn,candidates:_pool.map(x=>({ref:x.ref,name:x.name,category:x.category,source:x.source}))})}); if(_rr.ok){ const _dd=await _rr.json(); if(_dd.items&&_dd.items.length){ const _br={}; _pool.forEach(x=>_br[String(x.ref)]=x); similar=_dd.items.map(p=>Object.assign({},_br[String(p.ref)]||{},{reason:p.reason})).filter(x=>x.ref); } } }catch(e){} }catch(e){} }
   return {exact, similar};
 }
 async function injectMedstock(email, purchaseRows, mountEl){
