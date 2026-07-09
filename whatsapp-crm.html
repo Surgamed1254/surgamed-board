@@ -158,6 +158,7 @@
 const SB_URL="https://ecjemcrpbzeocoiwslcu.supabase.co";
 const SB_KEY="sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
 const MANAGER_FN=SB_URL+"/functions/v1/manager";
+const WA_FN=SB_URL+"/functions/v1/whatsapp/send";
 const FN_URL=SB_URL+"/functions/v1/leads";   // shared mailbox/shipping/send function (same as dotMed board)
 const MANAGERS=["mweinreb@surgamed.com","sgluck@surgamed.com","orders@surgamed.com"];
 const STATUSES=[["new","New"],["in_progress","In progress"],["quoted","Quoted"],["awaiting_customer","Awaiting customer"],["won","Won"],["lost","Lost"],["closed","Closed"]];
@@ -312,6 +313,21 @@ async function sendReply(cu){
     const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
     try{ await SB.from("contacts").insert({customer_email:to.toLowerCase(),customer_name:cu.name||null,rep,rep_email:STATE.email||null,channel:"email",direction:"out",subject:subj,message_id:"crm-"+Date.now()}); }catch(_){}
     ta.value=""; msg.style.color="var(--green)"; msg.textContent="Sent ✓"; setTimeout(()=>loadEmailThread(cu),1300);
+  }catch(e){ msg.style.color="var(--red)"; msg.textContent="Couldn’t send: "+String(e.message||e); }
+  btn.disabled=false;
+}
+
+// ---------- WhatsApp send (CRM -> Cloud API via whatsapp edge function) ----------
+async function sendWhatsApp(cu){
+  const ta=$("waBody"), msg=$("waSendMsg"), btn=$("waSendBtn"); if(!ta) return;
+  const text=(ta.value||"").trim(); if(!text){ ta.focus(); return; }
+  btn.disabled=true; msg.style.color="var(--muted)"; msg.textContent="Sending…";
+  try{
+    if(!STATE.live){ await new Promise(r=>setTimeout(r,400)); ta.value=""; msg.style.color="var(--green)"; msg.textContent="Sent ✓ (demo)"; btn.disabled=false; return; }
+    const r=await fetch(WA_FN,{method:"POST",headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify({customer_id:cu.id,text})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||d.error) throw new Error((d.error||("HTTP "+r.status))+(d.hint?(" — "+d.hint):""));
+    ta.value=""; msg.style.color="var(--green)"; msg.textContent="Sent ✓"; setTimeout(()=>openCustomer(cu.id,true),1200);
   }catch(e){ msg.style.color="var(--red)"; msg.textContent="Couldn’t send: "+String(e.message||e); }
   btn.disabled=false;
 }
@@ -610,9 +626,10 @@ function detailHtml(cu, msgs, timeline, isTest){
   const notes=(timeline||[]).filter(e=>e.type==="note");
   const nhtml=notes.map(e=>`<div class="note"><span class="who">${esc((e.rep||"manager").split("@")[0])}</span> · <span class="t">${fmtAgo(e.ts)}</span><div>${esc(e.title||"")}${e.body?" — "+esc(e.body):""}</div></div>`).join("")||'<div class="t">No internal notes yet.</div>';
   const thtml=(timeline||[]).map(e=>`<li><span class="ic">${TLICON[e.type]||"•"}</span><div><span class="ty">${esc(e.title||e.type)}</span>${e.body?" — "+esc(e.body):""}<div class="t">${esc(e.type)} · ${esc(e.source||"")} · ${fmtAgo(e.ts)}</div></div></li>`).join("");
+  const waCompose = (cu.phone ? `<div class="compose"><textarea id="waBody" placeholder="Write a WhatsApp message… sends from the assigned rep's WhatsApp number."></textarea><div class="crow"><button class="btn sm" id="waSendBtn">Send WhatsApp</button><span class="sendmsg" id="waSendMsg"></span></div></div>` : "");
   const convSection = cu._convId
-    ? `<h3 class="sec">WhatsApp conversation</h3><div class="msgs">${mhtml||'<div class="t">No messages.</div>'}</div>`
-    : `<h3 class="sec">WhatsApp conversation</h3><div class="msgs"><div class="t">No WhatsApp conversation yet — this customer came from ${esc((cu._badges||["email"]).join(", "))}.</div></div>`;
+    ? `<h3 class="sec">WhatsApp conversation</h3><div class="msgs">${mhtml||'<div class="t">No messages.</div>'}${waCompose}</div>`
+    : `<h3 class="sec">WhatsApp conversation</h3><div class="msgs"><div class="t">No WhatsApp conversation yet — this customer came from ${esc((cu._badges||["email"]).join(", "))}.</div>${waCompose}</div>`;
   const composeBox=`<div class="compose">
       <input type="text" id="composeSubject" placeholder="Subject (optional)"/>
       <textarea id="composeBody" placeholder="Write a reply… sends from SurgaMed, attributed to ${esc(cu.assigned_rep||'you')}, and appears in the history above."></textarea>
@@ -689,6 +706,7 @@ function wireDetail(cu){
   if(add) add.addEventListener("click",()=>{ const v=(inp.value||"").trim(); if(!v) return; inp.value=""; mgrAction(cu,"add_note",{body:v}); });
   if(inp) inp.addEventListener("keydown",e=>{ if(e.key==="Enter") add.click(); });
   const sb2=$("sendBtn"); if(sb2) sb2.addEventListener("click",()=>sendReply(cu));
+  const wb=$("waSendBtn"); if(wb) wb.addEventListener("click",()=>sendWhatsApp(cu));
 }
 
 async function openCustomer(cid,keep){
