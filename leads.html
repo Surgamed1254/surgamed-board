@@ -76,9 +76,11 @@ h1{ font-size:20px; margin:0 0 2px; }
 .modal .mfoot{ padding:12px 20px; border-top:1px solid #eef1f5; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
 .modal .mfoot .row2{ margin:0; flex:1 1 200px; }
 .modal .mfoot .actions{ flex:2 1 320px; }
-.phtab{ width:100%; border-collapse:collapse; font-size:12px; margin:4px 0 6px; }
+.phtab{ width:100%; border-collapse:collapse; font-size:12px; margin:4px 0 6px; table-layout:fixed; }
 .phtab th{ text-align:left; color:#7b8a99; font-weight:600; border-bottom:1px solid #e6ebf1; padding:4px 6px; }
-.phtab td{ border-bottom:1px solid #f0f3f6; padding:4px 6px; vertical-align:top; }
+.phtab td{ border-bottom:1px solid #f0f3f6; padding:4px 6px; vertical-align:top; overflow-wrap:anywhere; word-break:break-word; }
+.modal.wide{ max-width:1120px; }
+.modal.wide .mbody{ overflow-x:hidden; }
 .acctttl{ font-weight:700; margin:12px 0 4px; display:flex; align-items:center; gap:8px; }
 .acctttl .pill{ background:#f0f3f6; border-radius:20px; padding:1px 9px; font-size:11px; color:#5a6b7b; font-weight:500; }
 .acctttl .dot{ width:9px;height:9px;border-radius:50%;display:inline-block; }
@@ -1381,14 +1383,34 @@ function inferField(rows){
   return { top:top.field, share, conf, second: ranked[1]?ranked[1].field:null,
            sig:[...new Set(signals[top.field]||[])].slice(0,3) };
 }
+const __fieldCache={};
 function renderFieldBanner(rows){
   const f=inferField(rows);
-  if(!f) return '';
-  const sub = (f.second? "Also seen: "+esc(f.second)+" · ":"") + (f.sig.length? "signals: "+f.sig.map(esc).join(", ") : "");
-  return '<div class="fieldbox">🔬 Likely medical field: <b>'+esc(f.top)+'</b>'+
-    '<span class="conf '+f.conf+'">'+f.conf+'</span>'+
-    (sub?'<div class="fieldsub">'+sub+'</div>':'')+
-    '<div class="fieldsub" style="opacity:.8">Best guess from purchase history — verify with the customer.</div></div>';
+  const items=(rows||[]).map(r=>r.item).filter(Boolean).slice(0,30);
+  if(!f && !items.length) return '';
+  const uid='fld'+Math.random().toString(36).slice(2,8);
+  let inner;
+  if(f){ const sub=(f.second?"Also seen: "+esc(f.second)+" · ":"")+(f.sig.length?"signals: "+f.sig.map(esc).join(", "):"");
+    inner='🔬 Likely medical field: <b>'+esc(f.top)+'</b><span class="conf '+f.conf+'">'+f.conf+'</span>'+(sub?'<div class="fieldsub">'+sub+'</div>':'')+'<div class="fieldsub" style="opacity:.8">Best guess from purchase history — verify with the customer.</div>';
+  } else { inner='🔬 Likely medical field: <span style="color:#9aa7b4">analyzing…</span>'; }
+  if(items.length) setTimeout(()=>enhanceFieldAI(uid, items), 60);
+  return '<div class="fieldbox" id="'+uid+'">'+inner+'</div>';
+}
+function applyFieldAI(uid, d){
+  const el=document.getElementById(uid); if(!el||!d||!d.field) return;
+  const conf = d.confidence==='strong'?'strong':(d.confidence==='moderate'?'likely':'mixed');
+  const also = (d.also_seen&&d.also_seen.length)?('Also seen: '+d.also_seen.map(esc).join(', ')+' · '):'';
+  const reason = d.reason?('signals: '+esc(d.reason)):'';
+  el.innerHTML='🔬 Likely medical field: <b>'+esc(d.field)+'</b><span class="conf '+conf+'">'+conf+'</span>'+((also||reason)?('<div class="fieldsub">'+also+reason+'</div>'):'')+'<div class="fieldsub" style="opacity:.8">AI estimate from purchase history — verify with the customer.</div>';
+}
+async function enhanceFieldAI(uid, items){
+  const key=items.slice(0,30).join('|'); if(!key) return;
+  if(__fieldCache[key]){ applyFieldAI(uid, __fieldCache[key]); return; }
+  try{
+    const r=await fetch(SB_URL+'/functions/v1/medical-field',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({items})});
+    if(!r.ok) return; const d=await r.json(); if(!d.field) return;
+    __fieldCache[key]=d; applyFieldAI(uid, d);
+  }catch(e){}
 }
 
 // Sales-rep intel for a single customer: who closed sales, what they bought, last rep, and
@@ -1497,11 +1519,11 @@ async function injectMedstock(email, purchaseRows, mountEl){
 // Opportunities dashboard: current stock cross-referenced with past buyers
 async function openOpportunities(){
   const o=ensureOverlay(); o.style.display="flex";
-  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>🎯 Opportunities — exact-item matches</h3><div class="msub">Items in stock that customers bought the exact model of before — in-date sources first</div></div><div class="mbody"><div style="margin-bottom:6px"><input id="oppSearch" placeholder="Filter by model / source…" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"></div><div id="oppBody"><div style="color:#9aa7b4;font-size:12px">Loading opportunities…</div></div></div></div>';
+  o.innerHTML='<div class="modal wide"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>🎯 Opportunities — exact-item matches</h3><div class="msub">Items in stock that customers bought the exact model of before — in-date sources first</div></div><div class="mbody"><div style="margin-bottom:6px"><input id="oppSearch" placeholder="Filter by model / source…" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"></div><div id="oppBody"><div style="color:#9aa7b4;font-size:12px">Loading opportunities…</div></div></div></div>';
   document.getElementById("mClose").onclick=closeDetail;
   const body=document.getElementById("oppBody");
   try{
-    const { data:items } = await sb.from('medstock_item_summary').select('*').order('buyers',{ascending:false}).limit(600);
+    const { data:items } = await sb.from('opportunity_summary').select('*').order('in_date',{ascending:false}).order('buyers',{ascending:false}).limit(800);
     if(!items||!items.length){ body.innerHTML='<div style="color:#9aa7b4;font-size:12px">No exact-item matches yet.</div>'; return; }
     function srcTag(x){ return (/SurgaMed/.test(x.sources)&&!/Medstock|ShortDated/.test(x.sources)) ? '<span style="color:#9a5b14">'+esc(x.sources)+' · expired</span>' : '<span style="color:#1d7a3f">'+esc(x.sources)+' · in-date</span>'; }
     function render(list){
@@ -1521,7 +1543,7 @@ async function toggleOppItem(rk, rl, tr){
   if(tr.dataset.open==='1'){ tr.dataset.open='0'; tr.innerHTML=''; return; }
   tr.dataset.open='1'; tr.innerHTML='<td colspan="4" style="background:#f7fbff;padding:8px 10px;color:#9aa7b4;font-size:12px">Loading…</td>';
   try{
-    const rb=await sb.from('purchase_item_index').select('customer_email,customer_name,times_bought,last_date').eq('ref_key',rk).order('last_date',{ascending:false}).limit(400);
+    const rb=await sb.from('opportunity_buyers').select('customer_email,customer_name,times_bought,last_date').eq('ref_key',rk).order('last_date',{ascending:false}).limit(400);
     const B=rb.data||[];
     let h='<td colspan="4" style="background:#f7fbff;padding:8px 12px">';
     h+='<div style="font-weight:600;font-size:12px;margin:2px 0 4px">📞 '+B.length+' customer(s) who bought '+esc(rl)+' before — click a name to open full details & email</div>';
@@ -1846,7 +1868,7 @@ async function showCustDetail(email, name, mountEl, ns){
 }
 function openLookup(){
   const o=ensureOverlay(); o.style.display="flex";
-  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>Lookup</h3><div class="msub">Search a customer (email or name) or an item (name, brand, model, SKU) — SurgaMed + ShortDated</div></div>'+
+  o.innerHTML='<div class="modal wide"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>Lookup</h3><div class="msub">Search a customer (email or name) or an item (name, brand, model, SKU) — SurgaMed + ShortDated</div></div>'+
     '<div class="mbody"><div style="display:flex;gap:6px;margin-bottom:14px"><input id="lkQ" placeholder="Email, customer name, or item / brand / model / SKU…" style="flex:1;padding:8px 10px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><button id="lkGo" class="custbtn" style="padding:8px 16px">Search</button></div>'+
     '<div id="lkResults"><div style="color:#9aa7b4;font-size:12px">Type an email, a customer name, or an item and press Search.</div></div></div></div>';
   document.getElementById("mClose").onclick=closeDetail;
