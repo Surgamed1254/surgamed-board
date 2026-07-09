@@ -401,6 +401,12 @@ function suggSrcRows(list){
   });
   return s+'</tbody></table>';
 }
+function exactRowsHtml(exact){
+  let h='<table class="phtab"><thead><tr><th>Source</th><th>Item</th><th>REF / Model</th><th>Price</th><th>Last bought</th></tr></thead><tbody>';
+  (exact||[]).forEach(x=>{ const src = x.source==='SurgaMed' ? '<span style="color:#9a5b14">SurgaMed · expired</span>' : (x.source==='Medstock' ? '<span style="color:#1b9e6b">Medstock · in-date</span>' : '<span style="color:#1b9e6b">'+esc(x.source)+' · in-date</span>');
+    h+='<tr><td style="font-size:11px;white-space:nowrap">'+src+'</td><td>'+esc(x.name||'')+'</td><td>'+esc(x.ref||'')+'</td><td>'+(x.price!=null&&x.price!==''?fmtMoney(x.price):'')+'</td><td style="white-space:nowrap">'+(x.lastBought?esc(x.lastBought):'—')+'</td></tr>'; });
+  return h+'</tbody></table>';
+}
 function simSectionHtml(sim, uid){
   if(!sim||!sim.length) return '';
   const head=sim.slice(0,5), rest=sim.slice(5);
@@ -421,12 +427,13 @@ async function suggestFor(email, purchaseRows){
   const has=tok=>tok&&tok.length>=4&&bought.some(t=>t.includes(tok));
   const mfgs=[...new Set((purchaseRows||[]).map(r=>{ const m=(r.item||'').trim().match(/^[A-Za-z0-9][A-Za-z0-9&.\-]*/); return m?m[0].replace(/[*,()]/g,'').toUpperCase():''; }).filter(w=>w&&w.length>=2))].slice(0,10);
   email=(email||'').toLowerCase().trim();
+  const lastBought=ref=>{ const k=NK(ref); if(!k||k.length<4) return ''; let best=''; (purchaseRows||[]).forEach(r=>{ if(NK(r.item).includes(k)){ const d=String(r.order_date||'').slice(0,10); if(d>best) best=d; } }); return best; };
   let dm=[];
-  if(mfgs.length){ try{ const orf=mfgs.map(m=>'mfg.ilike.'+m+'*').join(','); const {data}=await SB.from('listings').select('account,mfg,model,name,category,price,url').or(orf).eq('in_stock',true).limit(500); dm=(data||[]).filter(x=>has(NK(x.model))).map(x=>({source:x.account||'SurgaMed',inDate:(x.account!=='SurgaMed'),name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(),ref:x.model,category:x.category,price:x.price,url:x.url})); }catch(e){} }
+  if(mfgs.length){ try{ const orf=mfgs.map(m=>'mfg.ilike.'+m+'*').join(','); const {data}=await SB.from('listings').select('account,mfg,model,name,category,price,url').or(orf).eq('in_stock',true).limit(500); dm=(data||[]).filter(x=>has(NK(x.model))).map(x=>({source:x.account||'SurgaMed',inDate:(x.account!=='SurgaMed'),name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(),ref:x.model,category:x.category,price:x.price,url:x.url,lastBought:lastBought(x.model)})); }catch(e){} }
   let ms=[];
-  if(email){ try{ const pbi=await SB.from('purchase_brand_index').select('brand_key').eq('customer_email',email); const bks=[...new Set((pbi.data||[]).map(b=>b.brand_key))]; if(bks.length){ const {data}=await SB.from('medstock_inventory').select('manufacturer,ref,ref_key,description,category').eq('active',true).in('mfg_key',bks).limit(500); ms=(data||[]).filter(x=>has(x.ref_key)).map(x=>({source:'Medstock',inDate:true,name:x.description||((x.manufacturer||'')+' '+(x.ref||'')).trim(),ref:x.ref,category:x.category,price:null,url:null})); } }catch(e){} }
+  if(email){ try{ const pbi=await SB.from('purchase_brand_index').select('brand_key').eq('customer_email',email); const bks=[...new Set((pbi.data||[]).map(b=>b.brand_key))]; if(bks.length){ const {data}=await SB.from('medstock_inventory').select('manufacturer,ref,ref_key,description,category').eq('active',true).in('mfg_key',bks).limit(500); ms=(data||[]).filter(x=>has(x.ref_key)).map(x=>({source:'Medstock',inDate:true,name:x.description||((x.manufacturer||'')+' '+(x.ref||'')).trim(),ref:x.ref,category:x.category,price:null,url:null,lastBought:lastBought(x.ref_key)})); } }catch(e){} }
   let exact=dm.concat(ms); const seen={}; exact=exact.filter(x=>{const k=x.source+'|'+NK(x.ref); if(seen[k])return false; seen[k]=1; return true;});
-  exact.sort((a,b)=>(b.inDate-a.inDate)||String(a.source).localeCompare(String(b.source)));
+  exact.sort((a,b)=>String(b.lastBought||'').localeCompare(String(a.lastBought||''))||(b.inDate-a.inDate));
   let similar=[]; const er=new Set(exact.map(x=>NK(x.ref)));
   try{
     const stop=new Set(['MEDICAL','SURGICAL','SINGLE','STERILE','DISPOSABLE','SYSTEM','DEVICE','LARGE','SMALL','WHITE','GREEN','BLACK','ADULT','PEDIATRIC','LATEX']);
@@ -453,7 +460,7 @@ async function injectMedstock(email, purchaseRows, mountEl){
     if(!exact.length && !similar.length) return;
     const uid=Math.random().toString(36).slice(2,8);
     let h='<div style="border:1px solid #cfe6e2;background:#f2fbf9;border-radius:10px;padding:10px 12px;margin:10px 0 12px">';
-    if(exact.length){ h+='<div class="sg-hdr" data-target="ex'+uid+'" style="font-size:13px;font-weight:600;color:#1b9e6b;margin-bottom:4px;cursor:pointer;user-select:none">🎯 <span class="sgcx">▾</span> Exact matches in stock — bought before ('+exact.length+')</div><div id="ex'+uid+'">'+suggSrcRows(exact)+'<div style="margin:6px 0 2px"><button class="btn sm" id="msMailBtn" style="background:#1b9e6b">📣 Email customer: these are in stock</button> <span class="t" id="msMailMsg"></span></div></div>'; }
+    if(exact.length){ h+='<div class="sg-hdr" data-target="ex'+uid+'" style="font-size:13px;font-weight:600;color:#1b9e6b;margin-bottom:4px;cursor:pointer;user-select:none">🎯 <span class="sgcx">▾</span> Exact matches to past orders — in stock now across SurgaMed · ShortDated · Medstock ('+exact.length+')</div><div id="ex'+uid+'">'+exactRowsHtml(exact)+'<div style="margin:6px 0 2px"><button class="btn sm" id="msMailBtn" style="background:#1b9e6b">📣 Email customer: these are in stock</button> <span class="t" id="msMailMsg"></span></div></div>'; }
     else { h+='<div class="t">No exact in-stock matches from prior purchases.</div>'; }
     h+=simSectionHtml(similar, 'sg'+uid);
     h+='</div>';
