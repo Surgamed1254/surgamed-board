@@ -420,7 +420,7 @@ async function suggestFor(email, purchaseRows){
     const ors=[]; mfgs.slice(0,6).forEach(m=>ors.push('mfg.ilike.'+m+'*')); kws.forEach(k=>{ ors.push('name.ilike.*'+k+'*'); ors.push('category.ilike.*'+k+'*'); });
     let pool=[];
     if(ors.length){ const {data}=await SB.from('listings').select('account,mfg,model,name,category,price,url').or(ors.join(',')).eq('in_stock',true).limit(150);
-      pool=(data||[]).filter(x=>x.model&&!er.has(NK(x.model))).map(x=>({source:x.account||'SurgaMed',inDate:(x.account!=='SurgaMed'),name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(),ref:x.model,category:x.category,price:x.price,url:x.url})); }
+      pool=(data||[]).map(x=>({source:x.account||'SurgaMed',inDate:(x.account!=='SurgaMed'),name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(),ref:(x.model||NK(x.name)),category:x.category,price:x.price,url:x.url})).filter(x=>x.name&&x.ref&&!er.has(NK(x.ref))); }
     const s2={}; pool=pool.filter(x=>{const k=NK(x.name); if(!k||s2[k])return false; s2[k]=1; return true;});
     pool.sort((a,b)=>(b.inDate-a.inDate)); pool=pool.slice(0,30);
     similar=pool.slice(0,5);
