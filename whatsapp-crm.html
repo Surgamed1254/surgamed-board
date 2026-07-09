@@ -420,7 +420,11 @@ async function suggestFor(email, purchaseRows){
     const ors=[]; mfgs.slice(0,6).forEach(m=>ors.push('mfg.ilike.'+m+'*')); kws.forEach(k=>{ ors.push('name.ilike.*'+k+'*'); ors.push('category.ilike.*'+k+'*'); });
     let pool=[];
     if(ors.length){ const {data}=await SB.from('listings').select('account,mfg,model,name,category,price,url').or(ors.join(',')).eq('in_stock',true).limit(150);
-      pool=(data||[]).map(x=>({source:x.account||'SurgaMed',inDate:(x.account!=='SurgaMed'),name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(),ref:(x.model||NK(x.name)),category:x.category,price:x.price,url:x.url})).filter(x=>x.name&&x.ref&&!er.has(NK(x.ref))); }
+      pool=pool.concat((data||[]).map(x=>({source:x.account||'SurgaMed',inDate:(x.account!=='SurgaMed'),name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(),ref:(x.model||NK(x.name)),category:x.category,price:x.price,url:x.url}))); }
+    try{ const orm=[]; mfgs.slice(0,6).forEach(m=>orm.push('manufacturer.ilike.'+m+'*')); kws.forEach(k=>{ orm.push('description.ilike.*'+k+'*'); orm.push('category.ilike.*'+k+'*'); });
+      if(orm.length){ const {data}=await SB.from('medstock_inventory').select('manufacturer,ref,ref_key,description,category,quantity,exp_date').eq('active',true).or(orm.join(',')).limit(150);
+        pool=pool.concat((data||[]).map(x=>({source:'Medstock',inDate:true,name:x.description||((x.manufacturer||'')+' '+(x.ref||'')).trim(),ref:(x.ref||NK(x.description)),category:x.category,price:null,url:null}))); } }catch(e){}
+    pool=pool.filter(x=>x.name&&x.ref&&!er.has(NK(x.ref)));
     const s2={}; pool=pool.filter(x=>{const k=NK(x.name); if(!k||s2[k])return false; s2[k]=1; return true;});
     pool.sort((a,b)=>(b.inDate-a.inDate)); pool=pool.slice(0,30);
     similar=pool.slice(0,5);
