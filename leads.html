@@ -847,18 +847,42 @@ async function loadShipping(l){
   const ln=String((l&&l.listing)||'');
   try{
     let rows=[];
-    if(ln){ const ex=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number').contains('dotmed_listings',[ln]); rows=(ex.data||[]).slice(); }
+    if(ln){ const ex=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number,ss_order_id').contains('dotmed_listings',[ln]); rows=(ex.data||[]).slice(); }
     if(!rows.length && email){
-      const a=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number').ilike('recipient_email',email);
+      const a=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number,ss_order_id').ilike('recipient_email',email);
       rows=(a.data||[]).slice();
       const c=await sb.from('customers').select('id').ilike('email',email).maybeSingle();
-      if(c&&c.data&&c.data.id){ const b=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number').eq('customer_id',c.data.id); (b.data||[]).forEach(x=>rows.push(x)); }
+      if(c&&c.data&&c.data.id){ const b=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number,ss_order_id').eq('customer_id',c.data.id); (b.data||[]).forEach(x=>rows.push(x)); }
       const seen=new Set(); rows=rows.filter(x=>{ const k=(x.order_number||'')+'|'+(x.tracking_number||''); if(seen.has(k))return false; seen.add(k); return true; });
       const cut=shipCutoff(l); if(cut) rows=rows.filter(x=>!x.ship_date || String(x.ship_date).slice(0,10)>=cut);
     }
     const mapped=rows.map(x=>({status:(String(x.delivery_status||'').toLowerCase()==='delivered'?'delivered':x.status), carrier:x.carrier, tracking:x.tracking_number, trackingUrl:x.tracking_url, shipDate:x.ship_date}));
     box.innerHTML=renderShipping(mapped);
+    const wo=rows.find(x=>x.ss_order_id)||rows.find(x=>x.order_number)||rows[0];
+    if(wo&&(wo.ss_order_id||wo.order_number)){ box.insertAdjacentHTML('beforeend','<div id="ssNoteBox" style="margin-top:10px;border-top:1px solid #eef2f6;padding-top:8px"></div>'); loadShipNote(wo.ss_order_id, wo.order_number, document.getElementById('ssNoteBox')); }
   }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load shipping: '+esc(String(e.message||e))+'</div>'; }
+}
+// Read + edit the ShipStation ORDER internal note (live via edge function) from the congrats view.
+async function loadShipNote(orderId, orderNumber, box){
+  if(!box) return;
+  box.innerHTML='<div style="color:#9aa7b4;font-size:12px">Loading ShipStation internal note…</div>';
+  try{
+    const r=await fetch(SB_URL+'/functions/v1/shipstation-note',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({action:'get',order_id:orderId,order_number:orderNumber})});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||('HTTP '+r.status));
+    const lbl=String(d.order_number||orderNumber||orderId||'');
+    box.innerHTML='<div style="font-size:12px;font-weight:600;color:#5a6b7b;margin:2px 0 4px">📝 ShipStation internal note'+(lbl?(' <span style="font-weight:400;color:#9aa7b4">— order #'+esc(lbl)+'</span>'):'')+'</div>'+
+      '<textarea id="ssNoteText" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
+      '<div style="margin-top:5px;display:flex;gap:8px;align-items:center"><button id="ssNoteSave" class="custbtn" style="padding:6px 12px">Save to ShipStation</button><span id="ssNoteMsg" style="font-size:12px;color:#5a6b7b"></span></div>';
+    document.getElementById('ssNoteText').value=d.internalNotes||'';
+    const oid=d.order_id||orderId;
+    document.getElementById('ssNoteSave').onclick=async()=>{
+      const t=document.getElementById('ssNoteText'), msg=document.getElementById('ssNoteMsg'), b=document.getElementById('ssNoteSave');
+      b.disabled=true; msg.style.color='#5a6b7b'; msg.textContent='Saving…';
+      try{ const rr=await fetch(SB_URL+'/functions/v1/shipstation-note',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({action:'set',order_id:oid,order_number:orderNumber,note:t.value})}); const dd=await rr.json(); if(!rr.ok||dd.error) throw new Error(dd.error||('HTTP '+rr.status)); msg.style.color='#1d7a3f'; msg.textContent='Saved to ShipStation ✓'; }
+      catch(e){ msg.style.color='#c0392b'; msg.textContent='Couldn’t save: '+(e.message||e); }
+      b.disabled=false;
+    };
+  }catch(e){ box.innerHTML='<div style="color:#9aa7b4;font-size:12px">ShipStation internal note unavailable'+(String(e.message||e).indexOf('not found')>-1?' (order not found).':'.')+'</div>'; }
 }
 // Send a reply/compose from inside the board (goes out via orders@, signed by the rep,
 // then appears in the email history above). Records a real rep-attributed contact.
@@ -1247,7 +1271,7 @@ function toggleSection(hdr){
 function initCollapsibles(root, sel){
   if(!root) return;
   root.querySelectorAll(sel||'h4').forEach(function(hdr){
-    if(hdr.id==='custHdr'||hdr.id==='suggHdr') return;   // these have their own toggles
+    if(hdr.id==='custHdr'||hdr.id==='suggHdr'||hdr.id==='tagHdr') return;   // these have their own toggles / stay open
     if(hdr.dataset.cinit) return; hdr.dataset.cinit='1';
     hdr.style.cursor='pointer'; hdr.style.userSelect='none';
     const car=document.createElement('span'); car.className='gcar'; car.textContent='▾';
@@ -1272,7 +1296,7 @@ async function openDetail(id){
   let kvHtml=""; if(det.kv.length){ kvHtml='<h4>Key details</h4><div class="kv">'; det.kv.forEach(p=>{ kvHtml+='<div class="k">'+esc(p[0])+'</div><div class="v">'+esc(p[1])+'</div>'; }); kvHtml+='</div>'; }
   let custHtml = '<h4 id="custHdr" style="cursor:pointer;user-select:none"><span id="custCaret"></span> Customer purchase history <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="custBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up prior orders…</div></div>';
   let suggHtml = '<h4 id="suggHdr" style="cursor:pointer;user-select:none"><span id="suggCaret"></span> 💡 Suggested items to pitch (live inventory) <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="suggBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Finding in-stock matches…</div></div>';
-  let catHtml = '<h4>Tags (Outlook categories) — click to add or remove</h4><div id="tagsBox" style="margin-bottom:14px"></div>';
+  let catHtml = '<h4 id="tagHdr" style="margin-top:0">🏷️ Tags (Outlook categories) — click to add or remove</h4><div id="tagsBox" style="margin-bottom:14px"></div>';
   let shipHtml = '<h4>📦 Shipping status (ShipStation)</h4><div id="shipBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up tracking…</div></div>';
   let contactHtml = '<h4>📧 Email history with this customer <span style="color:#9aa7b4;font-weight:400;font-size:10px">(live — orders@ + every rep\'s mailbox, sent &amp; received)</span></h4>'+
     '<div id="emailBox" style="margin-bottom:8px"><div style="color:#9aa7b4;font-size:12px">Loading emails…</div></div>'+
@@ -1280,7 +1304,7 @@ async function openDetail(id){
     '<div style="margin-top:6px;display:flex;align-items:center;gap:8px"><button id="sendBtn" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send from board</button><span id="sendMsg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
   const mb=o.querySelector(".mbody");
   if(err){ mb.innerHTML='<div class="err">Couldn’t load the email: '+esc(err)+'</div>'; return; }
-  mb.innerHTML = kvHtml + shipHtml + contactHtml + custHtml + suggHtml + catHtml + '<h4>History</h4><div id="histBox"></div>'+
+  mb.innerHTML = catHtml + kvHtml + shipHtml + contactHtml + custHtml + suggHtml + '<h4>History</h4><div id="histBox"></div>'+
     '<div style="margin:8px 0 16px;display:flex;gap:6px"><input id="noteIn" placeholder="Add a note…" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="noteBtn" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>'+
     '<h4>Full email</h4><pre class="bodytext">'+linkify(text||"(no text content)")+'</pre>';
   initCollapsibles(mb);
@@ -1472,11 +1496,12 @@ function renderPurchases(rows){
     // "price" from dotMed is already the line subtotal (unit price × qty), so sum it directly.
     list.forEach(r=>{ total+=Number(r.price||0); units+=Number(r.qty||1); });
     const col=ACCT_COLOR[acct]||"#5a6b7b";
-    h+='<div class="acctblock"><div class="acctttl"><span class="dot" style="background:'+col+'"></span>'+esc(acct)+' <span class="pill">'+list.length+' line item'+(list.length===1?'':'s')+'</span></div>';
-    h+='<div class="phsum">'+units+' unit'+(units===1?'':'s')+' · est. '+money(total)+' lifetime</div>';
+    const uid='ac'+Math.random().toString(36).slice(2,8);
+    h+='<div class="acctblock"><div class="acctttl sg-hdr" data-target="'+uid+'" style="cursor:pointer;user-select:none"><span class="sgcx" style="margin-right:4px;color:#9aa7b4;font-size:11px">▾</span><span class="dot" style="background:'+col+'"></span>'+esc(acct)+' <span class="pill">'+list.length+' line item'+(list.length===1?'':'s')+'</span></div>';
+    h+='<div id="'+uid+'"><div class="phsum">'+units+' unit'+(units===1?'':'s')+' · est. '+money(total)+' lifetime</div>';
     h+='<table class="phtab"><thead><tr><th>Date</th><th>Item</th><th>Listing</th><th>Qty</th><th>Price</th></tr></thead><tbody>';
     list.forEach(r=>{ h+='<tr><td>'+esc(r.order_date||"")+'</td><td>'+esc(r.item||"")+'</td><td>'+(r.listing?("#"+esc(String(r.listing))):"")+'</td><td>'+esc(String(r.qty||""))+'</td><td>'+(r.price!=null&&r.price!==""?money(r.price):"")+'</td></tr>'; });
-    h+='</tbody></table></div>';
+    h+='</tbody></table></div></div>';
   });
   return h;
 }
@@ -1557,7 +1582,7 @@ async function toggleOppItem(rk, rl, tr){
 async function loadCustHistory(l){
   const box=document.getElementById("custBox"); if(!box) return;
   let rows=[];
-  try{ rows=await getPurchases(l.custEmail,l.display); box.innerHTML=renderPurchases(rows); }
+  try{ rows=await getPurchases(l.custEmail,l.display); box.innerHTML=renderPurchases(rows); wireSuggToggles(box); }
   catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load history: '+esc(String(e.message||e))+'</div>'; }
   loadSuggestions(rows, l);
 }
@@ -1884,6 +1909,7 @@ async function showCustDetail(email, name, mountEl, ns){
     const em=email||topEmail(rows);
     const hdr='<div class="bdhead">📇 <b>'+esc(name||email||"(unknown)")+'</b>'+(em?(' · '+esc(em)):'')+' — order history</div>';
     mountEl.innerHTML=hdr+renderPurchases(rows)+'<div id="'+ns+'_ms"></div><div id="'+ns+'_sim"></div><div id="'+ns+'_notes"></div><div class="bdhead" style="margin-top:12px">✉️ Email history</div><div id="'+ns+'_box"></div>'+'<div style="margin-top:8px;border-top:1px solid #eef2f6;padding-top:8px">'+'<input id="'+ns+'_subj" placeholder="Subject" value="SurgaMed — following up" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;margin-bottom:6px">'+'<textarea id="'+ns+'_body" placeholder="Write an email — sends from your inbox (' + esc(MY_EMAIL||'orders@surgamed.com') + ') with your signature" style="width:100%;box-sizing:border-box;min-height:60px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+'<div style="margin-top:6px;display:flex;align-items:center;gap:8px"><button id="'+ns+'_send" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send email</button><span id="'+ns+'_msg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
+    wireSuggToggles(mountEl);
     injectMedstock(em, rows, document.getElementById(ns+'_ms'));
     (async()=>{ try{ const sim=await aiSimilarFor(rows, em, new Set()); const el=document.getElementById(ns+'_sim'); if(el&&sim&&sim.length){ el.innerHTML=simSectionHtml(sim, ns+'_sg'); wireSuggToggles(el); } }catch(e){} })();
     renderNotes(em, document.getElementById(ns+'_notes'), ns);
