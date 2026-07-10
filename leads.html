@@ -1852,6 +1852,30 @@ async function sendCustEmail(ns, to, name){
   }catch(e){ if(msg){ msg.style.color='#c0392b'; msg.textContent='Couldn’t send: '+String(e.message||e); } }
   if(btn) btn.disabled=false;
 }
+// Shared per-customer notes (email-keyed, visible to every rep).
+async function renderNotes(email, mountEl, ns){
+  if(!mountEl||!email) return;
+  mountEl.innerHTML='<div class="bdhead" style="margin-top:12px">📝 Notes <span style="color:#9aa7b4;font-weight:400;font-size:11px">— shared with all reps</span></div>'+
+    '<div id="'+ns+'_nlist" style="font-size:12px;color:#5a6b7b">Loading…</div>'+
+    '<div style="margin-top:6px;display:flex;gap:6px"><input id="'+ns+'_ntext" placeholder="Add a note about this customer…" style="flex:1;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><button id="'+ns+'_nadd" class="custbtn" style="padding:7px 14px">Add note</button></div>';
+  async function load(){
+    try{ const { data }=await sb.from('customer_notes').select('note,author,created_at').ilike('customer_email',email).order('created_at',{ascending:false}).limit(100);
+      const list=document.getElementById(ns+'_nlist'); if(!list) return;
+      if(!data||!data.length){ list.innerHTML='<span style="color:#9aa7b4">No notes yet.</span>'; return; }
+      list.innerHTML=data.map(n=>'<div style="border-bottom:1px solid #f0f3f6;padding:6px 0"><div style="white-space:pre-wrap">'+esc(n.note)+'</div><div style="color:#9aa7b4;font-size:11px">'+esc(n.author||'—')+' · '+esc(String(n.created_at||'').slice(0,16).replace('T',' '))+'</div></div>').join('');
+    }catch(e){ const list=document.getElementById(ns+'_nlist'); if(list) list.innerHTML='<span style="color:#c0392b">Couldn’t load notes.</span>'; }
+  }
+  const addBtn=document.getElementById(ns+'_nadd');
+  if(addBtn) addBtn.onclick=async()=>{
+    const t=document.getElementById(ns+'_ntext'); const v=(t.value||'').trim(); if(!v) return;
+    addBtn.disabled=true;
+    try{ const { error }=await sb.from('customer_notes').insert({ customer_email:(email||'').toLowerCase(), note:v, author:(MY_REP||ME||'Rep'), author_email:MY_EMAIL||null }); if(error) throw error; t.value=''; await load(); }
+    catch(e){ alert('Could not save note: '+(e.message||e)); }
+    addBtn.disabled=false;
+  };
+  const inp=document.getElementById(ns+'_ntext'); if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)) addBtn.click(); });
+  load();
+}
 async function showCustDetail(email, name, mountEl, ns){
   if(!mountEl) return;
   mountEl.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading…</div>';
@@ -1859,9 +1883,10 @@ async function showCustDetail(email, name, mountEl, ns){
     const rows=await getPurchases(email||"", name||"");
     const em=email||topEmail(rows);
     const hdr='<div class="bdhead">📇 <b>'+esc(name||email||"(unknown)")+'</b>'+(em?(' · '+esc(em)):'')+' — order history</div>';
-    mountEl.innerHTML=hdr+renderPurchases(rows)+'<div id="'+ns+'_ms"></div><div id="'+ns+'_sim"></div><div class="bdhead" style="margin-top:12px">✉️ Email history</div><div id="'+ns+'_box"></div>'+'<div style="margin-top:8px;border-top:1px solid #eef2f6;padding-top:8px">'+'<input id="'+ns+'_subj" placeholder="Subject" value="SurgaMed — following up" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;margin-bottom:6px">'+'<textarea id="'+ns+'_body" placeholder="Write an email — sends from your inbox (' + esc(MY_EMAIL||'orders@surgamed.com') + ') with your signature" style="width:100%;box-sizing:border-box;min-height:60px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+'<div style="margin-top:6px;display:flex;align-items:center;gap:8px"><button id="'+ns+'_send" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send email</button><span id="'+ns+'_msg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
+    mountEl.innerHTML=hdr+renderPurchases(rows)+'<div id="'+ns+'_ms"></div><div id="'+ns+'_sim"></div><div id="'+ns+'_notes"></div><div class="bdhead" style="margin-top:12px">✉️ Email history</div><div id="'+ns+'_box"></div>'+'<div style="margin-top:8px;border-top:1px solid #eef2f6;padding-top:8px">'+'<input id="'+ns+'_subj" placeholder="Subject" value="SurgaMed — following up" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;margin-bottom:6px">'+'<textarea id="'+ns+'_body" placeholder="Write an email — sends from your inbox (' + esc(MY_EMAIL||'orders@surgamed.com') + ') with your signature" style="width:100%;box-sizing:border-box;min-height:60px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+'<div style="margin-top:6px;display:flex;align-items:center;gap:8px"><button id="'+ns+'_send" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send email</button><span id="'+ns+'_msg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
     injectMedstock(em, rows, document.getElementById(ns+'_ms'));
     (async()=>{ try{ const sim=await aiSimilarFor(rows, em, new Set()); const el=document.getElementById(ns+'_sim'); if(el&&sim&&sim.length){ el.innerHTML=simSectionHtml(sim, ns+'_sg'); wireSuggToggles(el); } }catch(e){} })();
+    renderNotes(em, document.getElementById(ns+'_notes'), ns);
     emailHistoryInto(em, document.getElementById(ns+'_box'), ns);
     { const _sb=document.getElementById(ns+'_send'); if(_sb) _sb.onclick=()=>sendCustEmail(ns, em, name||em); }
   }catch(e){ mountEl.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }

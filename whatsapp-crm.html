@@ -485,19 +485,42 @@ async function sendStockAlert(to, items, msgEl){
     if(msgEl){msgEl.style.color='var(--green)'; msgEl.textContent='Sent ✓';}
   }catch(e){ if(msgEl){msgEl.style.color='var(--red)'; msgEl.textContent='Couldn’t send: '+String(e.message||e);} }
 }
+async function renderNotes(email, mountEl, ns){
+  if(!mountEl||!email) return;
+  const who=((STATE&&STATE.email)||'').split('@')[0]||'Rep';
+  mountEl.innerHTML='<div style="font-weight:600;font-size:12px;margin-top:8px">📝 Notes <span class="t">— shared with all reps</span></div>'+
+    '<div id="'+ns+'_nlist" class="t">Loading…</div>'+
+    '<div style="margin-top:5px;display:flex;gap:6px"><input id="'+ns+'_ntext" placeholder="Add a note about this customer…" style="flex:1;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:13px"><button class="btn sm" id="'+ns+'_nadd">Add note</button></div>';
+  async function load(){
+    try{ const {data}=await SB.from('customer_notes').select('note,author,created_at').ilike('customer_email',email).order('created_at',{ascending:false}).limit(100);
+      const list=document.getElementById(ns+'_nlist'); if(!list) return;
+      if(!data||!data.length){ list.innerHTML='<span class="t">No notes yet.</span>'; return; }
+      list.innerHTML=data.map(n=>'<div style="border-bottom:1px solid var(--line);padding:6px 0"><div style="white-space:pre-wrap;font-size:13px">'+esc(n.note)+'</div><div class="t" style="font-size:11px">'+esc(n.author||'—')+' · '+esc(String(n.created_at||'').slice(0,16).replace('T',' '))+'</div></div>').join('');
+    }catch(e){ const list=document.getElementById(ns+'_nlist'); if(list) list.innerHTML='<span class="t" style="color:var(--red)">Couldn’t load notes.</span>'; }
+  }
+  const addBtn=document.getElementById(ns+'_nadd');
+  if(addBtn) addBtn.onclick=async()=>{
+    const t=document.getElementById(ns+'_ntext'); const v=(t.value||'').trim(); if(!v) return; addBtn.disabled=true;
+    try{ const {error}=await SB.from('customer_notes').insert({customer_email:(email||'').toLowerCase(),note:v,author:who,author_email:(STATE&&STATE.email)||null}); if(error) throw error; t.value=''; await load(); }
+    catch(e){ alert('Could not save note: '+(e.message||e)); }
+    addBtn.disabled=false;
+  };
+  load();
+}
 async function showCustDetail(email, name, mountEl, ns){
   if(!mountEl) return;
   mountEl.innerHTML='<div class="t">Loading…</div>';
   try{
     let rows=[]; try{ const {data}=await SB.from('purchases').select('account,order_date,item,price,source,rep,invoice,order_number,order_total,ship_name,company,ship_city,ship_state,ship_postal').ilike('customer_email',email).order('order_date',{ascending:false}).limit(300); rows=data||[]; }catch(e){}
     let h='<div style="font-weight:700;font-size:13px;margin-bottom:4px">📇 '+esc(name||email||'(unknown)')+(email?(' · '+esc(email)):'')+'</div>';
-    h+=renderPurchases(rows)+'<div id="'+ns+'_ms"></div>';
+    h+=renderPurchases(rows)+'<div id="'+ns+'_ms"></div><div id="'+ns+'_notes"></div>';
     h+='<div style="font-weight:600;font-size:12px;margin-top:8px">✉️ Email this customer</div>';
     h+='<input id="'+ns+'_subj" placeholder="Subject" value="SurgaMed — following up" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:13px;margin:4px 0"><textarea id="'+ns+'_body" placeholder="Write an email — sends from your inbox" style="width:100%;box-sizing:border-box;min-height:54px;padding:7px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit"></textarea>';
     h+='<div style="margin-top:5px"><button class="btn sm" id="'+ns+'_send" style="background:#1d7a3f">✉️ Send email</button> <span class="t" id="'+ns+'_msg"></span></div>';
     h+='<div style="font-weight:600;font-size:12px;margin-top:8px">Email history</div><div id="'+ns+'_box"><div class="t">Loading…</div></div>';
     mountEl.innerHTML=h;
     injectMedstock(email, rows, document.getElementById(ns+'_ms'));
+    renderNotes(email, document.getElementById(ns+'_notes'), ns);
     const sb2=document.getElementById(ns+'_send'); if(sb2) sb2.onclick=()=>sendCustEmail(ns, email, name||email);
     try{
       const rr=await fetch(FN_URL+'?thread='+encodeURIComponent(email),{headers:{Authorization:'Bearer '+(await freshToken()),apikey:SB_KEY}});
