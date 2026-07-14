@@ -388,12 +388,12 @@ async function showApp(session){
   if(ADMINS.includes((u.email||"").toLowerCase())){ const ta=document.getElementById("teamActivity"); ta.style.display=""; ta.onclick=openTeamActivity; }
   // Dense "Workspace" view — manager dashboard, available only to admins (Meir + Shaya).
   // Admins land in the Workspace by default; they can still switch to Cards/List via the View menu.
-  if(ADMINS.includes(MY_EMAIL)){
+  {
     const vs=document.getElementById('viewSel');
     if(vs && !vs.querySelector('option[value="workspace"]')){ const op=document.createElement('option'); op.value='workspace'; op.textContent='Workspace'; vs.appendChild(op); }
-    if(localStorage.getItem('sg_view')===null){ VIEW='workspace'; localStorage.setItem('sg_view','workspace'); }
+    if(localStorage.getItem('sg_view')===null && ADMINS.includes(MY_EMAIL)){ VIEW='workspace'; localStorage.setItem('sg_view','workspace'); }
     if(VIEW==='workspace' && vs) vs.value='workspace';
-  } else if(VIEW==='workspace'){ VIEW='cards'; localStorage.setItem('sg_view','cards'); }
+  }
   document.getElementById("signin").style.display="none";
   document.getElementById("app").style.display="block";
   renderRota();
@@ -1043,7 +1043,7 @@ function renderRota(){
 }
 function renderBoard(){
   const bd=document.getElementById("board");
-  if(VIEW==='workspace' && ADMINS.includes(MY_EMAIL)){ bd.className='board wsview'; renderWorkspace(); return; }
+  if(VIEW==='workspace'){ bd.className='board wsview'; renderWorkspace(); return; }
   if(VIEW==='workspace'){ VIEW='cards'; }
   bd.className='board'+(VIEW==='list'?' listview':'');
   if(VIEW==='list'){ renderList(); return; }
@@ -1104,6 +1104,32 @@ function leadValue(l){
   return nums.length ? nums[nums.length-1] : 0;
 }
 function fmtMoney(n){ n=Math.round(n||0); return n>=1000 ? '$'+(n/1000).toFixed(n>=10000?0:1)+'k' : '$'+n.toLocaleString(); }
+async function loadRadarWorkspace(){
+  const kpiEl=document.getElementById('wsRadarKpis'), boardEl=document.getElementById('wsRadarBoard');
+  if(!kpiEl && !boardEl) return;
+  try{
+    const { data:rows, error }=await sb.from('reorder_radar_customers').select('owner_rep,due_items,due_instock,value_at_stake');
+    if(error) throw error;
+    let totCust=0,totInstock=0,totDueItems=0,totVal=0; const byRep={};
+    (rows||[]).forEach(r=>{ const rp=r.owner_rep||'(unassigned)';
+      byRep[rp]=byRep[rp]||{cust:0,instock:0,val:0};
+      byRep[rp].cust++; if(r.due_instock>0) byRep[rp].instock++; byRep[rp].val+=Number(r.value_at_stake||0);
+      totCust++; if(r.due_instock>0) totInstock++; totDueItems+=Number(r.due_items||0); totVal+=Number(r.value_at_stake||0); });
+    if(kpiEl){
+      const kc=(lab,val,cls)=>'<div class="ws-kpi'+(cls?' '+cls:'')+'"><div class="lab">'+lab+'</div><div class="val">'+val+'</div></div>';
+      kpiEl.innerHTML=kc('Customers due', totCust, 'amber')+kc('In stock &amp; due', totInstock, 'green')+kc('Items due', totDueItems)+kc('Value at stake', money(Math.round(totVal)), 'green');
+    }
+    if(boardEl){
+      const order=['Mirian Alejo','Jennifer Lugo','Deysi Calvo','Tehila Cohen','(unassigned)'];
+      const reps=Object.keys(byRep).sort((a,b)=>{ var oa=order.indexOf(a); var ob=order.indexOf(b); oa=oa<0?99:oa; ob=ob<0?99:ob; return oa-ob || byRep[b].val-byRep[a].val; });
+      let h='<h3>📡 Reorder Radar — reach out today</h3><table class="ws-reptab"><thead><tr><th>Rep</th><th>To reach</th><th>In stock</th><th>Value at stake</th></tr></thead><tbody>';
+      reps.forEach(r=>{ const d=byRep[r]; h+='<tr class="wsradarrep" data-rep="'+esc(r)+'" title="Open Reorder Radar for '+esc(r)+'" style="cursor:pointer"><td><b>'+esc(String(r).split(" ")[0])+'</b></td><td>'+d.cust+'</td><td style="color:#1d7a3f;font-weight:700">'+d.instock+'</td><td style="color:#0f7a4d">'+money(Math.round(d.val))+'</td></tr>'; });
+      h+='</tbody></table><div class="ws-cap">Click a rep to open their Reorder Radar. Value = est. lifetime value of the items they\'re due to reorder.</div>';
+      boardEl.innerHTML=h;
+      boardEl.querySelectorAll('.wsradarrep').forEach(el=>{ el.onclick=()=>openReorderRadar(el.dataset.rep==='(unassigned)'?'__none__':el.dataset.rep); });
+    }
+  }catch(e){ if(kpiEl) kpiEl.innerHTML='<div style="color:#c0392b;font-size:12px;padding:8px">Reorder Radar: '+esc(String(e.message||e))+'</div>'; }
+}
 function renderWorkspace(){
   const repF=document.getElementById("repFilter").value;
   const statusF=document.getElementById("statusFilter").value;
@@ -1118,14 +1144,7 @@ function renderWorkspace(){
   const conv= total ? Math.round(won/total*100) : 0;
   const estOpen=base.filter(l=>effStatus(l)!=='closed').reduce((a,l)=>a+leadValue(l),0);
   const kpi=(lab,val,cls)=>'<div class="ws-kpi'+(cls?' '+cls:'')+'"><div class="lab">'+lab+'</div><div class="val">'+val+'</div></div>';
-  let html='<div class="ws-kpis">'+
-    kpi('Open leads', open)+
-    kpi('New', (cnt.new||0), 'blue')+
-    kpi('In progress', prog, 'amber')+
-    kpi('Won', won, 'green')+
-    kpi('Conversion', conv+'%')+
-    kpi('Est. open value', fmtMoney(estOpen), 'green')+
-  '</div>';
+  let html='<div class="ws-kpis" id="wsRadarKpis"><div style="color:#9aa7b4;font-size:12px;padding:6px 4px">Loading Reorder Radar…</div></div>';
   // Pipeline by stage + rep performance, side by side
   const maxStage=Math.max(1, ...STATUSES.map(s=>cnt[s.key]||0));
   let pipe='<div class="ws-card"><h3>Pipeline by stage'+(repF!=='all'?' · '+esc(repF):'')+'</h3>';
@@ -1134,9 +1153,7 @@ function renderWorkspace(){
   pipe+='<div class="ws-cap">Click a stage to filter the table below.</div></div>';
   const reps=REPS.map(r=>{ const ls=LEADS.filter(l=>effRep(l)===r); return { r, open: ls.filter(l=>effStatus(l)!=='closed').length, won: ls.filter(l=>effStatus(l)==='closed').length, val: ls.reduce((a,l)=>a+leadValue(l),0) }; });
   reps.sort((a,b)=>b.val-a.val);
-  let rept='<div class="ws-card"><h3>Rep performance · this window</h3><table class="ws-reptab"><thead><tr><th>Rep</th><th>Open</th><th>Won</th><th>Est. value</th></tr></thead><tbody>';
-  reps.forEach(p=>{ rept+='<tr data-wsrep="'+esc(p.r)+'" title="Filter to '+esc(p.r)+'"><td><b>'+esc(p.r)+'</b></td><td>'+p.open+'</td><td>'+p.won+'</td><td style="color:#0f7a4d">'+fmtMoney(p.val)+'</td></tr>'; });
-  rept+='</tbody></table><div class="ws-cap">Click a rep to filter. Est. value parsed from offer/list prices — a guide, not booked revenue.</div></div>';
+  let rept='<div class="ws-card" id="wsRadarBoard"><h3>📡 Reorder Radar — reach out today</h3><div style="color:#9aa7b4;font-size:12px">Loading who to reach today…</div></div>';
   html+='<div class="ws-grid">'+pipe+rept+'</div>';
   // Dense active-leads table (respects all three filters)
   let rows=LEADS.filter(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&stt==="closed")return false; if(statusF!=="all"&&stt!==statusF)return false; if(repF!=="all"&&rep!==repF)return false; return true; });
@@ -1160,6 +1177,7 @@ function renderWorkspace(){
   pageRows.forEach(l=>{ html+=leadRowHtml(l); });
   html+='</tbody></table>';
   document.getElementById("board").innerHTML=html;
+  loadRadarWorkspace();
   document.getElementById("counts").textContent=totalRows+" shown · "+LEADS.length+" in window";
   document.querySelectorAll('#board [data-wsstage]').forEach(el=>{ el.onclick=function(){ WS_PAGE=1; document.getElementById("statusFilter").value=this.getAttribute('data-wsstage'); renderBoard(); }; });
   document.querySelectorAll('#board [data-wsrep]').forEach(el=>{ el.onclick=function(){ WS_PAGE=1; document.getElementById("repFilter").value=this.getAttribute('data-wsrep'); renderBoard(); }; });
@@ -1597,7 +1615,7 @@ async function reorderDraftInto(ns, email, name){
   }catch(e){ if(msg){ msg.style.color='#c0392b'; msg.textContent=String(e.message||e); } }
   if(bt){ bt.disabled=false; bt.textContent='✨ AI reorder draft'; }
 }
-async function openReorderRadar(){
+async function openReorderRadar(presetRep){
   const o=ensureOverlay(); o.style.display='flex';
   const isAdmin=ADMINS.includes(MY_EMAIL);
   const myFull=MY_REP?repFull(MY_REP):'';
@@ -1628,6 +1646,7 @@ async function openReorderRadar(){
       body.querySelectorAll('.rrrow').forEach(function(el){ el.onclick=function(){ const i=this.dataset.i, d=document.getElementById('rrd'+i); if(d.dataset.open==='1'){ d.dataset.open='0'; d.innerHTML=''; return; } d.dataset.open='1'; d.innerHTML='<td colspan="5" style="background:#f7fbff;padding:8px 12px"><div id="rrx'+i+'"></div></td>'; showCustDetail(this.dataset.email, this.dataset.name, document.getElementById('rrx'+i), 'rr'+i); }; });
     }catch(e){ body.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
   }
+  if(isAdmin && presetRep){ const _pr=document.getElementById('rrRep'); if(_pr) _pr.value=presetRep; }
   if(isAdmin){ const rs=document.getElementById('rrRep'); if(rs) rs.onchange=run; }
   const ic=document.getElementById('rrInstock'); if(ic) ic.onchange=run;
   run();
