@@ -279,6 +279,7 @@ body.modern #newLook{ background:#4f46e5; border-color:#4f46e5; box-shadow:0 1px
     <label><input type="checkbox" id="hideClosed"> Hide closed</label>
     <button class="custbtn" id="custLookup">🔎 Lookup</button>
     <button class="custbtn" id="oppBtn" style="background:#0f766e;border-color:#0f766e">🎯 Opportunities</button>
+    <button class="custbtn" id="radarBtn" style="background:#b45309;border-color:#b45309">📡 Reorder Radar</button>
     <button class="custbtn" id="itemLookup" style="display:none">📦 Item lookup</button>
     <button class="custbtn" id="mySig" style="background:#5a6b7b;border-color:#5a6b7b">✍️ My signature</button>
     <button class="custbtn" id="teamActivity" style="display:none;background:#5b3fc4;border-color:#5b3fc4">👥 Team activity</button>
@@ -325,6 +326,7 @@ let CONTACTS_BY_EMAIL = {}; // customer_email -> {rep, count} established-relati
 let SALE_OWNER = {};        // customer_email -> {rep, repFirst, date, open} from closed (rep-attributed) sales
 const OWNERSHIP_MONTHS = 3; // a customer is open to any rep once no rep has closed a sale in over this many months
 function repFirst(name){ return String(name||'').trim().split(/\s+/)[0]||''; }
+function repFull(first){ return ({Deysi:'Deysi Calvo',Mirian:'Mirian Alejo',Jennifer:'Jennifer Lugo',Tehila:'Tehila Cohen'})[first]||first; }
 function monthsAgoISO(months){ const d=new Date(); d.setMonth(d.getMonth()-months); return d.toISOString().slice(0,10); }
 let SHIP_BY_EMAIL = {}; let SHIP_BY_LISTING = {}; // customer_email -> shipment summary from CRM shipments table
 let STATE = {};
@@ -1579,6 +1581,57 @@ async function toggleOppItem(rk, rl, tr){
     tr.querySelectorAll('.oppbuyer').forEach(function(el){ el.onclick=function(ev){ ev.preventDefault(); const d=document.getElementById(this.dataset.rid); if(!d) return; if(d.dataset.open==='1'){ d.dataset.open='0'; d.style.display='none'; d.innerHTML=''; return; } d.dataset.open='1'; d.style.display=''; showCustDetail(this.dataset.email, this.dataset.name, d, this.dataset.rid); }; });
   }catch(e){ tr.innerHTML='<td colspan="4" style="color:#c0392b;font-size:12px;padding:8px">'+esc(String(e.message||e))+'</td>'; }
 }
+async function reorderDraftInto(ns, email, name){
+  const msg=document.getElementById(ns+'_msg'), bt=document.getElementById(ns+'_draft');
+  if(bt){ bt.disabled=true; bt.textContent='✨ Drafting…'; }
+  if(msg){ msg.style.color='#5a6b7b'; msg.textContent='Writing a reorder draft…'; }
+  try{
+    const repName = MY_REP ? repFull(MY_REP) : (ME||'');
+    const r=await fetch(SB_URL+'/functions/v1/reorder-draft',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({customer_email:email,channel:'email',rep_name:repName})});
+    const d=await r.json();
+    if(!r.ok||d.error) throw new Error(d.error||('HTTP '+r.status));
+    const subj=document.getElementById(ns+'_subj'), body=document.getElementById(ns+'_body');
+    if(subj&&d.subject) subj.value=d.subject;
+    if(body){ body.value=String(d.body||'').replace(/<br\s*\/?>(\s*)/gi,'\n').replace(/<\/p>\s*<p[^>]*>/gi,'\n\n').replace(/<[^>]+>/g,'').replace(/\n{3,}/g,'\n\n').trim(); }
+    if(msg){ msg.style.color='#1d7a3f'; msg.textContent='Draft ready — review & send · '+(d.in_stock_count||0)+' in stock of '+(d.due_count||0)+' due'; }
+  }catch(e){ if(msg){ msg.style.color='#c0392b'; msg.textContent=String(e.message||e); } }
+  if(bt){ bt.disabled=false; bt.textContent='✨ AI reorder draft'; }
+}
+async function openReorderRadar(){
+  const o=ensureOverlay(); o.style.display='flex';
+  const isAdmin=ADMINS.includes(MY_EMAIL);
+  const myFull=MY_REP?repFull(MY_REP):'';
+  const repPick=isAdmin
+    ? '<select id="rrRep" style="padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><option value="">All reps</option><option>Mirian Alejo</option><option>Jennifer Lugo</option><option>Deysi Calvo</option><option>Tehila Cohen</option><option value="__none__">Unassigned pool</option></select> '
+    : '';
+  o.innerHTML='<div class="modal wide"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>📡 Reorder Radar — reach out today</h3><div class="msub">Customers who look due to reorder, ranked by likelihood × value. Items we have in stock first — one click drafts the outreach.</div></div><div class="mbody"><div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+repPick+'<label style="font-size:12px;color:#5a6b7b"><input type="checkbox" id="rrInstock" checked> Only items we have in stock</label><span id="rrCount" style="font-size:12px;color:#9aa7b4"></span></div><div id="rrBody"><div style="color:#9aa7b4;font-size:12px">Loading…</div></div></div></div>';
+  document.getElementById('mClose').onclick=closeDetail;
+  const body=document.getElementById('rrBody');
+  async function run(){
+    body.innerHTML='<div style="color:#9aa7b4;font-size:12px">Loading…</div>';
+    const repSel=isAdmin?(document.getElementById('rrRep').value):myFull;
+    const onlyStock=document.getElementById('rrInstock').checked;
+    try{
+      let q=sb.from('reorder_radar_customers').select('*').order('top_score',{ascending:false}).limit(400);
+      if(repSel==='__none__') q=q.is('owner_rep',null);
+      else if(repSel) q=q.eq('owner_rep',repSel);
+      const { data:rows, error }=await q;
+      if(error) throw error;
+      let list=(rows||[]); if(onlyStock) list=list.filter(x=>x.due_instock>0);
+      const cc=document.getElementById('rrCount'); if(cc) cc.textContent=list.length+' customer(s)';
+      if(!list.length){ body.innerHTML='<div style="color:#1d7a3f;font-size:12px">Nobody’s due right now with these filters. 🎉</div>'; return; }
+      let h='<div style="font-size:12px;color:#5a6b7b;margin-bottom:8px">Click a name to see their due items, draft a reorder email, and view full history.</div>';
+      h+='<table class="phtab"><thead><tr><th>Customer</th><th>Owner</th><th>Due</th><th>In&nbsp;stock</th><th>Next due</th></tr></thead><tbody>';
+      list.forEach((b,i)=>{ h+='<tr class="rrrow" data-email="'+esc(b.customer_email||'')+'" data-name="'+esc(b.customer_name||'')+'" data-i="'+i+'" style="cursor:pointer"><td><b>'+esc(b.customer_name||b.customer_email||'(unknown)')+'</b><div style="color:#9aa7b4;font-size:11px">'+esc(b.customer_email||'')+'</div></td><td style="font-size:11px">'+esc(b.owner_rep||'—')+'</td><td>'+b.due_items+'</td><td>'+(b.due_instock>0?('<span style="color:#1d7a3f;font-weight:700">'+b.due_instock+'</span>'):'0')+'</td><td class="nowrap" style="font-size:11px">'+esc(String(b.next_due||'').slice(0,10))+'</td></tr><tr id="rrd'+i+'"></tr>'; });
+      h+='</tbody></table>';
+      body.innerHTML=h;
+      body.querySelectorAll('.rrrow').forEach(function(el){ el.onclick=function(){ const i=this.dataset.i, d=document.getElementById('rrd'+i); if(d.dataset.open==='1'){ d.dataset.open='0'; d.innerHTML=''; return; } d.dataset.open='1'; d.innerHTML='<td colspan="5" style="background:#f7fbff;padding:8px 12px"><div id="rrx'+i+'"></div></td>'; showCustDetail(this.dataset.email, this.dataset.name, document.getElementById('rrx'+i), 'rr'+i); }; });
+    }catch(e){ body.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
+  }
+  if(isAdmin){ const rs=document.getElementById('rrRep'); if(rs) rs.onchange=run; }
+  const ic=document.getElementById('rrInstock'); if(ic) ic.onchange=run;
+  run();
+}
 async function loadCustHistory(l){
   const box=document.getElementById("custBox"); if(!box) return;
   let rows=[];
@@ -1767,6 +1820,7 @@ function openCustSearch(){
 }
 document.getElementById("custLookup").onclick=openLookup;
 { const _ob=document.getElementById("oppBtn"); if(_ob) _ob.onclick=openOpportunities; }
+{ const _rb=document.getElementById("radarBtn"); if(_rb) _rb.onclick=openReorderRadar; }
 
 // ---- Item lookup: who bought a given item + how many are in stock ----
 async function getItemBuyers(q){
@@ -1908,13 +1962,14 @@ async function showCustDetail(email, name, mountEl, ns){
     const rows=await getPurchases(email||"", name||"");
     const em=email||topEmail(rows);
     const hdr='<div class="bdhead">📇 <b>'+esc(name||email||"(unknown)")+'</b>'+(em?(' · '+esc(em)):'')+' — order history</div>';
-    mountEl.innerHTML=hdr+renderPurchases(rows)+'<div id="'+ns+'_ms"></div><div id="'+ns+'_sim"></div><div id="'+ns+'_notes"></div><div class="bdhead" style="margin-top:12px">✉️ Email history</div><div id="'+ns+'_box"></div>'+'<div style="margin-top:8px;border-top:1px solid #eef2f6;padding-top:8px">'+'<input id="'+ns+'_subj" placeholder="Subject" value="SurgaMed — following up" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;margin-bottom:6px">'+'<textarea id="'+ns+'_body" placeholder="Write an email — sends from your inbox (' + esc(MY_EMAIL||'orders@surgamed.com') + ') with your signature" style="width:100%;box-sizing:border-box;min-height:60px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+'<div style="margin-top:6px;display:flex;align-items:center;gap:8px"><button id="'+ns+'_send" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send email</button><span id="'+ns+'_msg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
+    mountEl.innerHTML=hdr+renderPurchases(rows)+'<div id="'+ns+'_ms"></div><div id="'+ns+'_sim"></div><div id="'+ns+'_notes"></div><div class="bdhead" style="margin-top:12px">✉️ Email history</div><div id="'+ns+'_box"></div>'+'<div style="margin-top:8px;border-top:1px solid #eef2f6;padding-top:8px">'+'<input id="'+ns+'_subj" placeholder="Subject" value="SurgaMed — following up" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;margin-bottom:6px">'+'<textarea id="'+ns+'_body" placeholder="Write an email — sends from your inbox (' + esc(MY_EMAIL||'orders@surgamed.com') + ') with your signature" style="width:100%;box-sizing:border-box;min-height:60px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+'<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><button id="'+ns+'_draft" class="custbtn" style="padding:7px 14px;background:#b45309;border-color:#b45309">✨ AI reorder draft</button><button id="'+ns+'_send" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send email</button><span id="'+ns+'_msg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
     wireSuggToggles(mountEl);
     injectMedstock(em, rows, document.getElementById(ns+'_ms'));
     (async()=>{ try{ const sim=await aiSimilarFor(rows, em, new Set()); const el=document.getElementById(ns+'_sim'); if(el&&sim&&sim.length){ el.innerHTML=simSectionHtml(sim, ns+'_sg'); wireSuggToggles(el); } }catch(e){} })();
     renderNotes(em, document.getElementById(ns+'_notes'), ns);
     emailHistoryInto(em, document.getElementById(ns+'_box'), ns);
     { const _sb=document.getElementById(ns+'_send'); if(_sb) _sb.onclick=()=>sendCustEmail(ns, em, name||em); }
+    { const _db=document.getElementById(ns+'_draft'); if(_db) _db.onclick=()=>reorderDraftInto(ns, em, name||em); }
   }catch(e){ mountEl.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
 }
 function openLookup(){
