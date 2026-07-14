@@ -507,7 +507,55 @@ async function renderNotes(email, mountEl, ns){
   };
   load();
 }
+async function reorderDraftInto(ns, email, name){
+  var msg=document.getElementById(ns+'_msg'), bt=document.getElementById(ns+'_draft');
+  if(bt){ bt.disabled=true; bt.textContent='\u2728 Drafting\u2026'; }
+  if(msg){ msg.style.color='#5a6b7b'; msg.textContent='Writing a reorder draft\u2026'; }
+  try{
+    var base=FN_URL.replace(/leads$/,'reorder-draft');
+    var repName=(typeof STATE!=='undefined'&&STATE&&(STATE.repName||STATE.rep))||'';
+    var r=await fetch(base,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({customer_email:email,channel:'email',rep_name:repName})});
+    var d=await r.json();
+    if(!r.ok||d.error) throw new Error(d.error||('HTTP '+r.status));
+    var subj=document.getElementById(ns+'_subj'), body=document.getElementById(ns+'_body');
+    if(subj&&d.subject) subj.value=d.subject;
+    if(body){ body.value=String(d.body||'').replace(/<br\s*\/?>(\s*)/gi,'\n').replace(/<\/p>\s*<p[^>]*>/gi,'\n\n').replace(/<[^>]+>/g,'').replace(/\n{3,}/g,'\n\n').trim(); }
+    if(msg){ msg.style.color='#1d7a3f'; msg.textContent='Draft ready \u2014 review & send \u00b7 '+(d.in_stock_count||0)+' in stock of '+(d.due_count||0)+' due'; }
+  }catch(e){ if(msg){ msg.style.color='#c0392b'; msg.textContent=String(e.message||e); } }
+  if(bt){ bt.disabled=false; bt.textContent='\u2728 AI reorder draft'; }
+}
+async function openReorderRadar(presetRep){
+  var ov=document.getElementById('rrOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='rrOverlay'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,32,44,.45);z-index:99999;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto'; ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); }); document.body.appendChild(ov); }
+  ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:1000px;width:100%;box-shadow:0 12px 40px rgba(20,32,44,.25);overflow:hidden"><div style="padding:14px 18px;border-bottom:1px solid #eef1f5;position:relative"><button id="rrX" style="position:absolute;top:12px;right:14px;border:none;background:#f0f3f6;border-radius:8px;width:30px;height:30px;font-size:16px;cursor:pointer">\u00d7</button><h3 style="margin:0 0 4px;font-size:17px">\ud83d\udce1 Reorder Radar \u2014 reach out today</h3><div style="color:#5a6b7b;font-size:12.5px">Customers who look due to reorder, ranked by likelihood \u00d7 value. Items in stock first \u2014 one click drafts the outreach.</div></div><div style="padding:14px 18px;max-height:70vh;overflow:auto"><div style="margin-bottom:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select id="rrRep" style="padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><option value="">All reps</option><option>Mirian Alejo</option><option>Jennifer Lugo</option><option>Deysi Calvo</option><option>Tehila Cohen</option><option value="__none__">Unassigned pool</option></select><label style="font-size:12px;color:#5a6b7b"><input type="checkbox" id="rrIn" checked> Only items we have in stock</label><span id="rrCt" style="font-size:12px;color:#9aa7b4"></span></div><div id="rrBody"><div style="color:#9aa7b4;font-size:12px">Loading\u2026</div></div></div></div>';
+  document.getElementById('rrX').onclick=function(){ ov.remove(); };
+  var body=document.getElementById('rrBody');
+  async function run(){
+    body.innerHTML='<div style="color:#9aa7b4;font-size:12px">Loading\u2026</div>';
+    var repSel=document.getElementById('rrRep').value, onlyStock=document.getElementById('rrIn').checked;
+    try{
+      var q=SB.from('reorder_radar_customers').select('*').order('top_score',{ascending:false}).limit(400);
+      if(repSel==='__none__') q=q.is('owner_rep',null); else if(repSel) q=q.eq('owner_rep',repSel);
+      var res=await q; if(res.error) throw res.error;
+      var list=(res.data||[]); if(onlyStock) list=list.filter(function(x){return x.due_instock>0;});
+      var ct=document.getElementById('rrCt'); if(ct) ct.textContent=list.length+' customer(s)';
+      if(!list.length){ body.innerHTML='<div style="color:#1d7a3f;font-size:12px">Nobody\u2019s due right now with these filters. \ud83c\udf89</div>'; return; }
+      var h='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;color:#7b8a99"><th style="padding:4px 6px;border-bottom:1px solid #e6ebf1">Customer</th><th style="padding:4px 6px;border-bottom:1px solid #e6ebf1">Owner</th><th style="padding:4px 6px;border-bottom:1px solid #e6ebf1">Due</th><th style="padding:4px 6px;border-bottom:1px solid #e6ebf1">In stock</th><th style="padding:4px 6px;border-bottom:1px solid #e6ebf1">Next due</th></tr></thead><tbody>';
+      list.forEach(function(b,i){ h+='<tr class="rrR" data-email="'+esc(b.customer_email||'')+'" data-name="'+esc(b.customer_name||'')+'" data-i="'+i+'" style="cursor:pointer;border-bottom:1px solid #f0f3f6"><td style="padding:5px 6px"><b>'+esc(b.customer_name||b.customer_email||'(unknown)')+'</b><div style="color:#9aa7b4;font-size:11px">'+esc(b.customer_email||'')+'</div></td><td style="padding:5px 6px;font-size:11px">'+esc(b.owner_rep||'\u2014')+'</td><td style="padding:5px 6px">'+b.due_items+'</td><td style="padding:5px 6px">'+(b.due_instock>0?('<span style="color:#1d7a3f;font-weight:700">'+b.due_instock+'</span>'):'0')+'</td><td style="padding:5px 6px;font-size:11px">'+esc(String(b.next_due||'').slice(0,10))+'</td></tr><tr id="rrd'+i+'"></tr>'; });
+      h+='</tbody></table>';
+      body.innerHTML=h;
+      body.querySelectorAll('.rrR').forEach(function(el){ el.onclick=function(){ var i=this.dataset.i, d=document.getElementById('rrd'+i); if(d.dataset.open==='1'){ d.dataset.open='0'; d.innerHTML=''; return; } d.dataset.open='1'; d.innerHTML='<td colspan="5" style="background:#f7fbff;padding:8px 12px"><div id="rrx'+i+'"></div></td>'; showCustDetail(this.dataset.email, this.dataset.name, document.getElementById('rrx'+i), 'rr'+i); }; });
+    }catch(e){ body.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
+  }
+  if(presetRep){ var _r=document.getElementById('rrRep'); if(_r) _r.value=presetRep; }
+  document.getElementById('rrRep').onchange=run; document.getElementById('rrIn').onchange=run; run();
+}
+(function ensureRadarBtn(){ var ob=document.getElementById('oppBtn'); if(!ob){ return setTimeout(ensureRadarBtn,600); } if(document.getElementById('radarBtn')) return; var b=document.createElement('button'); b.id='radarBtn'; b.textContent='\ud83d\udce1 Reorder Radar'; b.className=ob.className; try{ b.style.cssText=ob.style.cssText; }catch(e){} b.style.background='#b45309'; b.style.borderColor='#b45309'; b.style.color='#fff'; ob.parentNode.insertBefore(b, ob.nextSibling); b.onclick=function(){ openReorderRadar(); }; })();
 async function showCustDetail(email, name, mountEl, ns){
+  await _origShowCustDetail(email, name, mountEl, ns);
+  try{ var _s=document.getElementById(ns+'_send'); if(_s && !document.getElementById(ns+'_draft')){ var _d=document.createElement('button'); _d.id=ns+'_draft'; _d.textContent='\u2728 AI reorder draft'; _d.style.cssText='padding:7px 14px;background:#b45309;color:#fff;border:1px solid #b45309;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;margin-right:6px'; _s.parentNode.insertBefore(_d, _s); _d.onclick=function(){ reorderDraftInto(ns, email, name); }; } }catch(e){}
+}
+async function _origShowCustDetail(email, name, mountEl, ns){
   if(!mountEl) return;
   mountEl.innerHTML='<div class="t">Loading…</div>';
   try{
