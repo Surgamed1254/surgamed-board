@@ -2006,14 +2006,15 @@ async function renderNotes(email, mountEl, ns){
     return out; }
   function copyGrid(root,btn){ var rows=buildGrid(root); if(rows.length<2){ btn.textContent='Nothing to copy'; setTimeout(function(){btn.textContent='\ud83d\udccb Copy items for email';},1500); return; }
     var esc=function(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
-    var html='<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px" border="1" cellpadding="5">';
-    for(var r=0;r<rows.length;r++){ var tag=r?'td':'th'; var bg=r?'':' style="background:#f0f3f6;text-align:left"'; html+='<tr>'; for(var c=0;c<rows[r].length;c++){ html+='<'+tag+bg+'>'+esc(rows[r][c])+'</'+tag+'>'; } html+='</tr>'; }
+    var base='border:1px solid #9aa7b4;padding:6px 10px;font-family:Calibri,Arial,sans-serif;font-size:13px;vertical-align:top;mso-border-alt:solid #9aa7b4 .5pt;';
+    var html='<table style="border-collapse:collapse;border:1px solid #9aa7b4" cellspacing="0">';
+    for(var r=0;r<rows.length;r++){ html+='<tr>'; for(var c=0;c<rows[r].length;c++){ var tag=r?'td':'th'; var st=base+(r?'':'background:#e8eef5;font-weight:bold;text-align:left;'); html+='<'+tag+' style="'+st+'">'+esc(rows[r][c])+'</'+tag+'>'; } html+='</tr>'; }
     html+='</table>';
     var tsv=rows.map(function(r){return r.join('\t');}).join('\n');
-    function done(){ btn.textContent='\u2705 Copied '+(rows.length-1)+' items'; setTimeout(function(){btn.textContent='\ud83d\udccb Copy items for email';},2000); }
-    if(navigator.clipboard&&window.ClipboardItem){ navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([tsv],{type:'text/plain'})})]).then(done).catch(function(){ _fallback(tsv); done(); }); }
-    else { _fallback(tsv); done(); } }
-  function _fallback(tsv){ try{ var ta=document.createElement('textarea'); ta.value=tsv; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }catch(e){} }
+    function done(){ btn.textContent='\u2705 Copied '+(rows.length-1)+' \u2014 paste into your email'; setTimeout(function(){btn.textContent='\ud83d\udccb Copy items for email';},2500); }
+    function richFallback(){ try{ var d=document.createElement('div'); d.contentEditable='true'; d.style.cssText='position:fixed;left:-9999px;top:0'; d.innerHTML=html; document.body.appendChild(d); var rg=document.createRange(); rg.selectNodeContents(d); var sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(rg); document.execCommand('copy'); sel.removeAllRanges(); d.remove(); }catch(e){} }
+    try{ if(navigator.clipboard&&window.ClipboardItem){ navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([tsv],{type:'text/plain'})})]).then(done).catch(function(){ richFallback(); done(); }); } else { richFallback(); done(); } }catch(e){ richFallback(); done(); }
+  }
   function enhance(){ try{
     var heads=document.querySelectorAll('.overlay h4:not([data-sg]), .overlay .bdhead:not([data-sg]), #detailOverlay h4:not([data-sg]), #detailOverlay .bdhead:not([data-sg])');
     for(var i2=0;i2<heads.length;i2++){ (function(h){ h.setAttribute('data-sg','1'); var txt=_txt(h).toLowerCase();
