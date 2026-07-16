@@ -307,7 +307,7 @@ async function sendReply(cu){
     if(!STATE.live){ await new Promise(r=>setTimeout(r,500)); ta.value=""; msg.style.color="var(--green)"; msg.textContent="Sent ✓ (demo)"; btn.disabled=false; return; }
     const subj=((document.getElementById("composeSubject")||{}).value||"").trim()||("Re: SurgaMed");
     const rep=cu.assigned_rep||((STATE.email||"").split("@")[0]);
-    const payload={action:"send",rep,text,to,subject:subj,from:""};
+    const payload={action:"send",attachments:(window.__ATT_LIST||[]),rep,text,to,subject:subj,from:""};
     const r=await fetch(FN_URL,{method:"POST",headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify(payload)});
     const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
     try{ await SB.from("contacts").insert({customer_email:to.toLowerCase(),customer_name:cu.name||null,rep,rep_email:STATE.email||null,channel:"email",direction:"out",subject:subj,message_id:"crm-"+Date.now()}); }catch(_){}
@@ -478,7 +478,7 @@ async function sendStockAlert(to, items, msgEl){
   try{
     if(!STATE.live){ if(msgEl){msgEl.style.color='var(--green)'; msgEl.textContent='Sent ✓ (demo)';} return; }
     const rep=((STATE.email||'').split('@')[0]);
-    const payload={action:'send',rep,to,subject:"Items you've ordered are back in stock — SurgaMed",text,from:''};
+    const payload={action:'send',attachments:(window.__ATT_LIST||[]),rep,to,subject:"Items you've ordered are back in stock — SurgaMed",text,from:''};
     const r=await fetch(FN_URL,{method:'POST',headers:{Authorization:'Bearer '+(await freshToken()),apikey:SB_KEY,'content-type':'application/json'},body:JSON.stringify(payload)});
     const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||('HTTP '+r.status));
     try{ await SB.from('contacts').insert({customer_email:to.toLowerCase(),rep,rep_email:STATE.email||null,channel:'email',direction:'out',subject:payload.subject,message_id:'crm-stock-'+Date.now()}); }catch(_){}
@@ -589,7 +589,7 @@ async function sendCustEmail(ns, to, name){
   try{
     if(!STATE.live){ body.value=''; if(msg){msg.style.color='var(--green)'; msg.textContent='Sent ✓ (demo)';} return; }
     const rep=((STATE.email||'').split('@')[0]);
-    const payload={action:'send',rep,to,subject:subj,text,from:''};
+    const payload={action:'send',attachments:(window.__ATT_LIST||[]),rep,to,subject:subj,text,from:''};
     const r=await fetch(FN_URL,{method:'POST',headers:{Authorization:'Bearer '+(await freshToken()),apikey:SB_KEY,'content-type':'application/json'},body:JSON.stringify(payload)});
     const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||('HTTP '+r.status));
     try{ await SB.from('contacts').insert({customer_email:to.toLowerCase(),customer_name:name||null,rep,rep_email:STATE.email||null,channel:'email',direction:'out',subject:subj,message_id:'crm-'+Date.now()}); }catch(_){}
@@ -852,5 +852,59 @@ async function boot(){
 if(typeof document!=="undefined" && document.getElementById("app")) boot();
 if(typeof window!=="undefined") window.__crm={statusLabel,nextAction,matchesFilters,dueSoon,naClass,statusName,badgeFor,cleanName,dispName,renderEmailList,renderShipping,renderPurchases};
 </script>
+
+<script>
+(function(){
+  window.__ATT_LIST = window.__ATT_LIST || [];
+  var MAXTOTAL = 4*1024*1024;
+  function fmtSize(n){ return n<1024?n+'B':(n<1048576?(Math.round(n/1024)+'KB'):((n/1048576).toFixed(1)+'MB')); }
+  function readAll(files, cb){
+    var out=[], pending=files.length; if(!pending)return cb([]);
+    files.forEach(function(f){
+      var fr=new FileReader();
+      fr.onload=function(){ var b64=String(fr.result||'').split(',')[1]||''; out.push({name:f.name, contentType:f.type||'application/octet-stream', contentBytes:b64, _size:f.size}); if(--pending===0)cb(out); };
+      fr.onerror=function(){ if(--pending===0)cb(out); };
+      fr.readAsDataURL(f);
+    });
+  }
+  function makeControl(sendBtn){
+    if(sendBtn.__attached) return; sendBtn.__attached=true;
+    var wrap=document.createElement('span'); wrap.style.cssText='display:inline-flex;align-items:center;gap:6px;margin-right:8px;flex-wrap:wrap';
+    var input=document.createElement('input'); input.type='file'; input.multiple=true; input.style.display='none';
+    var btn=document.createElement('button'); btn.type='button'; btn.textContent='📎 Attach'; btn.style.cssText='padding:7px 12px;background:#eef2f7;color:#33506e;border:1px solid #ccd6e0;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px';
+    var chips=document.createElement('span'); chips.style.cssText='display:inline-flex;gap:5px;flex-wrap:wrap';
+    btn.onclick=function(){ input.click(); };
+    function render(){
+      chips.innerHTML='';
+      (window.__ATT_LIST||[]).forEach(function(a,idx){
+        var c=document.createElement('span'); c.style.cssText='background:#e8eef5;border-radius:10px;padding:2px 8px;font-size:11px;display:inline-flex;align-items:center;gap:4px';
+        c.appendChild(document.createTextNode(a.name+' ('+fmtSize(a._size||0)+')'));
+        var x=document.createElement('span'); x.textContent='×'; x.style.cssText='cursor:pointer;font-weight:700;color:#c0392b'; x.onclick=function(){ window.__ATT_LIST.splice(idx,1); render(); };
+        c.appendChild(x); chips.appendChild(c);
+      });
+    }
+    input.onchange=function(){
+      var files=Array.prototype.slice.call(input.files||[]);
+      readAll(files, function(newAtts){
+        window.__ATT_LIST=(window.__ATT_LIST||[]).concat(newAtts);
+        var total=window.__ATT_LIST.reduce(function(s,a){return s+(a._size||0);},0);
+        if(total>MAXTOTAL){ alert('Attachments total '+fmtSize(total)+'. Large attachments (over ~4MB) may be rejected by the mail server — consider a download link instead.'); }
+        render(); input.value='';
+      });
+    };
+    wrap.appendChild(btn); wrap.appendChild(chips); wrap.appendChild(input);
+    sendBtn.parentNode.insertBefore(wrap, sendBtn);
+    sendBtn.addEventListener('click', function(){ setTimeout(function(){ window.__ATT_LIST=[]; render(); }, 2500); });
+    window.__attRender = render;
+  }
+  try{
+    new MutationObserver(function(){
+      var btns=[].slice.call(document.querySelectorAll('button')).filter(function(b){ return /Send from board|Send email/i.test((b.textContent||'')) && !b.__attached; });
+      btns.forEach(makeControl);
+    }).observe(document.body,{childList:true,subtree:true});
+  }catch(e){}
+})();
+</script>
+
 </body>
 </html>
