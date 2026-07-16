@@ -2058,7 +2058,7 @@ async function showCustDetail(email, name, mountEl, ns){
     renderNotes(em, document.getElementById(ns+'_notes'), ns);
     emailHistoryInto(em, document.getElementById(ns+'_box'), ns);
     { const _sb=document.getElementById(ns+'_send'); if(_sb) _sb.onclick=()=>sendCustEmail(ns, em, name||em); }
-    { const _db=document.getElementById(ns+'_draft'); if(_db) _db.onclick=()=>reorderDraftInto(ns, em, name||em); }
+    { const _db=document.getElementById(ns+'_draft'); if(_db) _db.onclick=()=>reorderDraftInto(ns, em, name||em); if(window.SmartList&&_db&&!document.getElementById(ns+'_smartlist')){var _slb=document.createElement('button');_slb.id=ns+'_smartlist';_slb.type='button';_slb.textContent='📥 Smart List (Excel)';_slb.className=_db.className;_slb.style.marginLeft='6px';_slb.onclick=function(){window.SmartList.openCustomer(em,name||em);};_db.parentNode.insertBefore(_slb,_db.nextSibling);} }
   }catch(e){ mountEl.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
 }
 function openLookup(){
@@ -2163,5 +2163,123 @@ document.getElementById("refreshBtn").onclick=manualRefresh;
 sb.auth.onAuthStateChange((e, session)=>{ if(session) showApp(session); });
 boot();
 </script>
+
+<script>
+(function(){
+  var SB_URL="https://ecjemcrpbzeocoiwslcu.supabase.co";
+  var SB_KEY="sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
+  var FN=SB_URL+"/functions/v1/smart-list";
+  function esc(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function money(v){return (v==null||v==='')?'':'$'+Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  var _sheetCbs=null;
+  function loadSheet(cb){ if(window.XLSX)return cb(); if(_sheetCbs){_sheetCbs.push(cb);return;} _sheetCbs=[cb];
+    var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=function(){var q=_sheetCbs;_sheetCbs=null;q.forEach(function(f){f();});}; s.onerror=function(){alert('Could not load Excel library.');}; document.head.appendChild(s); }
+  function toRows(items){
+    var head=['Tier','Manufacturer','Item / Description','REF / Model','Category','Condition','Qty','Price (USD)','Source inventory','Why relevant'];
+    var rows=[head];
+    (items||[]).forEach(function(it){ rows.push([it.tier||'',it.manufacturer||'',it.name||'',it.ref||'',it.category||'',it.condition||'',(it.quantity!=null?it.quantity:''),(it.price!=null?Number(it.price):''),it.source||'',it.reason||'']); });
+    return rows;
+  }
+  function download(items, baseName){
+    if(!items||!items.length){alert('Nothing to export yet.');return;}
+    loadSheet(function(){
+      var ws=window.XLSX.utils.aoa_to_sheet(toRows(items));
+      ws['!cols']=[{wch:7},{wch:20},{wch:46},{wch:16},{wch:20},{wch:11},{wch:5},{wch:12},{wch:18},{wch:40}];
+      var wb=window.XLSX.utils.book_new(); window.XLSX.utils.book_append_sheet(wb,ws,'Smart List');
+      var fn=(baseName||'SmartList').replace(/[^A-Za-z0-9_\- ]/g,'').slice(0,60).trim().replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
+      window.XLSX.writeFile(wb,fn);
+    });
+  }
+  var ov=null, ST={};
+  function close(){ if(ov){ov.remove();ov=null;} }
+  function tierBadge(t){ var c=t==='High'?'#1d7a3f':'#8a6d1b'; var bg=t==='High'?'#e5f4ea':'#f6efd8'; return '<span style="background:'+bg+';color:'+c+';font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px">'+esc(t||'')+'</span>'; }
+  function render(){
+    var m=ov.querySelector('#sl_body');
+    var isCust=ST.mode==='customer';
+    var head='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+      +(isCust?('<div style="font-weight:700;font-size:15px">🧠 Smart list for '+esc(ST.name||ST.email)+'</div>')
+              :('<div style="font-weight:700;font-size:15px">🧠 Smart List Builder — search all 3 inventories</div>'))
+      +'</div>';
+    var controls='';
+    if(isCust){
+      controls='<div style="margin:10px 0;color:#5a6b7b;font-size:13px">Tailored to what this customer buys and their clinical field, across SurgaMed, ShortDated &amp; Medstock.</div>'
+        +'<input id="sl_field" placeholder="Optional: focus (e.g. vascular, ENT, orthopedic)" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #cfd8e0;border-radius:6px">';
+    } else {
+      controls='<input id="sl_q" placeholder="What are they looking for? e.g. laparoscopic trocars, arthroscopy shavers" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #cfd8e0;border-radius:6px">'
+        +'<input id="sl_field" placeholder="Optional: industry / specialty (e.g. general surgery)" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #cfd8e0;border-radius:6px;margin-top:6px">';
+    }
+    var btns='<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
+      +'<button id="sl_gen" style="padding:9px 16px;background:#1d3557;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">✨ Generate smart list</button>'
+      +'<button id="sl_dl" style="padding:9px 16px;background:#1d7a3f;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;display:none">⬇ Download AI picks (Excel)</button>'
+      +'<button id="sl_dlall" style="padding:9px 16px;background:#33506e;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;display:none">⬇ Download all matches</button>'
+      +'</div>';
+    m.innerHTML=head+'<div style="margin-top:8px">'+controls+'</div>'+btns+'<div id="sl_status" style="margin-top:10px;color:#5a6b7b;font-size:13px"></div><div id="sl_out" style="margin-top:8px"></div>';
+    m.querySelector('#sl_gen').onclick=generate;
+    m.querySelector('#sl_dl').onclick=function(){ download(ST.items,(isCust?('SmartList_'+(ST.name||ST.email)):('SmartList_'+(ST.lastQuery||'search')))); };
+    m.querySelector('#sl_dlall').onclick=function(){ download(ST.pool.map(function(c){return Object.assign({tier:'',reason:''},c);}),(isCust?('AllMatches_'+(ST.name||ST.email)):('AllMatches_'+(ST.lastQuery||'search')))); };
+  }
+  function generate(){
+    var isCust=ST.mode==='customer';
+    var fieldEl=ov.querySelector('#sl_field'); var field=fieldEl?fieldEl.value.trim():'';
+    var payload={field:field,limit:50,cap:110};
+    if(isCust){ payload.customer_email=ST.email; if(field) payload.query=''; }
+    else { var q=(ov.querySelector('#sl_q').value||'').trim(); if(!q){alert('Type what to search for.');return;} payload.query=q; ST.lastQuery=q; }
+    var st=ov.querySelector('#sl_status'); var out=ov.querySelector('#sl_out');
+    var gen=ov.querySelector('#sl_gen'); gen.disabled=true; gen.textContent='Thinking…';
+    st.textContent='Deep-diving all 3 inventories with AI…'; out.innerHTML='';
+    fetch(FN,{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY},body:JSON.stringify(payload)})
+      .then(function(r){return r.json();}).then(function(d){
+        gen.disabled=false; gen.textContent='✨ Regenerate';
+        if(d.error){ st.textContent='Error: '+d.error; return; }
+        ST.items=d.items||[]; ST.pool=d.pool||[];
+        st.innerHTML='<b>'+ST.items.length+'</b> AI-picked items · <b>'+(ST.pool.length)+'</b> total in-stock matches across the 3 inventories.'+(d.ai_error?(' <span style="color:#c0392b">(AI note: '+esc(d.ai_error)+')</span>'):'');
+        ov.querySelector('#sl_dl').style.display=ST.items.length?'':'none';
+        ov.querySelector('#sl_dlall').style.display=ST.pool.length?'':'none';
+        var rows=ST.items.map(function(it){
+          return '<tr>'
+            +'<td style="padding:5px 8px;border-bottom:1px solid #eef2f5">'+tierBadge(it.tier)+'</td>'
+            +'<td style="padding:5px 8px;border-bottom:1px solid #eef2f5;font-size:12px">'+esc(it.manufacturer||'')+'</td>'
+            +'<td style="padding:5px 8px;border-bottom:1px solid #eef2f5;font-size:12px">'+esc(it.name||'')+'</td>'
+            +'<td style="padding:5px 8px;border-bottom:1px solid #eef2f5;font-size:12px">'+esc(it.ref||'')+'</td>'
+            +'<td style="padding:5px 8px;border-bottom:1px solid #eef2f5;font-size:12px">'+money(it.price)+'</td>'
+            +'<td style="padding:5px 8px;border-bottom:1px solid #eef2f5;font-size:11px;color:#556">'+esc(it.source||'')+'</td>'
+            +'<td style="padding:5px 8px;border-bottom:1px solid #eef2f5;font-size:11px;color:#556">'+esc(it.reason||'')+'</td>'
+            +'</tr>';
+        }).join('');
+        out.innerHTML='<div style="max-height:46vh;overflow:auto;border:1px solid #e3e9ee;border-radius:8px"><table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif"><thead><tr style="position:sticky;top:0;background:#f2f6fa">'
+          +['Tier','Mfr','Item','REF#','Price','Source','Why relevant'].map(function(x){return '<th style="text-align:left;padding:6px 8px;font-size:11px;color:#33506e">'+x+'</th>';}).join('')
+          +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+      }).catch(function(e){ gen.disabled=false; gen.textContent='✨ Generate smart list'; st.textContent='Error: '+e; });
+  }
+  function open(opts){
+    ST={mode:opts.mode,email:opts.email,name:opts.name,items:[],pool:[]};
+    close();
+    ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;background:rgba(15,25,35,.55);z-index:99999;display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto';
+    var card=document.createElement('div');
+    card.style.cssText='background:#fff;border-radius:14px;max-width:960px;width:100%;box-shadow:0 18px 60px rgba(0,0,0,.35);padding:18px 20px;position:relative';
+    card.innerHTML='<button id="sl_x" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:#889">×</button><div id="sl_body"></div>';
+    ov.appendChild(card); document.body.appendChild(ov);
+    ov.addEventListener('click',function(e){ if(e.target===ov) close(); });
+    card.querySelector('#sl_x').onclick=close;
+    render();
+  }
+  window.SmartList={ openCustomer:function(email,name){ open({mode:'customer',email:email,name:name}); }, openBuilder:function(){ open({mode:'query'}); } };
+  // Workspace launcher
+  try{
+    new MutationObserver(function(){
+      var k=document.getElementById('wsRadarKpis');
+      if(k && !document.getElementById('smartListLauncher')){
+        var b=document.createElement('button'); b.id='smartListLauncher'; b.type='button'; b.textContent='🧠 Smart List Builder';
+        b.style.cssText='margin:0 0 12px;padding:9px 16px;background:#1d3557;color:#fff;border:none;border-radius:9px;cursor:pointer;font-weight:600;font-size:14px';
+        b.onclick=function(){ window.SmartList.openBuilder(); };
+        k.parentNode.insertBefore(b,k);
+      }
+    }).observe(document.body,{childList:true,subtree:true});
+  }catch(e){}
+})();
+</script>
+
 </body>
 </html>
