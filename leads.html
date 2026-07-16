@@ -1333,7 +1333,7 @@ async function openDetail(id){
   loadEmailThread(l);
   loadCustHistory(l);
   loadShipping(l);
-  { const sbtn=document.getElementById("sendBtn"); if(sbtn) sbtn.onclick=()=>sendReply(l); }
+  { const sbtn=document.getElementById("sendBtn"); if(sbtn) sbtn.onclick=()=>sendReply(l); if(window.SmartList&&sbtn&&l.custEmail&&!document.getElementById('sbtn_smartlist')){var _slb2=document.createElement('button');_slb2.id='sbtn_smartlist';_slb2.type='button';_slb2.textContent='📥 Smart List (Excel)';_slb2.className=sbtn.className;_slb2.style.marginLeft='8px';_slb2.onclick=function(){window.SmartList.openCustomer(l.custEmail,l.custName||l.custEmail);};sbtn.parentNode.insertBefore(_slb2,sbtn.nextSibling);} }
   // Draft: keep whatever the rep typed (subject + body) per lead, so closing & reopening doesn't lose it.
   (function(){
     const sEl=document.getElementById('composeSubject'), bEl=document.getElementById('composeBody');
