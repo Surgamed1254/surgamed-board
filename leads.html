@@ -1268,7 +1268,7 @@ function extractDetails(text){
 function ensureOverlay(){
   let o=document.getElementById("detailOverlay");
   if(!o){ o=document.createElement("div"); o.id="detailOverlay"; o.className="overlay"; o.style.display="none";
-    o.addEventListener("click",e=>{ if(e.target===o) closeDetail(); });
+    o.addEventListener("click",e=>{ if(e.target===o){/* backdrop click no longer closes the detail */} });
     document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeDetail(); });
     document.body.appendChild(o); }
   return o;
