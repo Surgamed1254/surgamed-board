@@ -1333,7 +1333,7 @@ async function openDetail(id){
   loadEmailThread(l);
   loadCustHistory(l);
   loadShipping(l);
-  { const sbtn=document.getElementById("sendBtn"); if(sbtn) sbtn.onclick=()=>sendReply(l); if(window.SmartList&&sbtn&&l.custEmail&&!document.getElementById('sbtn_smartlist')){var _slb2=document.createElement('button');_slb2.id='sbtn_smartlist';_slb2.type='button';_slb2.textContent='📥 Smart List (Excel)';_slb2.className=sbtn.className;_slb2.style.marginLeft='8px';_slb2.onclick=function(){window.SmartList.openCustomer(l.custEmail,l.custName||l.custEmail);};sbtn.parentNode.insertBefore(_slb2,sbtn.nextSibling);} }
+  { const sbtn=document.getElementById("sendBtn"); if(sbtn) sbtn.onclick=()=>sendReply(l); if(window.SmartList&&sbtn&&l.custEmail&&!document.getElementById('sbtn_smartlist')){var _slb2=document.createElement('button');_slb2.id='sbtn_smartlist';_slb2.type='button';_slb2.textContent='📥 Smart List (Excel)';_slb2.className=sbtn.className;_slb2.style.marginLeft='8px';_slb2.onclick=function(){window.SmartList.openCustomer(l.custEmail,l.custName||l.custEmail);};sbtn.parentNode.insertBefore(_slb2,sbtn.nextSibling);if(window.Holds){window.__MYREP=(typeof MY_REP!=='undefined'?MY_REP:'');window.__MYEMAIL=(typeof MY_EMAIL!=='undefined'?MY_EMAIL:'');var _lk2=window.Holds.makeButton(l.custEmail,l.custName||l.custEmail,sbtn.className);if(_lk2)_slb2.parentNode.insertBefore(_lk2,_slb2.nextSibling);}} }
   // Draft: keep whatever the rep typed (subject + body) per lead, so closing & reopening doesn't lose it.
   (function(){
     const sEl=document.getElementById('composeSubject'), bEl=document.getElementById('composeBody');
@@ -2058,7 +2058,7 @@ async function showCustDetail(email, name, mountEl, ns){
     renderNotes(em, document.getElementById(ns+'_notes'), ns);
     emailHistoryInto(em, document.getElementById(ns+'_box'), ns);
     { const _sb=document.getElementById(ns+'_send'); if(_sb) _sb.onclick=()=>sendCustEmail(ns, em, name||em); }
-    { const _db=document.getElementById(ns+'_draft'); if(_db) _db.onclick=()=>reorderDraftInto(ns, em, name||em); if(window.SmartList&&_db&&!document.getElementById(ns+'_smartlist')){var _slb=document.createElement('button');_slb.id=ns+'_smartlist';_slb.type='button';_slb.textContent='📥 Smart List (Excel)';_slb.className=_db.className;_slb.style.marginLeft='6px';_slb.onclick=function(){window.SmartList.openCustomer(em,name||em);};_db.parentNode.insertBefore(_slb,_db.nextSibling);} }
+    { const _db=document.getElementById(ns+'_draft'); if(_db) _db.onclick=()=>reorderDraftInto(ns, em, name||em); if(window.SmartList&&_db&&!document.getElementById(ns+'_smartlist')){var _slb=document.createElement('button');_slb.id=ns+'_smartlist';_slb.type='button';_slb.textContent='📥 Smart List (Excel)';_slb.className=_db.className;_slb.style.marginLeft='6px';_slb.onclick=function(){window.SmartList.openCustomer(em,name||em);};_db.parentNode.insertBefore(_slb,_db.nextSibling);if(window.Holds){window.__MYREP=(typeof MY_REP!=='undefined'?MY_REP:'');window.__MYEMAIL=(typeof MY_EMAIL!=='undefined'?MY_EMAIL:'');var _lk=window.Holds.makeButton(em,name||em,_db.className);if(_lk)_slb.parentNode.insertBefore(_lk,_slb.nextSibling);}} }
   }catch(e){ mountEl.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
 }
 function openLookup(){
@@ -2330,6 +2330,72 @@ boot();
     new MutationObserver(function(){
       var btns=[].slice.call(document.querySelectorAll('button')).filter(function(b){ return /Send from board|Send email/i.test((b.textContent||'')) && !b.__attached; });
       btns.forEach(makeControl);
+    }).observe(document.body,{childList:true,subtree:true});
+  }catch(e){}
+})();
+</script>
+
+
+<script>
+(function(){
+  var SB_URL="https://ecjemcrpbzeocoiwslcu.supabase.co";
+  var SB_KEY="sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
+  var FN=SB_URL+"/functions/v1/holds";
+  var STATE={};
+  function call(b){ return fetch(FN,{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY},body:JSON.stringify(b)}).then(function(r){return r.json();}); }
+  function esc(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function fmt(d){ try{return new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});}catch(e){return '';} }
+  function key(e){return String(e||'').trim().toLowerCase();}
+  function isLocked(e){return !!STATE[key(e)];}
+  function updateBadge(){ var b=document.getElementById('lockedListBtn'); if(b) b.textContent='🔒 Locked ('+Object.keys(STATE).length+')'; }
+  function load(cb){ call({action:'list'}).then(function(r){ STATE={}; (r.holds||[]).forEach(function(h){STATE[key(h.customer_email)]=h;}); updateBadge(); if(cb)cb(); }).catch(function(){ if(cb)cb(); }); }
+  function styleBtn(b,locked){ b.style.cssText='margin-left:6px;padding:7px 12px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;'+(locked?'background:#8a1c1c;color:#fff':'background:#b8860b;color:#fff'); }
+  function makeButton(email,name,cls){
+    var b=document.createElement('button'); b.type='button';
+    function render(){ var lk=isLocked(email); var h=STATE[key(email)]; b.textContent=lk?('🔓 Locked by '+((h&&h.held_by)||'?')+' — Release'):'🔒 Lock (permanent hold)'; styleBtn(b,lk); }
+    render();
+    b.onclick=function(){
+      b.disabled=true;
+      if(isLocked(email)){
+        call({action:'release',customer_email:email}).then(function(r){ if(r&&r.ok){delete STATE[key(email)];} b.disabled=false; render(); updateBadge(); });
+      } else {
+        call({action:'lock',customer_email:email,customer_name:name,held_by:(window.__MYREP||''),held_by_email:(window.__MYEMAIL||'')}).then(function(r){ if(r&&r.ok){STATE[key(email)]=r.hold||{customer_email:email,customer_name:name,held_by:(window.__MYREP||''),created_at:new Date().toISOString()};} b.disabled=false; render(); updateBadge(); });
+      }
+    };
+    return b;
+  }
+  var ov=null;
+  function closeModal(){ if(ov){ov.remove();ov=null;} }
+  function openList(){
+    load(function(){
+      closeModal();
+      ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;background:rgba(15,25,35,.55);z-index:99999;display:flex;align-items:flex-start;justify-content:center;padding:5vh 12px;overflow:auto';
+      var card=document.createElement('div'); card.style.cssText='background:#fff;border-radius:14px;max-width:820px;width:100%;box-shadow:0 18px 60px rgba(0,0,0,.35);padding:18px 20px;position:relative';
+      var holds=Object.keys(STATE).map(function(k){return STATE[k];}).sort(function(a,b){return String(b.created_at||'').localeCompare(String(a.created_at||''));});
+      var rows=holds.map(function(h){ return '<tr>'
+        +'<td style="padding:6px 8px;border-bottom:1px solid #eef2f5;font-size:13px">'+esc(h.customer_name||h.customer_email)+'<div style="font-size:11px;color:#889">'+esc(h.customer_email)+'</div></td>'
+        +'<td style="padding:6px 8px;border-bottom:1px solid #eef2f5;font-size:12px">'+esc(h.held_by||'')+'</td>'
+        +'<td style="padding:6px 8px;border-bottom:1px solid #eef2f5;font-size:12px">'+fmt(h.created_at)+'</td>'
+        +'<td style="padding:6px 8px;border-bottom:1px solid #eef2f5"><button data-em="'+esc(h.customer_email)+'" class="hrel" style="padding:4px 10px;background:#8a1c1c;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px">Release</button></td></tr>'; }).join('');
+      card.innerHTML='<button id="hx" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:#889">×</button>'
+        +'<div style="font-weight:700;font-size:16px;margin-bottom:4px">🔒 Locked customers ('+holds.length+')</div>'
+        +'<div style="color:#5a6b7b;font-size:12px;margin-bottom:10px">Permanent holds override the 90-day rotation. Anyone can release.</div>'
+        +(holds.length?('<div style="max-height:60vh;overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr style="position:sticky;top:0;background:#f2f6fa">'+['Customer','Locked by','Locked on',''].map(function(x){return '<th style="text-align:left;padding:6px 8px;font-size:11px;color:#33506e">'+x+'</th>';}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div>'):'<div style="color:#889;padding:20px 0">No customers are locked yet.</div>');
+      ov.appendChild(card); document.body.appendChild(ov);
+      ov.addEventListener('click',function(e){ if(e.target===ov) closeModal(); });
+      card.querySelector('#hx').onclick=closeModal;
+      [].forEach.call(card.querySelectorAll('.hrel'),function(btn){ btn.onclick=function(){ var em=btn.getAttribute('data-em'); btn.disabled=true; btn.textContent='…'; call({action:'release',customer_email:em}).then(function(r){ if(r&&r.ok){delete STATE[key(em)];} openList(); }); }; });
+    });
+  }
+  window.Holds={ makeButton:makeButton, openList:openList, isLocked:isLocked, reload:load, state:function(){return STATE;} };
+  load();
+  try{
+    new MutationObserver(function(){
+      var r=document.getElementById('radarBtn');
+      if(r && !document.getElementById('lockedListBtn')){
+        var b=document.createElement('button'); b.id='lockedListBtn'; b.type='button'; b.textContent='🔒 Locked ('+Object.keys(STATE).length+')'; b.className=r.className; b.style.marginLeft='6px';
+        b.onclick=openList; r.parentNode.insertBefore(b,r.nextSibling);
+      }
     }).observe(document.body,{childList:true,subtree:true});
   }catch(e){}
 })();
