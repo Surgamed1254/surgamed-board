@@ -865,7 +865,32 @@ async function loadShipping(l){
   }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load shipping: '+esc(String(e.message||e))+'</div>'; }
 }
 // Read + edit the ShipStation ORDER internal note (live via edge function) from the congrats view.
-async function loadShipNote(orderId, orderNumber, box){
+async async function __ssTagList(){
+  if(window.__SS_TAGS_CACHE) return window.__SS_TAGS_CACHE;
+  const r=await fetch('https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/shipstation-note',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({action:'listtags'})});
+  const j=await r.json(); window.__SS_TAGS_CACHE=(j.tags||[]); return window.__SS_TAGS_CACHE;
+}
+async function renderShipTags(orderId, orderNumber, current){
+  const wrap=document.getElementById('ssTagChips'); if(!wrap) return;
+  let cur=(current||[]).map(Number);
+  let tags; try{ tags=await __ssTagList(); }catch(e){ wrap.textContent='tags unavailable'; return; }
+  function paint(){
+    wrap.innerHTML=tags.map(function(t){var on=cur.indexOf(Number(t.tagId))>=0; return '<button data-tid="'+t.tagId+'" class="__sstag" style="cursor:pointer;border:1px solid '+(on?(t.color||'#0b63c4'):'#cdd6df')+';background:'+(on?(t.color||'#0b63c4'):'#fff')+';color:'+(on?'#fff':'#5a6b7b')+';border-radius:12px;padding:3px 10px;font-size:12px;font-weight:'+(on?'600':'400')+'">'+(on?'\u2713 ':'')+esc(t.name||('#'+t.tagId))+'</button>';}).join('');
+    Array.prototype.forEach.call(wrap.querySelectorAll('.__sstag'),function(b){
+      b.onclick=async function(){
+        var tid=Number(b.getAttribute('data-tid')); var on=cur.indexOf(tid)>=0; b.disabled=true;
+        try{
+          const r=await fetch('https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/shipstation-note',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({action:(on?'removetag':'addtag'),order_id:orderId,order_number:orderNumber,tag_id:tid})});
+          const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||('HTTP '+r.status));
+          if(on){ cur=cur.filter(function(x){return x!==tid;}); } else { cur.push(tid); }
+        }catch(e){ alert('Tag update failed: '+(e.message||e)); }
+        b.disabled=false; paint();
+      };
+    });
+  }
+  paint();
+}
+function loadShipNote(orderId, orderNumber, box){
   if(!box) return;
   box.innerHTML='<div style="color:#9aa7b4;font-size:12px">Loading ShipStation internal note…</div>';
   try{
@@ -874,9 +899,10 @@ async function loadShipNote(orderId, orderNumber, box){
     const lbl=String(d.order_number||orderNumber||orderId||'');
     box.innerHTML='<div style="font-size:12px;font-weight:600;color:#5a6b7b;margin:2px 0 4px">📝 ShipStation internal note'+(lbl?(' <span style="font-weight:400;color:#9aa7b4">— order #'+esc(lbl)+'</span>'):'')+'</div>'+
       '<textarea id="ssNoteText" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
-      '<div style="margin-top:5px;display:flex;gap:8px;align-items:center"><button id="ssNoteSave" class="custbtn" style="padding:6px 12px">💾 Save note</button><span id="ssNoteMsg" style="font-size:12px;color:#5a6b7b"></span></div>';
+      '<div style="margin-top:5px;display:flex;gap:8px;align-items:center"><button id="ssNoteSave" class="custbtn" style="padding:6px 12px">💾 Save note</button><span id="ssNoteMsg" style="font-size:12px;color:#5a6b7b"></span></div><div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center"><span style="font-size:12px;color:#5a6b7b">🏷️ ShipStation tags:</span><span id="ssTagChips" style="color:#9aa7b4;font-size:12px">…</span></div>';
     document.getElementById('ssNoteText').value=(d.board_note!==undefined&&d.board_note!=='')?d.board_note:(d.internalNotes||'');
     const oid=d.order_id||orderId;
+    renderShipTags(oid, orderNumber, d.tagIds||[]);
     document.getElementById('ssNoteSave').onclick=async()=>{
       const t=document.getElementById('ssNoteText'), msg=document.getElementById('ssNoteMsg'), b=document.getElementById('ssNoteSave');
       b.disabled=true; msg.style.color='#5a6b7b'; msg.textContent='Saving…';
