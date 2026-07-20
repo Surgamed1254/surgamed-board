@@ -1476,7 +1476,10 @@ function renderRepIntel(rows){
   const cutoff=monthsAgoISO(OWNERSHIP_MONTHS);
   const open=!(lastDate && lastDate>=cutoff);
   let badge;
-  if(open){
+  var _hemail=((rows||[]).map(function(_r){return _r.customer_email||_r.email;}).filter(Boolean)[0])||'';
+  var _hheld=(window.Holds&&_hemail&&window.Holds.isLocked(_hemail))?(window.Holds.state()[String(_hemail).trim().toLowerCase()]||{}):null;
+  if(_hheld){ badge='<span style="background:#fdeaea;color:#8a1c1c;border:1px solid #f2c4c4;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">🔒 LOCKED</span> <span style="color:#5a6b7b;font-size:11px">'+(String(_hheld.held_by||'a rep'))+'’s customer — permanent hold (overrides the '+OWNERSHIP_MONTHS+'-month rule)</span>'; }
+  else if(open){
     badge='<span style="background:#e8f5ec;color:#1d7a3f;border:1px solid #b7e0c4;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">🔓 OPEN to all reps</span> <span style="color:#5a6b7b;font-size:11px">no rep has closed a sale in over '+OWNERSHIP_MONTHS+' months — anyone can work this account</span>';
   }else{
     const exp=new Date(lastDate); exp.setMonth(exp.getMonth()+OWNERSHIP_MONTHS);
