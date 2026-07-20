@@ -874,13 +874,13 @@ async function loadShipNote(orderId, orderNumber, box){
     const lbl=String(d.order_number||orderNumber||orderId||'');
     box.innerHTML='<div style="font-size:12px;font-weight:600;color:#5a6b7b;margin:2px 0 4px">📝 ShipStation internal note'+(lbl?(' <span style="font-weight:400;color:#9aa7b4">— order #'+esc(lbl)+'</span>'):'')+'</div>'+
       '<textarea id="ssNoteText" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
-      '<div style="margin-top:5px;display:flex;gap:8px;align-items:center"><button id="ssNoteSave" class="custbtn" style="padding:6px 12px">Save to ShipStation</button><span id="ssNoteMsg" style="font-size:12px;color:#5a6b7b"></span></div>';
-    document.getElementById('ssNoteText').value=d.internalNotes||'';
+      '<div style="margin-top:5px;display:flex;gap:8px;align-items:center"><button id="ssNoteSave" class="custbtn" style="padding:6px 12px">💾 Save note</button><span id="ssNoteMsg" style="font-size:12px;color:#5a6b7b"></span></div>';
+    document.getElementById('ssNoteText').value=(d.board_note!==undefined&&d.board_note!=='')?d.board_note:(d.internalNotes||'');
     const oid=d.order_id||orderId;
     document.getElementById('ssNoteSave').onclick=async()=>{
       const t=document.getElementById('ssNoteText'), msg=document.getElementById('ssNoteMsg'), b=document.getElementById('ssNoteSave');
       b.disabled=true; msg.style.color='#5a6b7b'; msg.textContent='Saving…';
-      try{ const rr=await fetch(SB_URL+'/functions/v1/shipstation-note',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({action:'set',order_id:oid,order_number:orderNumber,note:t.value})}); const dd=await rr.json(); if(!rr.ok||dd.error) throw new Error(dd.error||('HTTP '+rr.status)); msg.style.color='#1d7a3f'; msg.textContent='Saved to ShipStation ✓'; }
+      try{ const rr=await fetch(SB_URL+'/functions/v1/shipstation-note',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({action:'set',order_id:oid,order_number:orderNumber,note:t.value,updated_by:(typeof MY_REP!=='undefined'?(MY_REP||''):''),updated_by_email:(typeof MY_EMAIL!=='undefined'?(MY_EMAIL||''):'')})}); const dd=await rr.json(); if(!rr.ok||dd.error) throw new Error(dd.error||('HTTP '+rr.status)); msg.style.color='#1d7a3f'; msg.textContent='Saved to ShipStation ✓'; }
       catch(e){ msg.style.color='#c0392b'; msg.textContent='Couldn’t save: '+(e.message||e); }
       b.disabled=false;
     };
