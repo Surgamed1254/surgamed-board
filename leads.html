@@ -227,6 +227,9 @@ body.modern #newLook{ background:#4f46e5; border-color:#4f46e5; box-shadow:0 1px
 
 /* RZ-CALM-V1 */
 body{background:#f6f8fb;line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}.wrap{max-width:1200px;margin:0 auto;}.card{border:1px solid #e8edf3 !important;border-radius:12px !important;box-shadow:none !important;padding:13px 15px !important;margin-bottom:12px !important;}.cardhead{font-weight:600 !important;letter-spacing:.1px;}.item{border:1px solid #eceff4 !important;border-radius:10px !important;}.item:hover{border-color:#d7dee6 !important;background:#fbfcfe !important;}.tag,.pill,.statusbadge{border-radius:999px !important;font-weight:500 !important;}.folder{border-radius:12px !important;}.overlay .modal{border-radius:16px !important;max-width:860px !important;box-shadow:0 12px 40px rgba(22,32,44,.16) !important;}.mhead{padding:17px 22px !important;border-bottom:1px solid #eceff4 !important;}.mbody{padding:18px 22px !important;}.mbody .kv{padding:7px 0 !important;border-bottom:1px solid #f1f4f8 !important;}.mfoot{padding:14px 22px !important;border-top:1px solid #eceff4 !important;}button,.custbtn,.msbtn,.signout{border-radius:9px !important;}.custbtn{border:1px solid #cdd6df !important;background:#fff !important;transition:background .12s ease,border-color .12s ease;}.custbtn:hover{background:#f2f6fb !important;border-color:#b9c4d0 !important;}::-webkit-scrollbar{width:10px;height:10px;}::-webkit-scrollbar-thumb{background:#dbe2ea;border-radius:8px;}::-webkit-scrollbar-thumb:hover{background:#c7d0da;}
+
+/* RZ-TABS-V1 */
+.rz-tbar{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid #eceff4;margin:0 0 14px;position:sticky;top:0;background:#fff;z-index:3;padding-top:2px;}.rz-tbtn{font:inherit;font-size:13px;padding:9px 13px;border:none;background:none;cursor:pointer;color:#5f6f7e;border-bottom:2px solid transparent;border-radius:0;white-space:nowrap;}.rz-tbtn:hover{color:#16202c;}.rz-tbtn.on{color:#0b66c3;border-bottom-color:#0b66c3;font-weight:600;}.rz-tpanel>h4:first-child{margin-top:0;}
 </style>
 </head>
 <body>
@@ -1298,6 +1301,37 @@ async function renderHist(id){
   box.innerHTML=data.map(e=>{ const d=new Date(e.ts), ds=isNaN(d.getTime())?e.ts:d.toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
     return '<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #f0f3f6"><span style="color:#7b8a99">'+esc(ds)+'</span> &middot; '+esc(e.action)+' <span style="color:#9aa7b4">('+esc(e.actor||"—")+')</span></div>'; }).join("");
 }
+function rzTabify(mb){
+  try{
+    if(!mb||mb.__rztab)return; mb.__rztab=1;
+    var mapTab=function(h){var id=h.id||'';var t=(h.textContent||'').toLowerCase();
+      if(id==='custHdr'||/purchase history/.test(t))return 'history';
+      if(id==='suggHdr'||/suggested items/.test(t))return 'inventory';
+      if(id==='tagHdr'||/\btags\b/.test(t))return 'tags';
+      if(/shipping status/.test(t))return 'shipping';
+      if(/email history/.test(t)||/full email/.test(t))return 'email';
+      if(/^\s*history\s*$/.test(t))return 'history';
+      return 'overview';};
+    var kids=Array.prototype.slice.call(mb.childNodes);
+    var groups=[],cur=null,pre=[];
+    kids.forEach(function(n){ if(n.nodeType===1&&n.tagName==='H4'){cur={tab:mapTab(n),nodes:[n]};groups.push(cur);} else if(cur){cur.nodes.push(n);} else {pre.push(n);} });
+    if(groups.length<2)return;
+    var order=['overview','history','inventory','shipping','tags','email'];
+    var labels={overview:'Overview',history:'History',inventory:'Inventory',shipping:'Shipping',tags:'Tags',email:'Email'};
+    var present={}; groups.forEach(function(g){present[g.tab]=1;});
+    var tabs=order.filter(function(t){return present[t];});
+    var wrap=document.createElement('div'); wrap.className='rz-twrap';
+    var bar=document.createElement('div'); bar.className='rz-tbar';
+    var host=document.createElement('div'); host.className='rz-tpanels';
+    var panels={}; tabs.forEach(function(t){var p=document.createElement('div');p.className='rz-tpanel';p.setAttribute('data-tab',t);panels[t]=p;host.appendChild(p);});
+    groups.forEach(function(g){var p=panels[g.tab]||panels[tabs[0]]; g.nodes.forEach(function(n){p.appendChild(n);});});
+    var show=function(t){tabs.forEach(function(tt){panels[tt].style.display=(tt===t)?'':'none';}); bar.querySelectorAll('.rz-tbtn').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-tab')===t);});};
+    tabs.forEach(function(t){var b=document.createElement('button');b.className='rz-tbtn';b.type='button';b.textContent=labels[t];b.setAttribute('data-tab',t);b.onclick=function(){show(t);};bar.appendChild(b);});
+    wrap.appendChild(bar); wrap.appendChild(host);
+    if(pre.length){var pw=document.createElement('div'); pre.forEach(function(n){pw.appendChild(n);}); wrap.insertBefore(pw,host);}
+    mb.appendChild(wrap); show(tabs[0]);
+  }catch(e){}
+}
 function toggleSection(hdr){
   const collapsed = !(hdr.getAttribute('data-collapsed')==='1');
   hdr.setAttribute('data-collapsed', collapsed?'1':'0');
@@ -1345,6 +1379,7 @@ async function openDetail(id){
     '<div style="margin:8px 0 16px;display:flex;gap:6px"><input id="noteIn" placeholder="Add a note…" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="noteBtn" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>'+
     '<h4>Full email</h4><pre class="bodytext">'+linkify(text||"(no text content)")+'</pre>';
   initCollapsibles(mb);
+  try{rzTabify(mb);}catch(_e){}
   renderTags(l);
   renderHist(l.id);
   loadEmailThread(l);
