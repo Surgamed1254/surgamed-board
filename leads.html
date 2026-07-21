@@ -246,6 +246,9 @@ body{background:#f6f8fb;line-height:1.5;-webkit-font-smoothing:antialiased;text-
 /* RZ-REPLYHDR-V1 */
 .rz-replyhdr{margin:0 0 10px !important;font-size:13px !important;font-weight:600 !important;color:#0b66c3 !important;text-transform:none !important;letter-spacing:0 !important;}
 #composeWrap{margin-bottom:16px;}
+
+/* RZ-HDRFIX-V1 */
+.mhead{padding-left:46px !important;}.rz-fbhdr{margin:0 0 8px !important;font-size:13px !important;font-weight:600 !important;color:#5b3fc4 !important;text-transform:none !important;letter-spacing:0 !important;}#rzMore{position:relative;display:inline-block;}#rzMoreMenu .custbtn{display:block !important;width:100% !important;text-align:left !important;margin:2px 0 !important;border:none !important;background:transparent !important;color:#243240 !important;}#rzMoreMenu .custbtn:hover{background:#f2f6fb !important;}
 </style>
 </head>
 <body>
@@ -1346,7 +1349,7 @@ function rzTabify(mb){
     wrap.appendChild(bar); wrap.appendChild(host);
     if(pre.length){var pw=document.createElement('div'); pre.forEach(function(n){pw.appendChild(n);}); wrap.insertBefore(pw,host);}
     mb.appendChild(wrap); show(tabs[0]);
-    try{var cw=mb.querySelector('#composeWrap');var ep=panels['email'];if(cw&&ep){var rh=document.createElement('h4');rh.className='rz-replyhdr';rh.textContent='\u270D\uFE0F Reply to this customer';var car=document.createElement('span');car.textContent=' \u25BE';car.style.color='#8794a1';rh.appendChild(car);rh.style.cursor='pointer';rh.onclick=function(){var hid=cw.style.display==='none';cw.style.display=hid?'':'none';car.textContent=hid?' \u25BE':' \u25B8';};ep.insertBefore(cw,ep.firstChild);ep.insertBefore(rh,cw);}}catch(e2){}
+    try{var cw=mb.querySelector('#composeWrap');var ep=panels['email'];if(cw&&ep){var rh=document.createElement('h4');rh.className='rz-replyhdr';rh.textContent='\u270D\uFE0F Reply to this customer';var car=document.createElement('span');car.textContent=' \u25BE';car.style.color='#8794a1';rh.appendChild(car);rh.style.cursor='pointer';rh.onclick=function(){var hid=cw.style.display==='none';cw.style.display=hid?'':'none';car.textContent=hid?' \u25BE':' \u25B8';};ep.insertBefore(cw,ep.firstChild);ep.insertBefore(rh,cw);}}catch(e2){} try{var op=panels['overview'];if(op){var mfb=function(){var fb=mb.querySelector('.fieldbox');if(fb&&!fb.__mv){fb.__mv=1;var fh=document.createElement('h4');fh.className='rz-fbhdr';fh.textContent='\uD83E\uDE7A Likely medical field';var fc=document.createElement('span');fc.textContent=' \u25BE';fc.style.color='#8794a1';fh.appendChild(fc);fh.style.cursor='pointer';fh.onclick=function(){var h=fb.style.display==='none';fb.style.display=h?'':'none';fc.textContent=h?' \u25BE':' \u25B8';};op.insertBefore(fb,op.firstChild);op.insertBefore(fh,fb);return true;}return false;};if(!mfb()){var mo2=new MutationObserver(function(){if(mfb()){mo2.disconnect();}});mo2.observe(mb,{childList:true,subtree:true});setTimeout(function(){try{mo2.disconnect();}catch(_e){}},15000);}}}catch(e3){}
   }catch(e){}
 }
 function toggleSection(hdr){
@@ -2476,6 +2479,25 @@ boot();
 
 <script>
 (function(){function q(id){return document.getElementById(id);}function inWs(){var b=q("board");return !!(b&&/(^|\s)wsview(\s|$)/.test(b.className));}function sync(){var n=q("rzNav");if(!n)return;var ws=inWs();if(n._l)n._l.classList.toggle("on",!ws);if(n._w)n._w.classList.toggle("on",ws);}function build(){var vs=q("viewSel"),rb=q("radarBtn");if(!vs&&!rb)return false;if(q("rzNav")){sync();return true;}var anchor=vs||rb;var host=anchor;while(host&&host.parentElement&&host.parentElement.id!=="app"&&host.parentElement.tagName!=="BODY"){host=host.parentElement;}if(!host||!host.parentNode)return false;var n=document.createElement("div");n.id="rzNav";var br=document.createElement("span");br.className="rz-brand";br.textContent="SurgaMed";n.appendChild(br);function pill(lb,fn){var b=document.createElement("button");b.className="rz-np";b.type="button";b.textContent=lb;b.onclick=fn;n.appendChild(b);return b;}n._l=pill("Leads",function(){if(inWs()&&rb){rb.click();}var v=q("viewSel");if(v){v.value="cards";v.dispatchEvent(new Event("change",{bubbles:true}));}setTimeout(sync,60);});n._w=pill("Workspace",function(){if(!inWs()&&rb){rb.click();}setTimeout(sync,60);});host.parentNode.insertBefore(n,host);sync();return true;}var tries=0,t=setInterval(function(){tries++;if(build()||tries>60)clearInterval(t);},250);try{var mo=new MutationObserver(function(){build();});mo.observe(document.body,{childList:true,subtree:true});}catch(e){}})();
+</script>
+
+<script>
+(function(){
+function build(){
+var opp=document.getElementById("oppBtn");if(!opp)return false;
+if(document.getElementById("rzMore"))return true;
+var host=opp.parentNode;if(!host)return false;
+var wrap=document.createElement("span");wrap.id="rzMore";
+var mb=document.createElement("button");mb.className="custbtn";mb.type="button";mb.textContent="\u22EF More";
+var menu=document.createElement("div");menu.id="rzMoreMenu";menu.style.cssText="position:absolute;top:112%;left:0;background:#fff;border:1px solid #cdd6df;border-radius:10px;box-shadow:0 8px 24px rgba(22,32,44,.12);padding:6px;display:none;z-index:60;min-width:190px;";
+mb.onclick=function(e){e.stopPropagation();menu.style.display=menu.style.display==="none"?"block":"none";};
+document.addEventListener("click",function(){menu.style.display="none";});
+wrap.appendChild(mb);wrap.appendChild(menu);host.insertBefore(wrap,opp);
+["oppBtn","radarBtn","mySig","teamActivity"].forEach(function(id){var b=document.getElementById(id);if(b){b.style.display="";b.style.background="transparent";b.style.borderColor="transparent";menu.appendChild(b);}});
+return true;}
+var t=0,iv=setInterval(function(){t++;if(build()||t>60)clearInterval(iv);},250);
+try{new MutationObserver(function(){build();}).observe(document.body,{childList:true,subtree:true});}catch(e){}
+})();
 </script>
 </body>
 </html>
