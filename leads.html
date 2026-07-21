@@ -230,6 +230,9 @@ body{background:#f6f8fb;line-height:1.5;-webkit-font-smoothing:antialiased;text-
 
 /* RZ-TABS-V1 */
 .rz-tbar{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid #eceff4;margin:0 0 14px;position:sticky;top:0;background:#fff;z-index:3;padding-top:2px;}.rz-tbtn{font:inherit;font-size:13px;padding:9px 13px;border:none;background:none;cursor:pointer;color:#5f6f7e;border-bottom:2px solid transparent;border-radius:0;white-space:nowrap;}.rz-tbtn:hover{color:#16202c;}.rz-tbtn.on{color:#0b66c3;border-bottom-color:#0b66c3;font-weight:600;}.rz-tpanel>h4:first-child{margin-top:0;}
+
+/* RZ-NAV-V1 */
+#rzNav{display:flex;align-items:center;gap:6px;padding:10px 20px 0;max-width:1200px;margin:0 auto;flex-wrap:wrap;}#rzNav .rz-brand{font-weight:600;font-size:14px;color:#16202c;margin-right:6px;letter-spacing:.2px;}#rzNav .rz-np{font:inherit;font-size:13px;padding:7px 14px;border-radius:999px;border:1px solid transparent;background:transparent;color:#5f6f7e;cursor:pointer;}#rzNav .rz-np:hover{background:#eef2f7;color:#16202c;}#rzNav .rz-np.on{background:#e8f0fe;color:#0b66c3;font-weight:600;}
 </style>
 </head>
 <body>
@@ -2456,5 +2459,9 @@ boot();
 })();
 </script>
 
+
+<script>
+(function(){function q(id){return document.getElementById(id);}function inWs(){var b=q("board");return !!(b&&/(^|\s)wsview(\s|$)/.test(b.className));}function sync(){var n=q("rzNav");if(!n)return;var ws=inWs();if(n._l)n._l.classList.toggle("on",!ws);if(n._w)n._w.classList.toggle("on",ws);}function build(){var vs=q("viewSel"),rb=q("radarBtn");if(!vs&&!rb)return false;if(q("rzNav")){sync();return true;}var anchor=vs||rb;var host=anchor;while(host&&host.parentElement&&host.parentElement.id!=="app"&&host.parentElement.tagName!=="BODY"){host=host.parentElement;}if(!host||!host.parentNode)return false;var n=document.createElement("div");n.id="rzNav";var br=document.createElement("span");br.className="rz-brand";br.textContent="SurgaMed";n.appendChild(br);function pill(lb,fn){var b=document.createElement("button");b.className="rz-np";b.type="button";b.textContent=lb;b.onclick=fn;n.appendChild(b);return b;}n._l=pill("Leads",function(){if(inWs()&&rb){rb.click();}var v=q("viewSel");if(v){v.value="cards";v.dispatchEvent(new Event("change",{bubbles:true}));}setTimeout(sync,60);});n._w=pill("Workspace",function(){if(!inWs()&&rb){rb.click();}setTimeout(sync,60);});host.parentNode.insertBefore(n,host);sync();return true;}var tries=0,t=setInterval(function(){tries++;if(build()||tries>60)clearInterval(t);},250);try{var mo=new MutationObserver(function(){build();});mo.observe(document.body,{childList:true,subtree:true});}catch(e){}})();
+</script>
 </body>
 </html>
