@@ -242,6 +242,10 @@ body{background:#f6f8fb;line-height:1.5;-webkit-font-smoothing:antialiased;text-
 
 /* RZ-ITEMFIX-V1 */
 .card .item{display:-webkit-box !important;-webkit-line-clamp:3 !important;-webkit-box-orient:vertical !important;overflow:hidden !important;height:auto !important;min-height:0 !important;max-height:none !important;white-space:normal !important;line-height:1.4 !important;word-break:break-word;text-overflow:ellipsis;}.card .ttl{display:-webkit-box !important;-webkit-line-clamp:2 !important;-webkit-box-orient:vertical !important;overflow:hidden !important;white-space:normal !important;line-height:1.35 !important;}
+
+/* RZ-REPLYHDR-V1 */
+.rz-replyhdr{margin:0 0 10px !important;font-size:13px !important;font-weight:600 !important;color:#0b66c3 !important;text-transform:none !important;letter-spacing:0 !important;}
+#composeWrap{margin-bottom:16px;}
 </style>
 </head>
 <body>
@@ -1342,6 +1346,7 @@ function rzTabify(mb){
     wrap.appendChild(bar); wrap.appendChild(host);
     if(pre.length){var pw=document.createElement('div'); pre.forEach(function(n){pw.appendChild(n);}); wrap.insertBefore(pw,host);}
     mb.appendChild(wrap); show(tabs[0]);
+    try{var cw=mb.querySelector('#composeWrap');var ep=panels['email'];if(cw&&ep){var rh=document.createElement('h4');rh.className='rz-replyhdr';rh.textContent='\u270D\uFE0F Reply to this customer';var car=document.createElement('span');car.textContent=' \u25BE';car.style.color='#8794a1';rh.appendChild(car);rh.style.cursor='pointer';rh.onclick=function(){var hid=cw.style.display==='none';cw.style.display=hid?'':'none';car.textContent=hid?' \u25BE':' \u25B8';};ep.insertBefore(cw,ep.firstChild);ep.insertBefore(rh,cw);}}catch(e2){}
   }catch(e){}
 }
 function toggleSection(hdr){
