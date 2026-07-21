@@ -2483,19 +2483,22 @@ boot();
 
 <script>
 (function(){
+var lockedMoved=false;
+function findLocked(){var bb=document.querySelectorAll("button");for(var j=0;j<bb.length;j++){var tx=(bb[j].textContent||"").trim();if(/Locked\s*\(/.test(tx)){if(bb[j].id!=="rzMoreBtn")return bb[j];}}return null;}
 function build(){
 var opp=document.getElementById("oppBtn");if(!opp)return false;
-if(document.getElementById("rzMore"))return true;
-var host=opp.parentNode;if(!host)return false;
+var menu=document.getElementById("rzMoreMenu");
+if(!menu){var host=opp.parentNode;if(!host)return false;
 var wrap=document.createElement("span");wrap.id="rzMore";
-var mb=document.createElement("button");mb.className="custbtn";mb.type="button";mb.textContent="\u22EF More";
-var menu=document.createElement("div");menu.id="rzMoreMenu";menu.style.cssText="position:absolute;top:112%;left:0;background:#fff;border:1px solid #cdd6df;border-radius:10px;box-shadow:0 8px 24px rgba(22,32,44,.12);padding:6px;display:none;z-index:60;min-width:190px;";
-mb.onclick=function(e){e.stopPropagation();menu.style.display=menu.style.display==="none"?"block":"none";};
+var mbn=document.createElement("button");mbn.id="rzMoreBtn";mbn.className="custbtn";mbn.type="button";mbn.textContent="\u22EF More";
+menu=document.createElement("div");menu.id="rzMoreMenu";menu.style.cssText="position:absolute;top:112%;left:0;background:#fff;border:1px solid #cdd6df;border-radius:10px;box-shadow:0 8px 24px rgba(22,32,44,.12);padding:6px;display:none;z-index:60;min-width:190px;";
+mbn.onclick=function(e){e.stopPropagation();menu.style.display=menu.style.display==="none"?"block":"none";};
 document.addEventListener("click",function(){menu.style.display="none";});
-wrap.appendChild(mb);wrap.appendChild(menu);host.insertBefore(wrap,opp);
-["oppBtn","radarBtn","mySig","teamActivity"].forEach(function(id){var b=document.getElementById(id);if(!b)return;if(id==="teamActivity"&&!window.__IS_ADMIN){b.style.display="none";return;}b.style.display="";b.style.background="transparent";b.style.borderColor="transparent";menu.appendChild(b);});
+wrap.appendChild(mbn);wrap.appendChild(menu);host.insertBefore(wrap,opp);
+["oppBtn","radarBtn","mySig","teamActivity"].forEach(function(id){var b=document.getElementById(id);if(!b)return;if(id==="teamActivity"&&!window.__IS_ADMIN){b.style.display="none";return;}b.style.display="";b.style.background="transparent";b.style.borderColor="transparent";menu.appendChild(b);});}
+if(!lockedMoved){var lk=findLocked();if(lk){var rf=document.getElementById("refreshBtn");if(rf&&lk.parentNode){lk.parentNode.insertBefore(rf,lk);}lk.style.display="";lk.style.background="transparent";lk.style.borderColor="transparent";menu.appendChild(lk);lockedMoved=true;}}
 return true;}
-var t=0,iv=setInterval(function(){t++;if(build()||t>60)clearInterval(iv);},250);
+var t=0,iv=setInterval(function(){t++;build();if(lockedMoved||t>80)clearInterval(iv);},250);
 try{new MutationObserver(function(){build();}).observe(document.body,{childList:true,subtree:true});}catch(e){}
 })();
 </script>
