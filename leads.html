@@ -2540,5 +2540,68 @@ var t=0,iv=setInterval(function(){t++;build();if(lockedMoved||t>80)clearInterval
 try{new MutationObserver(function(){build();}).observe(document.body,{childList:true,subtree:true});}catch(e){}
 })();
 </script>
+
+<!-- RZ-EXPAND-SORT-LINK-V1 -->
+<script>
+(function(){
+function expandPass(mb){ try{
+ mb.querySelectorAll("h4").forEach(function(h){ if(h.dataset.rzExp) return; h.dataset.rzExp="1"; if(h.getAttribute("data-collapsed")==="1"){ h.click(); } });
+ var cw=mb.querySelector("#composeWrap"); if(cw&&getComputedStyle(cw).display==="none"){ var rh=mb.querySelector(".rz-replyhdr"); if(rh&&!rh.dataset.rzMini){ rh.dataset.rzMini="1"; rh.click(); } }
+ var fb=mb.querySelector(".fieldbox"); if(fb&&getComputedStyle(fb).display==="none"){ var fh=mb.querySelector(".rz-fbhdr"); if(fh&&!fh.dataset.rzMini){ fh.dataset.rzMini="1"; fh.click(); } }
+}catch(e){} }
+var seenMb=null;
+new MutationObserver(function(){ var mb=document.querySelector(".overlay .mbody"); if(!mb){ seenMb=null; return; } if(mb!==seenMb){ seenMb=mb; [0,250,800,1800].forEach(function(d){ setTimeout(function(){ if(document.querySelector(".overlay .mbody")===mb) expandPass(mb); },d); }); } }).observe(document.body,{childList:true,subtree:true});
+function wireSort(tbl){
+ if(tbl.dataset.rzSort) return; tbl.dataset.rzSort="1";
+ var ths=[].slice.call(tbl.querySelectorAll("thead th"));
+ ths.forEach(function(th,idx){ th.style.cursor="pointer"; th.title="Click to sort";
+  th.addEventListener("click",function(){
+   var tb=tbl.querySelector("tbody"); if(!tb) return;
+   var rows=[].slice.call(tb.children), pairs=[], i=0;
+   while(i<rows.length){ var main=rows[i], det=null; if(rows[i+1]&&/^rrd/.test(rows[i+1].id||"")){ det=rows[i+1]; i+=2; } else { i+=1; } pairs.push([main,det]); }
+   var dir = th.dataset.rzDir==="asc" ? "desc" : "asc";
+   ths.forEach(function(o){ delete o.dataset.rzDir; o.textContent=o.textContent.replace(/[\u25B2\u25BC]\s*$/,"").trim(); });
+   th.dataset.rzDir=dir;
+   var key=function(p){ var c=p[0].children[idx]; return c?(c.innerText||"").trim():""; };
+   pairs.sort(function(a,b){ var x=key(a),y=key(b);
+    var nx=parseFloat(x.replace(/[^0-9.\-]/g,"")), ny=parseFloat(y.replace(/[^0-9.\-]/g,""));
+    var bothNum = x!==""&&y!==""&&!isNaN(nx)&&!isNaN(ny)&&!/[A-Za-z]/.test(x)&&!/[A-Za-z]/.test(y);
+    var r = bothNum ? (nx-ny) : x.toLowerCase().localeCompare(y.toLowerCase());
+    return dir==="asc" ? r : -r; });
+   pairs.forEach(function(p){ tb.appendChild(p[0]); if(p[1]) tb.appendChild(p[1]); });
+   th.textContent=th.textContent+" "+(dir==="asc"?"\u25B2":"\u25BC");
+  }); });
+}
+new MutationObserver(function(){ var ts=document.querySelectorAll("table.phtab"); for(var i=0;i<ts.length;i++){ var hd=ts[i].querySelector("thead"); if(hd&&/Owner/i.test(hd.innerText||"")) wireSort(ts[i]); } }).observe(document.body,{childList:true,subtree:true});
+function openLinkDlg(ta){
+ var sel=ta.value.substring(ta.selectionStart,ta.selectionEnd);
+ var ov=document.createElement("div");
+ ov.style.cssText="position:fixed;inset:0;background:rgba(16,32,48,.45);z-index:99999;display:flex;align-items:center;justify-content:center;";
+ var bx=document.createElement("div");
+ bx.style.cssText="background:#fff;border-radius:10px;padding:18px 20px;width:min(520px,92vw);box-shadow:0 12px 40px rgba(0,0,0,.25);font-size:13px;";
+ bx.innerHTML='<div style="font-size:17px;font-weight:700;margin-bottom:14px;">Insert link</div><div style="margin-bottom:4px;">Display as</div><input id="rzLinkTxt" style="width:100%;box-sizing:border-box;padding:8px 9px;border:1px solid #cdd6df;border-radius:6px;margin-bottom:12px;font-size:13px;"><div style="margin-bottom:4px;">Web address (URL)</div><input id="rzLinkUrl" style="width:100%;box-sizing:border-box;padding:8px 9px;border:1px solid #cdd6df;border-radius:6px;margin-bottom:16px;font-size:13px;"><div style="display:flex;gap:8px;justify-content:flex-end;"><button id="rzLinkOk" class="custbtn" style="padding:7px 22px;">OK</button><button id="rzLinkNo" class="custbtn" style="padding:7px 18px;">Cancel</button></div>';
+ ov.appendChild(bx); document.body.appendChild(ov);
+ var txt=bx.querySelector("#rzLinkTxt"), url=bx.querySelector("#rzLinkUrl");
+ txt.value=sel||""; if(/^[a-z]+:\/\//i.test(sel)){ url.value=sel; }
+ (url.value?txt:url).focus();
+ function close(){ try{ document.body.removeChild(ov); }catch(e){} }
+ bx.querySelector("#rzLinkNo").onclick=close;
+ ov.onclick=function(e){ if(e.target===ov) close(); };
+ bx.querySelector("#rzLinkOk").onclick=function(){
+  var u=(url.value||"").trim(); if(!u){ url.focus(); return; }
+  if(!/^[a-z]+:/i.test(u)) u="https://"+u;
+  var d=(txt.value||"").trim()||u;
+  var html='<a href="'+u+'">'+d+"</a>";
+  var st=ta.selectionStart, en=ta.selectionEnd;
+  ta.value=ta.value.substring(0,st)+html+ta.value.substring(en);
+  ta.selectionStart=ta.selectionEnd=st+html.length;
+  close(); ta.focus();
+ };
+ url.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); bx.querySelector("#rzLinkOk").click(); } });
+}
+function wireLink(){ var ta=document.getElementById("composeBody"); if(!ta||ta.dataset.rzLink) return; var send=document.getElementById("sendBtn"); if(!send) return; ta.dataset.rzLink="1"; var b=document.createElement("button"); b.type="button"; b.className="custbtn"; b.textContent="\uD83D\uDD17 Link"; b.style.cssText="padding:7px 12px;"; b.onclick=function(){ openLinkDlg(ta); }; send.parentNode.insertBefore(b, send.nextSibling); }
+new MutationObserver(wireLink).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
 </body>
 </html>
