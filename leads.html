@@ -1732,7 +1732,7 @@ async function openReorderRadar(presetRep){
   const o=ensureOverlay(); o.style.display='flex';
   const isAdmin=ADMINS.includes(MY_EMAIL);
   const myFull=MY_REP?repFull(MY_REP):'';
-  const repPick=isAdmin
+  const repPick=true
     ? '<select id="rrRep" style="padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><option value="">All reps</option><option>Mirian Alejo</option><option>Jennifer Lugo</option><option>Deysi Calvo</option><option>Tehila Cohen</option><option value="__none__">Unassigned pool</option></select> '
     : '';
   o.innerHTML='<div class="modal wide"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>📡 Reorder Radar — reach out today</h3><div class="msub">Customers who look due to reorder, ranked by likelihood × value. Items we have in stock first — one click drafts the outreach.</div></div><div class="mbody"><div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+repPick+'<label style="font-size:12px;color:#5a6b7b"><input type="checkbox" id="rrInstock" checked> Only items we have in stock</label><span id="rrCount" style="font-size:12px;color:#9aa7b4"></span></div><div id="rrBody"><div style="color:#9aa7b4;font-size:12px">Loading…</div></div></div></div>';
@@ -1740,7 +1740,7 @@ async function openReorderRadar(presetRep){
   const body=document.getElementById('rrBody');
   async function run(){
     body.innerHTML='<div style="color:#9aa7b4;font-size:12px">Loading…</div>';
-    const repSel=isAdmin?(document.getElementById('rrRep').value):myFull;
+    const repSel=(document.getElementById('rrRep')||{value:myFull}).value;
     const onlyStock=document.getElementById('rrInstock').checked;
     try{
       let q=sb.from('reorder_radar_customers').select('*').order('top_score',{ascending:false}).limit(400);
@@ -1759,8 +1759,8 @@ async function openReorderRadar(presetRep){
       body.querySelectorAll('.rrrow').forEach(function(el){ el.onclick=function(){ const i=this.dataset.i, d=document.getElementById('rrd'+i); if(d.dataset.open==='1'){ d.dataset.open='0'; d.innerHTML=''; return; } d.dataset.open='1'; d.innerHTML='<td colspan="5" style="background:#f7fbff;padding:8px 12px"><div id="rrx'+i+'"></div></td>'; showCustDetail(this.dataset.email, this.dataset.name, document.getElementById('rrx'+i), 'rr'+i); }; });
     }catch(e){ body.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
   }
-  if(isAdmin && presetRep){ const _pr=document.getElementById('rrRep'); if(_pr) _pr.value=presetRep; }
-  if(isAdmin){ const rs=document.getElementById('rrRep'); if(rs) rs.onchange=run; }
+  { const _pr=document.getElementById('rrRep'); if(_pr) _pr.value = presetRep || (isAdmin ? '' : myFull); }
+  { const rs=document.getElementById('rrRep'); if(rs) rs.onchange=run; }
   const ic=document.getElementById('rrInstock'); if(ic) ic.onchange=run;
   run();
 }
