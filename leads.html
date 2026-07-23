@@ -2532,7 +2532,56 @@ var mbn=document.createElement("button");mbn.id="rzMoreBtn";mbn.className="custb
 menu=document.createElement("div");menu.id="rzMoreMenu";menu.style.cssText="position:absolute;top:112%;left:0;background:#fff;border:1px solid #cdd6df;border-radius:10px;box-shadow:0 8px 24px rgba(22,32,44,.12);padding:6px;display:none;z-index:60;min-width:190px;";
 mbn.onclick=function(e){e.stopPropagation();menu.style.display=menu.style.display==="none"?"block":"none";};
 document.addEventListener("click",function(){menu.style.display="none";});
-wrap.appendChild(mbn);wrap.appendChild(menu);host.insertBefore(wrap,opp);var dl=document.createElement("button");dl.className="custbtn";dl.type="button";dl.style.cssText="display:block;width:100%;text-align:left;margin:2px 0;border:none;background:transparent;color:#243240;";dl.textContent="\uD83D\uDCE5 Download inventory list";dl.onclick=function(e){e.stopPropagation();menu.style.display="none";var term=prompt("Download inventory list. Leave BLANK and press OK to get the FULL inventory (all 3 lists, every in-stock item). Or type ONE brand or keyword to filter (e.g. ETHICON, suture, laparoscopic).","");if(term===null)return;var norm=(term||"").trim().toLowerCase().replace(/[^a-z0-9]/g,"");var generic={"":1,"all":1,"alllists":1,"alllist":1,"all3lists":1,"all3list":1,"everything":1,"full":1,"fullinventory":1,"allinventory":1,"entireinventory":1};var q=generic[norm]?null:term.trim();var jwt;try{jwt=JSON.parse(localStorage.getItem("sb-ecjemcrpbzeocoiwslcu-auth-token")).access_token;}catch(_e){alert("Please sign in first.");return;}var orig=dl.textContent;dl.textContent="\u23F3 Preparing download\u2026";fetch("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/inventory-export",{method:"POST",headers:{Authorization:"Bearer "+jwt,apikey:jwt,"content-type":"application/json"},body:JSON.stringify({source:"all",q:q})}).then(function(r){return r.text();}).then(function(csv){var lines=(csv||"").split(/\r?\n/).filter(function(l){return l.trim();});if(lines.length<=1){alert(q?("No items matched \""+q+"\". Tip: leave the box blank to download the entire inventory."):"No inventory returned \u2014 please try again in a moment.");dl.textContent=orig;return;}var blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="surgamed_inventory_"+(new Date().toISOString().slice(0,10))+(q?("_"+q.replace(/[^A-Za-z0-9]/g,"")):"_full")+".csv";document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);dl.textContent=orig;}).catch(function(err){alert("Download failed: "+err);dl.textContent=orig;});};menu.appendChild(dl);
+wrap.appendChild(mbn);wrap.appendChild(menu);host.insertBefore(wrap,opp);var dl=document.createElement("button");dl.className="custbtn";dl.type="button";dl.style.cssText="display:block;width:100%;text-align:left;margin:2px 0;border:none;background:transparent;color:#243240;";dl.textContent="\uD83D\uDCE5 Download inventory list";dl.onclick=function(e){
+e.stopPropagation();menu.style.display="none";
+var term=prompt("Download inventory list. Leave BLANK and press OK for the FULL inventory (all 3 lists). Or type ONE brand or keyword to filter (e.g. ETHICON, suture).","");
+if(term===null)return;
+var norm=(term||"").trim().toLowerCase().replace(/[^a-z0-9]/g,"");
+var generic={"":1,"all":1,"alllists":1,"alllist":1,"all3lists":1,"all3list":1,"everything":1,"full":1,"fullinventory":1,"allinventory":1,"entireinventory":1};
+var q=generic[norm]?null:term.trim();
+var jwt;try{jwt=JSON.parse(localStorage.getItem("sb-ecjemcrpbzeocoiwslcu-auth-token")).access_token;}catch(_e){alert("Please sign in first.");return;}
+var orig=dl.textContent;dl.textContent="\u23F3 Preparing download\u2026";
+function fail(m){alert(m);dl.textContent=orig;}
+function ensureX(cb){if(window.XLSX)return cb();var sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";sc.onload=cb;sc.onerror=function(){fail("Could not load the spreadsheet engine. Check your connection and try again.");};document.head.appendChild(sc);}
+fetch("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/inventory-export",{method:"POST",headers:{Authorization:"Bearer "+jwt,apikey:jwt,"content-type":"application/json"},body:JSON.stringify({source:"all",q:q})})
+.then(function(r){return r.text();})
+.then(function(csv){
+ var check=(csv||"").split(/\r?\n/).filter(function(l){return l.trim();});
+ if(check.length<=1){fail(q?("No items matched \""+q+"\". Tip: leave the box blank to download the entire inventory."):"No inventory returned \u2014 please try again in a moment.");return;}
+ ensureX(function(){
+  try{
+   var wbIn=XLSX.read(csv,{type:"string",raw:true});
+   var rows=XLSX.utils.sheet_to_json(wbIn.Sheets[wbIn.SheetNames[0]],{header:1,blankrows:false});
+   var H=rows[0],body=rows.slice(1);
+   var SRC=0,MFG=1,REF=2,ITEM=3,CAT=4,COND=5,PRICE=6,QTY=7,EXP=8,LOC=9,LOT=10,UOM=11,SKU=12,LST=13;
+   var map={},order=[];
+   body.forEach(function(r){var key=[r[SRC]||"",r[MFG]||"",r[REF]||"",r[UOM]||""].join("\u0001");if(!map[key]){map[key]=[];order.push(key);}map[key].push(r);});
+   order.sort(function(a,b){var A=a.split("\u0001"),B=b.split("\u0001");return (A[1]||"").localeCompare(B[1]||"")||(A[2]||"").localeCompare(B[2]||"")||(A[0]||"").localeCompare(B[0]||"");});
+   var aoa=[H.slice()],rp=[{}];
+   order.forEach(function(key){
+    var g=map[key];
+    var tot=g.reduce(function(s,r){var n=parseFloat(String(r[QTY]==null?"":r[QTY]).replace(/[^0-9.\-]/g,""));return s+(isNaN(n)?0:n);},0);
+    var f=g[0];
+    if(g.length===1){var one=f.slice();one[QTY]=tot;aoa.push(one);rp.push({level:0});return;}
+    var sum=[];sum[SRC]=f[SRC];sum[MFG]=f[MFG];sum[REF]=f[REF];sum[ITEM]=(f[ITEM]||"")+"  \u2014  "+g.length+" listings";sum[CAT]=f[CAT]||"";sum[COND]="";
+    var ps={},pl=[];g.forEach(function(r){var p=String(r[PRICE]==null?"":r[PRICE]);if(p){if(!ps[p]){ps[p]=1;pl.push(p);}}});
+    sum[PRICE]=pl.length===1?pl[0]:"";sum[QTY]=tot;sum[EXP]="";sum[LOC]="";sum[LOT]="";sum[UOM]=f[UOM]||"";sum[SKU]="";sum[LST]="";
+    aoa.push(sum);rp.push({level:0});
+    g.forEach(function(r){aoa.push(r.slice());rp.push({level:1,hidden:true});});
+   });
+   var ws=XLSX.utils.aoa_to_sheet(aoa);
+   ws["!rows"]=rp;ws["!outline"]={above:true};
+   ws["!cols"]=[{wch:20},{wch:16},{wch:16},{wch:42},{wch:20},{wch:9},{wch:8},{wch:6},{wch:12},{wch:10},{wch:12},{wch:10},{wch:14},{wch:11}];
+   ws["!autofilter"]={ref:"A1:N1"};
+   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Inventory");
+   var fn="surgamed_inventory_"+(new Date().toISOString().slice(0,10))+(q?("_"+q.replace(/[^A-Za-z0-9]/g,"")):"_full")+".xlsx";
+   XLSX.writeFile(wb,fn);
+   dl.textContent=orig;
+  }catch(err){fail("Could not build the spreadsheet: "+err);}
+ });
+})
+.catch(function(err){fail("Download failed: "+err);});
+};menu.appendChild(dl);
 ["oppBtn","radarBtn","mySig","teamActivity"].forEach(function(id){var b=document.getElementById(id);if(!b)return;if(id==="teamActivity"&&!window.__IS_ADMIN){b.style.display="none";return;}b.style.display="";b.style.background="transparent";b.style.borderColor="transparent";menu.appendChild(b);});}
 if(!lockedMoved){var lk=findLocked();if(lk){var rf=document.getElementById("refreshBtn");if(rf&&lk.parentNode){lk.parentNode.insertBefore(rf,lk);}lk.style.display="";lk.style.background="transparent";lk.style.borderColor="transparent";menu.appendChild(lk);lockedMoved=true;}}
 return true;}
