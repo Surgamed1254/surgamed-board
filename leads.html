@@ -2553,7 +2553,7 @@ fetch("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/inventory-export",{
    var wbIn=XLSX.read(csv,{type:"string",raw:true});
    var rows=XLSX.utils.sheet_to_json(wbIn.Sheets[wbIn.SheetNames[0]],{header:1,blankrows:false});
    var H=rows[0],body=rows.slice(1);
-   var SRC=0,MFG=1,REF=2,ITEM=3,CAT=4,COND=5,PRICE=6,QTY=7,EXP=8,LOC=9,LOT=10,UOM=11,SKU=12,LST=13;
+   var SRC=0,MFG=1,REF=2,ITEM=3,PRICE=4,QTY=5,EXP=6,LOC=7,LOT=8,UOM=9,SKU=10,LST=11;
    var map={},order=[];
    body.forEach(function(r){var key=[r[SRC]||"",r[MFG]||"",r[REF]||"",r[UOM]||""].join("\u0001");if(!map[key]){map[key]=[];order.push(key);}map[key].push(r);});
    order.sort(function(a,b){var A=a.split("\u0001"),B=b.split("\u0001");return (A[1]||"").localeCompare(B[1]||"")||(A[2]||"").localeCompare(B[2]||"")||(A[0]||"").localeCompare(B[0]||"");});
@@ -2563,7 +2563,7 @@ fetch("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/inventory-export",{
     var tot=g.reduce(function(s,r){var n=parseFloat(String(r[QTY]==null?"":r[QTY]).replace(/[^0-9.\-]/g,""));return s+(isNaN(n)?0:n);},0);
     var f=g[0];
     if(g.length===1){var one=f.slice();one[QTY]=tot;aoa.push(one);rp.push({level:0});return;}
-    var sum=[];sum[SRC]=f[SRC];sum[MFG]=f[MFG];sum[REF]=f[REF];sum[ITEM]=(f[ITEM]||"")+"  \u2014  "+g.length+" listings";sum[CAT]=f[CAT]||"";sum[COND]="";
+    var sum=[];sum[SRC]=f[SRC];sum[MFG]=f[MFG];sum[REF]=f[REF];sum[ITEM]=(f[ITEM]||"")+"  \u2014  "+g.length+" listings";
     var ps={},pl=[];g.forEach(function(r){var p=String(r[PRICE]==null?"":r[PRICE]);if(p){if(!ps[p]){ps[p]=1;pl.push(p);}}});
     sum[PRICE]=pl.length===1?pl[0]:"";sum[QTY]=tot;sum[EXP]="";sum[LOC]="";sum[LOT]="";sum[UOM]=f[UOM]||"";sum[SKU]="";sum[LST]="";
     aoa.push(sum);rp.push({level:0});
@@ -2571,8 +2571,8 @@ fetch("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/inventory-export",{
    });
    var ws=XLSX.utils.aoa_to_sheet(aoa);
    ws["!rows"]=rp;ws["!outline"]={above:true};
-   ws["!cols"]=[{wch:20},{wch:16},{wch:16},{wch:42},{wch:20},{wch:9},{wch:8},{wch:6},{wch:12},{wch:10},{wch:12},{wch:10},{wch:14},{wch:11}];
-   ws["!autofilter"]={ref:"A1:N1"};
+   ws["!cols"]=[{wch:20},{wch:16},{wch:16},{wch:44},{wch:8},{wch:6},{wch:12},{wch:10},{wch:12},{wch:10},{wch:14},{wch:11}];
+   ws["!autofilter"]={ref:"A1:L1"};
    var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Inventory");
    var fn="surgamed_inventory_"+(new Date().toISOString().slice(0,10))+(q?("_"+q.replace(/[^A-Za-z0-9]/g,"")):"_full")+".xlsx";
    XLSX.writeFile(wb,fn);
