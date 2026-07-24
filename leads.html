@@ -2795,5 +2795,25 @@ if(document.readyState!=="loading")init();else document.addEventListener("DOMCon
 new MutationObserver(function(){if(!document.getElementById("rzpPill"))ensureNav();}).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
+
+<!-- RZ-PIPE-RADAR-V1 -->
+<script>
+(function(){
+if(window.__rzRadarLead)return;window.__rzRadarLead=1;
+function add(){
+ document.querySelectorAll("tr.rrrow:not([data-rzlead])").forEach(function(tr){
+  tr.setAttribute("data-rzlead","1");
+  var email=tr.getAttribute("data-email")||"";var name=tr.getAttribute("data-name")||"";
+  var td=tr.querySelector("td");if(!td)return;
+  var b=document.createElement("button");b.type="button";b.textContent="+ Lead";
+  b.style.cssText="margin-left:8px;font-size:10px;padding:2px 7px;border:1px solid #cfe0f2;background:#f2f8ff;color:#0b4ea8;border-radius:6px;cursor:pointer;font-weight:600;vertical-align:middle;";
+  b.title="Create an active lead from this customer";
+  b.onclick=function(e){e.stopPropagation();var ov=tr.closest(".overlay");if(ov)ov.style.display="none";if(window.rzMakeLead)window.rzMakeLead({customer_email:email,customer_name:name,source:"reorder_radar"});};
+  td.appendChild(b);
+ });
+}
+new MutationObserver(add).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
 </body>
 </html>
