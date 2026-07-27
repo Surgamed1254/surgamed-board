@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-store, max-age=0">
-<title>SurgaMed Sales — Live Wallboard</title>
+<title>SurgaMed Sales â Live Wallboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
 <style>
 :root{ color-scheme:dark; --bg:#0a0e1a; --panel:#121829; --panel2:#161d33; --line:#243049; --txt:#eef2ff; --mut:#8c9bbd; --green:#22c55e; --amber:#f59e0b; --gold:#fde047; }
@@ -86,11 +86,11 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 
 <div class="board">
   <div class="top">
-    <div class="brand"><div class="mk">SURGAMED</div><div class="sub">Sales Floor • Month to Date</div></div>
+    <div class="brand"><div class="mk">SURGAMED</div><div class="sub">Sales Floor â¢ Month to Date</div></div>
     <div class="live">
       <div class="cd"><div class="n" id="cdDays">--</div><div class="l">days left in <span id="cdMon">month</span></div></div>
       <div class="livedot"><i></i>LIVE</div>
-      <div><div class="clock" id="clock">--:--</div><div class="upd"><span id="periodLbl">Month to date</span> · updated <span id="upd"></span></div></div>
+      <div><div class="clock" id="clock">--:--</div><div class="upd"><span id="periodLbl">Month to date</span> Â· updated <span id="upd"></span></div></div>
     </div>
   </div>
 
@@ -99,13 +99,13 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
   <div class="main">
     <div class="col">
       <div class="panel" style="flex:1">
-        <h3>Rep Leaderboard — This Month <span style="color:var(--mut);font-size:.8vw">revenue race</span></h3>
+        <h3>Rep Leaderboard â This Month <span style="color:var(--mut);font-size:.8vw">revenue race</span></h3>
         <div class="race" id="race"></div>
       </div>
     </div>
     <div class="col">
       <div class="panel">
-        <h3>Monthly Goal · MTD Pace</h3>
+        <h3>Monthly Goal Â· MTD Pace</h3>
         <div class="goal">
           <div class="goalrow"><div class="goalpct" id="goalpct">0%</div><div style="text-align:right"><div class="goaltxt" id="goaltxt"></div><div class="daysleft" id="goalDays"></div></div></div>
           <div class="goalbar"><div class="goalfill" id="goalfill"></div></div>
@@ -116,7 +116,7 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
           <h3>Weekly Winner</h3>
           <div class="who" id="winWho" style="color:var(--gold)"></div>
           <div class="amt" id="winAmt" style="color:var(--gold)"></div>
-          <div class="cap">most revenue · last 7 days</div>
+          <div class="cap">most revenue Â· last 7 days</div>
         </div>
         <div class="panel spot">
           <h3>Biggest Deal</h3>
@@ -128,7 +128,7 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
   </div>
 
   <div class="panel" style="height:22vh; padding-bottom:.5vw">
-    <h3>Daily Revenue &amp; Orders — This Month</h3>
+    <h3>Daily Revenue &amp; Orders â This Month</h3>
     <div class="chartbox"><canvas id="trend"></canvas></div>
   </div>
 
@@ -173,7 +173,7 @@ cards.forEach((k,i)=>countUp(document.getElementById('kpi'+i),k.val,k.fmt,1400))
 const maxRev=Math.max(...S.reps.map(r=>r[1]));
 document.getElementById('race').innerHTML=S.reps.map((r,i)=>{
   const c=C[r[0]]||'#64748b';
-  return `<div class="row"><div class="rank r${i+1}">${i+1}</div><div><div class="bhead"><div><span class="bname">${r[0]}</span><span class="bsub">${r[2]} orders · ${r[3].toLocaleString()} units</span></div><div class="bval" style="color:${c}">${money(r[1])}</div></div><div class="track"><div class="fill" id="fill${i}" style="background:linear-gradient(90deg,${c},${c}cc)"></div></div></div></div>`;
+  return `<div class="row"><div class="rank r${i+1}">${i+1}</div><div><div class="bhead"><div><span class="bname">${r[0]}</span><span class="bsub">${r[2]} orders Â· ${r[3].toLocaleString()} units</span></div><div class="bval" style="color:${c}">${money(r[1])}</div></div><div class="track"><div class="fill" id="fill${i}" style="background:linear-gradient(90deg,${c},${c}cc)"></div></div></div></div>`;
 }).join('');
 setTimeout(()=>S.reps.forEach((r,i)=>{document.getElementById('fill'+i).style.width=(r[1]/maxRev*100)+'%';}),200);
 
@@ -186,10 +186,10 @@ if(S.weekTop && S.weekTop.rep){
   document.getElementById('winWho').textContent=S.weekTop.rep;
   document.getElementById('winWho').style.color=C[S.weekTop.rep]||'var(--gold)';
   document.getElementById('winAmt').textContent=money(S.weekTop.revenue);
-} else { document.getElementById('winWho').textContent='—'; }
+} else { document.getElementById('winWho').textContent='â'; }
 
 document.getElementById('dealAmt').textContent=money(S.biggest.amount);
-document.getElementById('dealWho').innerHTML=`by <b style="color:${C[S.biggest.rep]}">${S.biggest.rep}</b> · ${new Date(S.biggest.date+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})}`;
+document.getElementById('dealWho').innerHTML=`by <b style="color:${C[S.biggest.rep]}">${S.biggest.rep}</b> Â· ${new Date(S.biggest.date+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})}`;
 
 
 function addDays(iso,d){const t=new Date(iso+'T00:00:00Z');t.setUTCDate(t.getUTCDate()+d);return t;}
@@ -202,7 +202,7 @@ new Chart(document.getElementById('trend'),{data:{labels,datasets:[
   y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},ticks:{color:'#8c9bbd'}},
   x:{ticks:{color:'#6b7794',maxTicksLimit:12,maxRotation:0},grid:{display:false}}}}});
 
-document.getElementById('ticker').innerHTML=S.recent.concat(S.recent).map(o=>`<span class="item"><span class="dot" style="background:${C[o[0]]}"></span><span style="color:${C[o[0]]};font-weight:800">${o[0]}</span> — ${o[1]} <span class="amt">${money(o[3])}</span></span>`).join('');
+document.getElementById('ticker').innerHTML=S.recent.concat(S.recent).map(o=>`<span class="item"><span class="dot" style="background:${C[o[0]]}"></span><span style="color:${C[o[0]]};font-weight:800">${o[0]}</span> â ${o[1]} <span class="amt">${money(o[3])}</span></span>`).join('');
 
 const cvs=document.getElementById('confetti'), ctx=cvs.getContext('2d');
 function size(){ cvs.width=innerWidth; cvs.height=innerHeight; } size(); addEventListener('resize',size);
@@ -217,7 +217,7 @@ function fireConfetti(){
 }
 function chime(){ try{ const a=new (window.AudioContext||window.webkitAudioContext)(); [880,1320,1760].forEach((f,i)=>{ const o=a.createOscillator(),g=a.createGain(); o.type='sine'; o.frequency.value=f; o.connect(g); g.connect(a.destination); const ts=a.currentTime+i*.12; g.gain.setValueAtTime(0,ts); g.gain.linearRampToValueAtTime(.3,ts+.02); g.gain.exponentialRampToValueAtTime(.001,ts+.35); o.start(ts); o.stop(ts+.36); }); }catch(e){} }
 function celebrate(o){
-  document.getElementById('toastTxt').textContent=o[0]+' — '+money(o[3]);
+  document.getElementById('toastTxt').textContent=o[0]+' â '+money(o[3]);
   const tEl=document.getElementById('toast'); tEl.classList.add('show');
   fireConfetti(); chime();
   setTimeout(()=>tEl.classList.remove('show'), 6000);
@@ -233,6 +233,19 @@ try{
 }catch(e){}
 
 setTimeout(()=>{ location.replace(location.pathname + '?t=' + Date.now()); }, 15*60*1000);
+})();
+</script>
+<script>
+/* SurgaMed cross-app nav */
+(function(){
+  function add(){
+    if(document.getElementById("smNav")||!document.body) return;
+    var n=document.createElement("div"); n.id="smNav";
+    n.style.cssText="position:fixed;top:8px;right:10px;z-index:9999;display:flex;gap:6px;font:12px -apple-system,Segoe UI,Roboto,sans-serif;opacity:.85";
+    n.innerHTML='<a href="leads.html" style="background:#185fa5;color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-weight:600">\ud83d\udccb Leads</a><a href="whatsapp-crm.html" style="background:#185fa5;color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-weight:600">\ud83d\udcac CRM</a>';
+    document.body.appendChild(n);
+  }
+  add(); document.addEventListener("DOMContentLoaded",add); setTimeout(add,1500);
 })();
 </script>
 </body>
