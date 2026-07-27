@@ -123,6 +123,8 @@
 <body>
 <header class="top">
   <span class="brand">SurgaMed · CRM</span>
+  <a class="btn ghost sm" href="leads.html" style="text-decoration:none">📋 Leads</a>
+  <a class="btn ghost sm" href="index.html" style="text-decoration:none">📺 Wallboard</a>
   <span id="mode" class="badge demo">DEMO</span>
   <button class="btn ghost sm" id="wsToggle" style="display:none">📊 Workspace</button>
   <button class="btn ghost sm" id="oppBtn" style="display:none">🎯 Opportunities</button>
@@ -161,6 +163,7 @@ const MANAGER_FN=SB_URL+"/functions/v1/manager";
 const WA_FN=SB_URL+"/functions/v1/whatsapp/send";
 const FN_URL=SB_URL+"/functions/v1/leads";   // shared mailbox/shipping/send function (same as dotMed board)
 const MANAGERS=["mweinreb@surgamed.com","sgluck@surgamed.com","orders@surgamed.com"];
+const REPS={"jlugo@surgamed.com":"Jennifer","dcalvo@surgamed.com":"Deysi","tcohen@surgamed.com":"Tehila","malejo@surgamed.com":"Mirian"};
 const STATUSES=[["new","New"],["in_progress","In progress"],["quoted","Quoted"],["awaiting_customer","Awaiting customer"],["won","Won"],["lost","Lost"],["closed","Closed"]];
 const STATUS_COLOR={new:"#185fa5",in_progress:"#2563eb",quoted:"#6b46c1",awaiting_customer:"#647387",won:"#1b9e6b",lost:"#c0392b",closed:"#1b9e6b"};
 const PRIORITIES=[["urgent","Urgent"],["high","High"],["normal","Normal"],["low","Low"]];
@@ -792,6 +795,7 @@ async function openCustomer(cid,keep){
   }
   const isTest=/ZZ_WATEST/i.test(cu.name||"");
   $("detail").innerHTML=detailHtml(cu,msgs,tl,isTest); wireDetail(cu); initCollapsibles($("detail"),"h3.sec");
+  if(STATE.repScope){ const cc=document.querySelector(".ctrls"); if(cc&&cc.closest(".pcard")) cc.closest(".pcard").style.display="none"; const nl=$("noteList"); if(nl){ const nb=nl.closest(".notes"); if(nb){ if(nb.previousElementSibling) nb.previousElementSibling.style.display="none"; nb.style.display="none"; } } }
   (function(){ try{ var ids=[].slice.call(document.querySelectorAll(".row")).map(function(e){return Number(e.dataset.cid);}); var idx=ids.indexOf(cid); var pv=idx>0?ids[idx-1]:null, nx=(idx>=0&&idx<ids.length-1)?ids[idx+1]:null; var nav=document.createElement("div"); nav.style.cssText="display:flex;gap:8px;justify-content:space-between;margin-bottom:8px"; nav.innerHTML='<button class="btn ghost sm" id="cPrev">\u2039 Prev</button><button class="btn ghost sm" id="cNext">Next \u203a</button>'; var dt=$("detail"); dt.insertBefore(nav, dt.firstChild); var pb=document.getElementById("cPrev"), nb=document.getElementById("cNext"); if(pb){ if(pv){ pb.onclick=function(){openCustomer(pv);}; } else { pb.disabled=true; pb.style.opacity=.4; } } if(nb){ if(nx){ nb.onclick=function(){openCustomer(nx);}; } else { nb.disabled=true; nb.style.opacity=.4; } } }catch(e){} })();
   // load the heavy sections (email / shipping / orders)
   loadEmailThread(cu); loadShipping(cu); loadPurchases(cu);
@@ -834,7 +838,7 @@ async function loadLive(){
   const cr=await SB.from("customers")
     .select("id,name,company,phone,email,assigned_rep,vip,review_flag,country,preferred_language,last_contact_at,manager_status,priority,next_action_override,follow_up_date")
     .is("deleted_at",null).order("last_contact_at",{ascending:false,nullsFirst:false}).limit(500);
-  const custs=cr.data||[];
+  let custs=cr.data||[]; if(STATE.repScope) custs=custs.filter(c=>c.assigned_rep===STATE.repScope);
   const conv=await SB.from("wa_conversations").select("customer_id").is("deleted_at",null);
   const waSet=new Set((conv.data||[]).map(x=>x.customer_id));
   const tl=await SB.from("timeline_events").select("customer_id,source,type").is("deleted_at",null).order("ts",{ascending:false}).limit(4000);
@@ -843,7 +847,7 @@ async function loadLive(){
   custs.forEach(c=>{ const set=badgeMap[c.id]||new Set(); if(waSet.has(c.id)) set.add("WhatsApp"); c._badges=[...set]; c._convId=waSet.has(c.id)?1:null; c._msgs=null; c._tl=null; });
   STATE.customers=custs;
   fillFilterSelects(); renderList(); if(WSVIEW) renderWorkspace();
-  const dl=deepLink(); if(dl) openCustomer(dl);
+  const dl=deepLink(); if(dl) openCustomer(dl); else { const me=(location.hash||"").match(/email=([^&]+)/); if(me){ const em=decodeURIComponent(me[1]).toLowerCase(); const c=STATE.customers.find(x=>(x.email||"").toLowerCase()===em); if(c) openCustomer(c.id); } }
 }
 function wireFilters(){
   $("q").addEventListener("input",e=>{ FILTERS.q=e.target.value; renderList(); });
@@ -864,8 +868,10 @@ async function boot(){
   if(!session){ showGate(`<h2>SurgaMed CRM — Managers only</h2><p class="who">Sign in with your SurgaMed Microsoft account.</p><p><button class="btn" id="si2">Sign in with Microsoft</button></p><p class="who">Or open <a href="?demo=1">demo mode</a>.</p>`);
     $("si2").addEventListener("click",()=>SB.auth.signInWithOAuth({provider:"azure",options:{redirectTo:location.href}})); return; }
   const email=(session.user.email||"").toLowerCase(); STATE.email=email; $("who").textContent=email;
-  if(!MANAGERS.includes(email)){ showGate(`<h2>Managers only</h2><p class="who">${esc(email)} doesn't have access. Ask an admin.</p>`); return; }
-  showApp(); await loadLive();
+  const repScope=REPS[email]||null; STATE.repScope=repScope;
+  if(!MANAGERS.includes(email) && !repScope){ showGate(`<h2>Access needed</h2><p class="who">${esc(email)} doesn't have access. Ask an admin.</p>`); return; }
+  
+  showApp(); if(STATE.repScope){ $("wsToggle").style.display="none"; } await loadLive();
 }
 if(typeof document!=="undefined" && document.getElementById("app")) boot();
 if(typeof window!=="undefined") window.__crm={statusLabel,nextAction,matchesFilters,dueSoon,naClass,statusName,badgeFor,cleanName,dispName,renderEmailList,renderShipping,renderPurchases};
