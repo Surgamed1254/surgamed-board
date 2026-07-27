@@ -838,9 +838,10 @@ async function loadLive(){
   const cr=await SB.from("customers")
     .select("id,name,company,phone,email,assigned_rep,vip,review_flag,country,preferred_language,last_contact_at,manager_status,priority,next_action_override,follow_up_date")
     .is("deleted_at",null).order("last_contact_at",{ascending:false,nullsFirst:false}).limit(500);
-  let custs=cr.data||[]; if(STATE.repScope) custs=custs.filter(c=>c.assigned_rep===STATE.repScope);
-  const conv=await SB.from("wa_conversations").select("customer_id").is("deleted_at",null);
+  let custs=cr.data||[];
+  const conv=await SB.from("wa_conversations").select("customer_id,rep_id").is("deleted_at",null);
   const waSet=new Set((conv.data||[]).map(x=>x.customer_id));
+  if(STATE.repScope){ const myRep=STATE.reps.find(r=>r.name===STATE.repScope); const myConv=new Set((conv.data||[]).filter(x=>myRep&&x.rep_id===myRep.id).map(x=>x.customer_id)); custs=custs.filter(c=>c.assigned_rep===STATE.repScope||myConv.has(c.id)); }
   const tl=await SB.from("timeline_events").select("customer_id,source,type").is("deleted_at",null).order("ts",{ascending:false}).limit(4000);
   const badgeMap={};
   (tl.data||[]).forEach(e=>{ const b=badgeFor(e); if(!b) return; (badgeMap[e.customer_id]=badgeMap[e.customer_id]||new Set()).add(b); });
