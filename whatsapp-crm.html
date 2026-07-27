@@ -201,6 +201,8 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;",
 // strip the garbled HTML-entity sender names that occasionally arrive from Outlook
 function cleanName(s){ if(!s) return ""; let x=String(s).replace(/&#x?[0-9a-fA-F]+;/g,"").replace(/[\u0000-\u001f]/g," ").replace(/\s+/g," ").trim(); return /[A-Za-z0-9]/.test(x)?x:""; }
 function dispName(cu){ return cleanName(cu.name)||cu.email||("Customer #"+cu.id); }
+function repNm(id,cu){ try{ const r=(STATE.reps||[]).find(x=>x.id===id); return r?r.name:(cu.assigned_rep||"Rep"); }catch(e){ return (cu&&cu.assigned_rep)||"Rep"; } }
+function msgMeta(m,cu){ const cust=cleanName(cu.name)||cu.phone||"Customer"; const rep=repNm(m.rep_id,cu); const ago=fmtAgo(m.ts); if(m.direction==="in"){ return esc(cust)+" \u2192 "+esc(rep)+" \u00b7 "+ago; } const via=/[a-zA-Z]/.test(String(m.sender||""))?"via CRM":"from cell"; return esc(rep)+" \u2192 "+esc(cust)+" \u00b7 "+via+" \u00b7 "+ago; }
 function htmlToText(h){ if(!h) return ""; if(!/[<&]/.test(h)) return h; const d=document.createElement("div"); d.innerHTML=h; return (d.textContent||d.innerText||"").replace(/\n{3,}/g,"\n\n").trim(); }
 function linkify(t){ return esc(t).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>'); }
 function matchesFilters(cu,f){
@@ -696,7 +698,7 @@ function detailHtml(cu, msgs, timeline, isTest){
   const repOpts='<option value="">Unassigned</option>'+STATE.reps.map(r=>`<option value="${r.id}" ${cu.assigned_rep===r.name?"selected":""}>${esc(r.name)}</option>`).join("");
   const statusOpts=STATUSES.map(s=>`<option value="${s[0]}" ${(cu.manager_status||"new")===s[0]?"selected":""}>${s[1]}</option>`).join("");
   const prioOpts=PRIORITIES.map(p=>`<option value="${p[0]}" ${(cu.priority||"normal")===p[0]?"selected":""}>${p[1]}</option>`).join("");
-  const mhtml=(msgs||[]).map(m=>`<div class="msg ${m.direction==="in"?"in":"out"}">${esc(m.text||"["+(m.media_type||"message")+"]")}<div class="t">${m.direction==="in"?"Customer":"Rep"} · ${fmtAgo(m.ts)}</div></div>`).join("")+'<div class="clear"></div>';
+  const mhtml=(msgs||[]).map(m=>`<div class="msg ${m.direction==="in"?"in":"out"}">${esc(m.text||"["+(m.media_type||"message")+"]")}<div class="t">${msgMeta(m,cu)}</div></div>`).join("")+'<div class="clear"></div>';
   const notes=(timeline||[]).filter(e=>e.type==="note");
   const nhtml=notes.map(e=>`<div class="note"><span class="who">${esc((e.rep||"manager").split("@")[0])}</span> · <span class="t">${fmtAgo(e.ts)}</span><div>${esc(e.title||"")}${e.body?" — "+esc(e.body):""}</div></div>`).join("")||'<div class="t">No internal notes yet.</div>';
   const thtml=(timeline||[]).map(e=>`<li><span class="ic">${TLICON[e.type]||"•"}</span><div><span class="ty">${esc(e.title||e.type)}</span>${e.body?" — "+esc(e.body):""}<div class="t">${esc(e.type)} · ${esc(e.source||"")} · ${fmtAgo(e.ts)}</div></div></li>`).join("");
