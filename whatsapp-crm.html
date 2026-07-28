@@ -119,10 +119,10 @@
   .ws-reptab tr:hover td{background:#f8fafc}
   .ws-cap{color:var(--muted);font-size:11px;margin-top:7px}
 #hoursModal{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:1000;display:flex;align-items:center;justify-content:center}
-#hoursModal .hm-card{background:#fff;border-radius:12px;max-width:680px;width:94%;max-height:86vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.25)}
-#hoursModal .hm-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff}
-#hoursModal .hm-x{cursor:pointer;color:var(--muted);font-weight:700;padding:4px 8px}
-#hoursModal .hm-body{padding:14px 18px}
+#hoursModal .hm-card, #linkModal .hm-card{background:#fff;border-radius:12px;max-width:680px;width:94%;max-height:86vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+#hoursModal .hm-head, #linkModal .hm-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff}
+#hoursModal .hm-x, #linkModal .hm-x{cursor:pointer;color:var(--muted);font-weight:700;padding:4px 8px}
+#hoursModal .hm-body, #linkModal .hm-body{padding:14px 18px}
 #hoursModal .hm-rep{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
 #hoursModal .hm-repname{display:flex;gap:14px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
 #hoursModal .hm-repname label{font-size:12px;color:var(--muted);display:flex;gap:4px;align-items:center}
@@ -221,7 +221,7 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;",
 function cleanName(s){ if(!s) return ""; let x=String(s).replace(/&#x?[0-9a-fA-F]+;/g,"").replace(/[\u0000-\u001f]/g," ").replace(/\s+/g," ").trim(); return /[A-Za-z0-9]/.test(x)?x:""; }
 function dispName(cu){ return cleanName(cu.name)||cu.email||("Customer #"+cu.id); }
 function repNm(id,cu){ try{ const r=(STATE.reps||[]).find(x=>x.id===id); return r?r.name:(cu.assigned_rep||"Rep"); }catch(e){ return (cu&&cu.assigned_rep)||"Rep"; } }
-function msgMeta(m,cu){ const cust=cleanName(cu.name)||cu.phone||"Customer"; const rep=repNm(m.rep_id,cu); const ago=fmtAgo(m.ts); if(m.direction==="in"){ return esc(cust)+" \u2192 "+esc(rep)+" \u00b7 "+ago; } const via=/[a-zA-Z]/.test(String(m.sender||""))?"via CRM":"from cell"; return esc(rep)+" \u2192 "+esc(cust)+" \u00b7 "+via+" \u00b7 "+ago; }
+function msgMeta(m,cu){ if(m.customer_id&&m.customer_id!==cu.id&&typeof STATE!=="undefined"){ const _c=(STATE.customers||[]).find(x=>x.id===m.customer_id); if(_c) cu=_c; } const cust=cleanName(cu.name)||cu.phone||"Customer"; const rep=repNm(m.rep_id,cu); const ago=fmtAgo(m.ts); if(m.direction==="in"){ return esc(cust)+" \u2192 "+esc(rep)+" · "+ago; } const via=/[a-zA-Z]/.test(String(m.sender||""))?"via CRM":"from cell"; return esc(rep)+" \u2192 "+esc(cust)+" · "+via+" · "+ago; }
 function htmlToText(h){ if(!h) return ""; if(!/[<&]/.test(h)) return h; const d=document.createElement("div"); d.innerHTML=h; return (d.textContent||d.innerText||"").replace(/\n{3,}/g,"\n\n").trim(); }
 function linkify(t){ return esc(t).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>'); }
 function matchesFilters(cu,f){
@@ -313,13 +313,15 @@ async function toggleEmail(i,id,mbx){
 async function loadEmailThread(cu){
   const box=$("emailBox"); if(!box) return;
   if(!STATE.live){ box.innerHTML=renderEmailList(cu._emails||[]); box.onclick=null; return; }
-  const email=(cu.email||"").trim();
+  const _tEmails=waLinkedEmails(cu); const email=_tEmails[0]||"";
   if(!email){ box.innerHTML='<div class="t" style="color:var(--muted)">No email on file to look up.</div>'; return; }
   box.innerHTML='<div class="t">Loading email history…</div>';
   try{
     const r=await fetch(FN_URL+"?thread="+encodeURIComponent(email),{headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY}});
     const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
-    box.innerHTML=renderEmailList(d.items);
+    let _items=d.items||[];
+    for(const _ex of _tEmails.slice(1)){ try{ const r2=await fetch(FN_URL+"?thread="+encodeURIComponent(_ex),{headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY}}); const d2=await r2.json(); if(r2.ok&&!d2.error) _items=_items.concat(d2.items||[]); }catch(_e){} }
+    box.innerHTML=renderEmailList(_items);
     box.onclick=function(e){ const a=e.target.closest(".emlink"); if(!a)return; e.preventDefault(); toggleEmail(a.dataset.ei,a.dataset.id,a.dataset.mbx); };
   }catch(e){ box.innerHTML='<div class="t" style="color:var(--red)">Couldn’t load emails: '+esc(String(e.message||e))+'</div>'; }
 }
@@ -549,8 +551,8 @@ async function renderNotes(email, mountEl, ns){
 }
 async function reorderDraftInto(ns, email, name){
   var msg=document.getElementById(ns+'_msg'), bt=document.getElementById(ns+'_draft');
-  if(bt){ bt.disabled=true; bt.textContent='\u2728 Drafting\u2026'; }
-  if(msg){ msg.style.color='#5a6b7b'; msg.textContent='Writing a reorder draft\u2026'; }
+  if(bt){ bt.disabled=true; bt.textContent='\u2728 Drafting…'; }
+  if(msg){ msg.style.color='#5a6b7b'; msg.textContent='Writing a reorder draft…'; }
   try{
     var base=FN_URL.replace(/leads$/,'reorder-draft');
     var repName=(typeof STATE!=='undefined'&&STATE&&(STATE.repName||STATE.rep))||'';
@@ -560,18 +562,18 @@ async function reorderDraftInto(ns, email, name){
     var subj=document.getElementById(ns+'_subj'), body=document.getElementById(ns+'_body');
     if(subj&&d.subject) subj.value=d.subject;
     if(body){ body.value=String(d.body||'').replace(/<br\s*\/?>(\s*)/gi,'\n').replace(/<\/p>\s*<p[^>]*>/gi,'\n\n').replace(/<[^>]+>/g,'').replace(/\n{3,}/g,'\n\n').trim(); try{var _rr=await SB.from('reorder_radar').select('ref_label,avg_qty,avg_value,in_stock_accounts,score').eq('customer_email',email).eq('in_stock',true).order('score',{ascending:false}).limit(8);var _it=(_rr&&_rr.data)||[];if(_it.length){var _es=function(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};var _mn=function(v){v=Number(v||0);return '$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};var _bs='border:1px solid #9aa7b4;padding:6px 10px;font-family:Calibri,Arial,sans-serif;font-size:13px;vertical-align:top';var _rows=[['Item / REF#','Typical Qty','Typical Value','In Stock']];_it.forEach(function(t){_rows.push([t.ref_label||'',String(Math.round(t.avg_qty||1)),_mn(t.avg_value),t.in_stock_accounts||'Yes']);});var _g='<table style="border-collapse:collapse;border:1px solid #9aa7b4" cellspacing="0">';for(var _r=0;_r<_rows.length;_r++){_g+='<tr>';for(var _c=0;_c<_rows[_r].length;_c++){var _tg=_r?'td':'th';var _st=_bs+(_r?'':';background:#e8eef5;font-weight:bold;text-align:left');_g+='<'+_tg+' style="'+_st+'">'+_es(_rows[_r][_c])+'</'+_tg+'>';}_g+='</tr>';}_g+='</table>';body.value=body.value.replace(/\s+$/,'')+'\n\n'+_g;}}catch(_e){} }
-    if(msg){ msg.style.color='#1d7a3f'; msg.textContent='Draft ready \u2014 review & send \u00b7 '+(d.in_stock_count||0)+' in stock of '+(d.due_count||0)+' due'; }
+    if(msg){ msg.style.color='#1d7a3f'; msg.textContent='Draft ready — review & send · '+(d.in_stock_count||0)+' in stock of '+(d.due_count||0)+' due'; }
   }catch(e){ if(msg){ msg.style.color='#c0392b'; msg.textContent=String(e.message||e); } }
   if(bt){ bt.disabled=false; bt.textContent='\u2728 AI reorder draft'; }
 }
 async function openReorderRadar(presetRep){
   var ov=document.getElementById('rrOverlay');
   if(!ov){ ov=document.createElement('div'); ov.id='rrOverlay'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,32,44,.45);z-index:99999;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto'; ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); }); document.body.appendChild(ov); }
-  ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:1000px;width:100%;box-shadow:0 12px 40px rgba(20,32,44,.25);overflow:hidden"><div style="padding:14px 18px;border-bottom:1px solid #eef1f5;position:relative"><button id="rrX" style="position:absolute;top:12px;right:14px;border:none;background:#f0f3f6;border-radius:8px;width:30px;height:30px;font-size:16px;cursor:pointer">\u00d7</button><h3 style="margin:0 0 4px;font-size:17px">\ud83d\udce1 Reorder Radar \u2014 reach out today</h3><div style="color:#5a6b7b;font-size:12.5px">Customers who look due to reorder, ranked by likelihood \u00d7 value. Items in stock first \u2014 one click drafts the outreach.</div></div><div style="padding:14px 18px;max-height:70vh;overflow:auto"><div style="margin-bottom:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select id="rrRep" style="padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><option value="">All reps</option><option>Mirian Alejo</option><option>Jennifer Lugo</option><option>Deysi Calvo</option><option>Tehila Cohen</option><option value="__none__">Unassigned pool</option></select><label style="font-size:12px;color:#5a6b7b"><input type="checkbox" id="rrIn" checked> Only items we have in stock</label><span id="rrCt" style="font-size:12px;color:#9aa7b4"></span></div><div id="rrBody"><div style="color:#9aa7b4;font-size:12px">Loading\u2026</div></div></div></div>';
+  ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:1000px;width:100%;box-shadow:0 12px 40px rgba(20,32,44,.25);overflow:hidden"><div style="padding:14px 18px;border-bottom:1px solid #eef1f5;position:relative"><button id="rrX" style="position:absolute;top:12px;right:14px;border:none;background:#f0f3f6;border-radius:8px;width:30px;height:30px;font-size:16px;cursor:pointer">\u00d7</button><h3 style="margin:0 0 4px;font-size:17px">\ud83d\udce1 Reorder Radar — reach out today</h3><div style="color:#5a6b7b;font-size:12.5px">Customers who look due to reorder, ranked by likelihood \u00d7 value. Items in stock first — one click drafts the outreach.</div></div><div style="padding:14px 18px;max-height:70vh;overflow:auto"><div style="margin-bottom:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select id="rrRep" style="padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><option value="">All reps</option><option>Mirian Alejo</option><option>Jennifer Lugo</option><option>Deysi Calvo</option><option>Tehila Cohen</option><option value="__none__">Unassigned pool</option></select><label style="font-size:12px;color:#5a6b7b"><input type="checkbox" id="rrIn" checked> Only items we have in stock</label><span id="rrCt" style="font-size:12px;color:#9aa7b4"></span></div><div id="rrBody"><div style="color:#9aa7b4;font-size:12px">Loading…</div></div></div></div>';
   document.getElementById('rrX').onclick=function(){ ov.remove(); };
   var body=document.getElementById('rrBody');
   async function run(){
-    body.innerHTML='<div style="color:#9aa7b4;font-size:12px">Loading\u2026</div>';
+    body.innerHTML='<div style="color:#9aa7b4;font-size:12px">Loading…</div>';
     var repSel=document.getElementById('rrRep').value, onlyStock=document.getElementById('rrIn').checked;
     try{
       var q=SB.from('reorder_radar_customers').select('*').order('top_score',{ascending:false}).limit(400);
@@ -581,7 +583,7 @@ async function openReorderRadar(presetRep){
       var ct=document.getElementById('rrCt'); if(ct) ct.textContent=list.length+' customer(s)';
       if(!list.length){ body.innerHTML='<div style="color:#1d7a3f;font-size:12px">Nobody\u2019s due right now with these filters. \ud83c\udf89</div>'; return; }
       var h='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;color:#7b8a99"><th style="padding:4px 6px;border-bottom:1px solid #e6ebf1">Customer</th><th style="padding:4px 6px;border-bottom:1px solid #e6ebf1">Owner</th><th style="padding:4px 6px;border-bottom:1px solid #e6ebf1">Due</th><th style="padding:4px 6px;border-bottom:1px solid #e6ebf1">In stock</th><th style="padding:4px 6px;border-bottom:1px solid #e6ebf1">Next due</th></tr></thead><tbody>';
-      list.forEach(function(b,i){ h+='<tr class="rrR" data-email="'+esc(b.customer_email||'')+'" data-name="'+esc(b.customer_name||'')+'" data-i="'+i+'" style="cursor:pointer;border-bottom:1px solid #f0f3f6"><td style="padding:5px 6px"><b>'+esc(b.customer_name||b.customer_email||'(unknown)')+'</b><div style="color:#9aa7b4;font-size:11px">'+esc(b.customer_email||'')+'</div></td><td style="padding:5px 6px;font-size:11px">'+esc(b.owner_rep||'\u2014')+'</td><td style="padding:5px 6px">'+b.due_items+'</td><td style="padding:5px 6px">'+(b.due_instock>0?('<span style="color:#1d7a3f;font-weight:700">'+b.due_instock+'</span>'):'0')+'</td><td style="padding:5px 6px;font-size:11px">'+esc(String(b.next_due||'').slice(0,10))+'</td></tr><tr id="rrd'+i+'"></tr>'; });
+      list.forEach(function(b,i){ h+='<tr class="rrR" data-email="'+esc(b.customer_email||'')+'" data-name="'+esc(b.customer_name||'')+'" data-i="'+i+'" style="cursor:pointer;border-bottom:1px solid #f0f3f6"><td style="padding:5px 6px"><b>'+esc(b.customer_name||b.customer_email||'(unknown)')+'</b><div style="color:#9aa7b4;font-size:11px">'+esc(b.customer_email||'')+'</div></td><td style="padding:5px 6px;font-size:11px">'+esc(b.owner_rep||'—')+'</td><td style="padding:5px 6px">'+b.due_items+'</td><td style="padding:5px 6px">'+(b.due_instock>0?('<span style="color:#1d7a3f;font-weight:700">'+b.due_instock+'</span>'):'0')+'</td><td style="padding:5px 6px;font-size:11px">'+esc(String(b.next_due||'').slice(0,10))+'</td></tr><tr id="rrd'+i+'"></tr>'; });
       h+='</tbody></table>';
       body.innerHTML=h;
       body.querySelectorAll('.rrR').forEach(function(el){ el.onclick=function(){ var i=this.dataset.i, d=document.getElementById('rrd'+i); if(d.dataset.open==='1'){ d.dataset.open='0'; d.innerHTML=''; return; } d.dataset.open='1'; d.innerHTML='<td colspan="5" style="background:#f7fbff;padding:8px 12px"><div id="rrx'+i+'"></div></td>'; showCustDetail(this.dataset.email, this.dataset.name, document.getElementById('rrx'+i), 'rr'+i); }; });
@@ -684,10 +686,10 @@ function renderPurchases(rows){
 async function loadPurchases(cu){
   const box=$("purchBox"); if(!box) return;
   if(!STATE.live){ box.innerHTML=renderPurchases(cu._purch||[]); injectMedstock((cu.email||''), cu._purch||[], box); return; }
-  const email=(cu.email||"").toLowerCase().trim();
+  const _pEmails=waLinkedEmails(cu); const email=_pEmails[0]||"";
   if(!email){ box.innerHTML='<div class="t" style="color:var(--muted)">No email on file to look up orders.</div>'; return; }
   try{
-    const {data}=await SB.from("purchases").select("account,order_date,item,price,listing,qty,rep,source,invoice,order_number,order_total,ship_name,company,ship_address1,ship_address2,ship_city,ship_state,ship_postal").ilike("customer_email",email).order("order_date",{ascending:false}).limit(500);
+    const {data}=await SB.from("purchases").select("account,order_date,item,price,listing,qty,rep,source,invoice,order_number,order_total,ship_name,company,ship_address1,ship_address2,ship_city,ship_state,ship_postal").or(_pEmails.map(e=>"customer_email.ilike."+e).join(",")).order("order_date",{ascending:false}).limit(500);
     box.innerHTML=renderPurchases(data||[]);
     injectMedstock(email, data||[], box);
   }catch(e){ box.innerHTML='<div class="t" style="color:var(--red)">Couldn’t load orders: '+esc(String(e.message||e))+'</div>'; }
@@ -736,7 +738,7 @@ function detailHtml(cu, msgs, timeline, isTest){
       <span class="iconbtn vip ${cu.vip?"on":""}" data-act="vip">★ VIP</span>
       <span class="iconbtn rev ${cu.review_flag?"on":""}" data-act="review">⚑ Review</span>
     </div>
-    <div class="meta">
+    ${waLinkChips(cu)}<div class="meta">
       <span><b>Email:</b> ${esc(cu.email||"—")}</span><span><b>Phone:</b> ${esc(cu.phone||"—")}</span>
       <span><b>Company:</b> ${esc(cu.company||"—")}</span><span><b>Country:</b> ${esc(cu.country||"—")}</span>
       <span><b>Last activity:</b> ${fmtAgo(cu.last_contact_at)}</span>
@@ -810,12 +812,13 @@ async function openCustomer(cid,keep){
   const cu=STATE.customers.find(c=>c.id===cid); if(!cu) return;
   let msgs=cu._msgs, tl=cu._tl;
   if(SB && STATE.live){
-    if(cu._convId!==null){ const m=await SB.from("messages").select("*").eq("customer_id",cid).is("deleted_at",null).order("ts"); msgs=m.data||[]; } else msgs=[];
-    const t=await SB.from("timeline_events").select("*").eq("customer_id",cid).is("deleted_at",null).order("ts",{ascending:false}); tl=t.data||[];
+    let _ids=[cid]; try{ _ids=await waLinkedIds(cid); }catch(e){} cu._linkedIds=_ids;
+    { const m=await SB.from("messages").select("*").in("customer_id",_ids).is("deleted_at",null).order("ts"); msgs=m.data||[]; }
+    const t=await SB.from("timeline_events").select("*").in("customer_id",cu._linkedIds||[cid]).is("deleted_at",null).order("ts",{ascending:false}); tl=t.data||[];
     cu._msgs=msgs; cu._tl=tl;
   }
   const isTest=/ZZ_WATEST/i.test(cu.name||"");
-  $("detail").innerHTML=detailHtml(cu,msgs,tl,isTest); wireDetail(cu); initCollapsibles($("detail"),"h3.sec"); try{ wireWaTrans(cu); }catch(e){}
+  $("detail").innerHTML=detailHtml(cu,msgs,tl,isTest); wireDetail(cu); initCollapsibles($("detail"),"h3.sec"); try{ wireWaTrans(cu); }catch(e){} try{ wireLinks(cu); }catch(e){}
   if(STATE.repScope){ const cc=document.querySelector(".ctrls"); if(cc&&cc.closest(".pcard")) cc.closest(".pcard").style.display="none"; const nl=$("noteList"); if(nl){ const nb=nl.closest(".notes"); if(nb){ if(nb.previousElementSibling) nb.previousElementSibling.style.display="none"; nb.style.display="none"; } } }
   (function(){ try{ var ids=[].slice.call(document.querySelectorAll(".row")).map(function(e){return Number(e.dataset.cid);}); var idx=ids.indexOf(cid); var pv=idx>0?ids[idx-1]:null, nx=(idx>=0&&idx<ids.length-1)?ids[idx+1]:null; var nav=document.createElement("div"); nav.style.cssText="display:flex;gap:8px;justify-content:space-between;margin-bottom:8px"; nav.innerHTML='<button class="btn ghost sm" id="cPrev">\u2039 Prev</button><button class="btn ghost sm" id="cNext">Next \u203a</button>'; var dt=$("detail"); dt.insertBefore(nav, dt.firstChild); var pb=document.getElementById("cPrev"), nb=document.getElementById("cNext"); if(pb){ if(pv){ pb.onclick=function(){openCustomer(pv);}; } else { pb.disabled=true; pb.style.opacity=.4; } } if(nb){ if(nx){ nb.onclick=function(){openCustomer(nx);}; } else { nb.disabled=true; nb.style.opacity=.4; } } }catch(e){} })();
   // load the heavy sections (email / shipping / orders)
@@ -1063,6 +1066,89 @@ async function openHoursModal(){
       setTimeout(()=>{ st.textContent = ""; }, 4000);
     };
   });
+}
+
+/* ===== v5: account linking (soft links) ===== */
+async function waLinkedIds(cid){
+  const ids = new Set([cid]);
+  try{
+    const { data } = await SB.from("customer_links").select("customer_id,linked_customer_id").limit(2000);
+    const links = data || [];
+    let grew = true, guard = 0;
+    while(grew && guard++ < 6){
+      grew = false;
+      for(const l of links){
+        if(ids.has(l.customer_id) && !ids.has(l.linked_customer_id)){ ids.add(l.linked_customer_id); grew = true; }
+        if(ids.has(l.linked_customer_id) && !ids.has(l.customer_id)){ ids.add(l.customer_id); grew = true; }
+      }
+    }
+  }catch(_e){}
+  return [...ids];
+}
+function waLinkedEmails(cu){
+  const ids = cu._linkedIds || [cu.id];
+  const out = []; const seen = new Set();
+  const pe = (cu.email||"").toLowerCase().trim();
+  if(pe){ seen.add(pe); out.push(pe); }
+  for(const id of ids){
+    const c = (typeof STATE!=="undefined" && STATE.customers||[]).find(x=>x.id===id);
+    const e = (c && c.email || "").toLowerCase().trim();
+    if(e && !seen.has(e)){ seen.add(e); out.push(e); }
+  }
+  return out;
+}
+function waLinkChips(cu){
+  const ids = (cu._linkedIds||[]).filter(id=>id!==cu.id);
+  const chips = ids.map(id=>{
+    const c = (typeof STATE!=="undefined" && STATE.customers||[]).find(x=>x.id===id);
+    const label = c ? (cleanName(c.name)||c.phone||("#"+id)) : ("#"+id);
+    return '<span class="chip" style="margin:2px" title="Linked account - histories are combined on this profile">🔗 <a href="#" data-lgo="'+id+'" style="text-decoration:none">'+esc(label)+'</a> <a href="#" data-lrm="'+id+'" title="Unlink" style="color:#c02626;text-decoration:none;font-weight:700">✕</a></span>';
+  }).join(" ");
+  return '<div class="meta" id="linkRow" style="margin:4px 0;align-items:center">'+chips+' <button class="btn ghost sm" id="linkAddBtn" type="button">🔗 Link account</button></div>';
+}
+function wireLinks(cu){
+  const row = document.getElementById("linkRow"); if(!row || row.dataset.wired) return; row.dataset.wired = "1";
+  row.addEventListener("click", async (e)=>{
+    const go = e.target.closest("[data-lgo]"), rm = e.target.closest("[data-lrm]"), add = e.target.closest("#linkAddBtn");
+    if(go){ e.preventDefault(); openCustomer(Number(go.dataset.lgo), true); return; }
+    if(rm){ e.preventDefault();
+      const lid = Number(rm.dataset.lrm);
+      try{
+        await SB.from("customer_links").delete().eq("customer_id",cu.id).eq("linked_customer_id",lid);
+        await SB.from("customer_links").delete().eq("customer_id",lid).eq("linked_customer_id",cu.id);
+        if(typeof toast==="function") toast("Unlinked");
+      }catch(err){ if(typeof toast==="function") toast("Unlink failed: "+(err.message||err)); }
+      openCustomer(cu.id, true); return; }
+    if(add){ e.preventDefault(); openLinkModal(cu); }
+  });
+}
+function openLinkModal(cu){
+  let box = document.getElementById("linkModal"); if(box) box.remove();
+  box = document.createElement("div"); box.id = "linkModal";
+  box.setAttribute("style","position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:1000;display:flex;align-items:center;justify-content:center");
+  box.innerHTML = '<div class="hm-card" style="max-width:540px"><div class="hm-head"><b>Link an account to '+esc(dispName(cu))+'</b><span class="hm-x" id="lmClose">✕</span></div><div class="hm-body"><div class="t" style="margin-bottom:8px">Same person under another name, number or email? Link them to see all WhatsApp, orders and emails on one profile. Reversible anytime.</div><input type="search" id="lmQ" placeholder="Search name, company, phone, email…" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit"/><div id="lmList" style="margin-top:10px"></div></div></div>';
+  document.body.appendChild(box);
+  document.getElementById("lmClose").onclick = ()=>box.remove();
+  box.addEventListener("click", e=>{ if(e.target===box) box.remove(); });
+  const list = document.getElementById("lmList"), q = document.getElementById("lmQ");
+  const already = new Set(cu._linkedIds||[cu.id]);
+  const render = ()=>{
+    const v = (q.value||"").toLowerCase().trim();
+    let rows = (STATE.customers||[]).filter(c=>!already.has(c.id));
+    if(v) rows = rows.filter(c=>((c.name||"")+" "+(c.company||"")+" "+(c.phone||"")+" "+(c.email||"")).toLowerCase().includes(v));
+    rows = rows.slice(0,25);
+    list.innerHTML = rows.map(c=>'<div class="row" data-lid="'+c.id+'" style="cursor:pointer"><div class="nm">'+esc(dispName(c))+'</div><div class="sub">'+esc(c.assigned_rep||"")+' · '+esc(c.phone||"")+' · '+esc(c.email||"")+'</div></div>').join("") || '<div class="t">No matches.</div>';
+  };
+  q.oninput = render; render();
+  list.onclick = async (e)=>{
+    const r = e.target.closest("[data-lid]"); if(!r) return;
+    try{
+      const ins = await SB.from("customer_links").insert({ customer_id: cu.id, linked_customer_id: Number(r.dataset.lid), created_by: (STATE.email||null) });
+      if(ins.error) throw new Error(ins.error.message);
+      if(typeof toast==="function") toast("Linked ✓ — histories combined");
+      box.remove(); openCustomer(cu.id, true);
+    }catch(err){ if(typeof toast==="function") toast("Link failed: "+(err.message||err)); }
+  };
 }
 </script>
 </body>
