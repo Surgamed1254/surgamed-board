@@ -258,7 +258,7 @@ const DEMO_CUST=[
 const $=id=>document.getElementById(id);
 let SB=null, STATE={customers:[],reps:[],live:false,email:""}, FILTERS={q:"",source:"",rep:"",status:"",priority:"",vip:false,review:false,due:false}, OPEN=null, WSVIEW=false;
 function setMode(live){ const m=$("mode"); STATE.live=live; m.textContent=live?"LIVE":"DEMO"; m.className="badge "+(live?"live":"demo"); }
-function showApp(){ $("gate").style.display="none"; $("app").style.display=WSVIEW?"none":"grid"; $("ws").style.display=WSVIEW?"block":"none"; $("wsToggle").style.display=""; $("refreshBtn").style.display=""; { const _h=$("hoursBtn"); if(_h){ _h.style.display=""; _h.onclick=openHoursModal; } } { const _o=$("oppBtn"); if(_o){ _o.style.display=""; _o.onclick=openOpportunities; } } }
+function showApp(){ $("gate").style.display="none"; $("app").style.display=WSVIEW?"none":"grid"; $("ws").style.display=WSVIEW?"block":"none"; $("wsToggle").style.display=""; $("refreshBtn").style.display=""; { const _h=$("hoursBtn"); if(_h){ _h.style.display=""; _h.onclick=function(){ openHoursModal(); }; } } { const _o=$("oppBtn"); if(_o){ _o.style.display=""; _o.onclick=openOpportunities; } } }
 function showGate(html){ $("app").style.display="none"; $("ws").style.display="none"; $("wsToggle").style.display="none"; $("refreshBtn").style.display="none"; { const _h=$("hoursBtn"); if(_h) _h.style.display="none"; } $("gate").style.display="block"; $("gate").innerHTML=html; }
 function toast(t){ const e=$("toast"); e.textContent=t; e.classList.add("show"); clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove("show"),1900); }
 async function freshToken(){ try{ const {data:{session}}=await SB.auth.getSession(); return session?session.access_token:""; }catch(e){ return ""; } }
