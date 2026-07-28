@@ -118,24 +118,6 @@
   .ws-reptab td{border-bottom:1px solid var(--line);padding:6px;cursor:pointer}
   .ws-reptab tr:hover td{background:#f8fafc}
   .ws-cap{color:var(--muted);font-size:11px;margin-top:7px}
-#hoursModal{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:1000;display:flex;align-items:center;justify-content:center}
-#hoursModal .hm-card{background:#fff;border-radius:12px;max-width:680px;width:94%;max-height:86vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.25)}
-#hoursModal .hm-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff}
-#hoursModal .hm-x{cursor:pointer;color:var(--muted);font-weight:700;padding:4px 8px}
-#hoursModal .hm-body{padding:14px 18px}
-#hoursModal .hm-rep{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
-#hoursModal .hm-repname{display:flex;gap:14px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
-#hoursModal .hm-repname label{font-size:12px;color:var(--muted);display:flex;gap:4px;align-items:center}
-#hoursModal .hm-days{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px}
-#hoursModal .hm-day{display:flex;gap:6px;align-items:center;font-size:12px}
-#hoursModal .hm-day span{width:30px;color:var(--muted)}
-#hoursModal .hm-day input{border:1px solid var(--line);border-radius:6px;padding:2px 4px;font:inherit;font-size:12px}
-#hoursModal .hm-note{font-size:11px;color:var(--muted);margin:6px 0}
-#hoursModal .hm-msg{width:100%;min-height:54px;border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit;font-size:12.5px;margin:4px 0}
-#hoursModal .hm-row{display:flex;gap:10px;align-items:center}
-#hoursModal .hm-status{font-size:12px;color:var(--muted)}
-#waTransChip{cursor:pointer;user-select:none}
-#waTransChip.on{background:#e7f0ff;border-color:#2563eb;color:#2563eb}
 </style>
 </head>
 <body>
@@ -147,7 +129,6 @@
   <button class="btn ghost sm" id="wsToggle" style="display:none">📊 Workspace</button>
   <button class="btn ghost sm" id="oppBtn" style="display:none">🎯 Opportunities</button>
   <button class="btn ghost sm" id="refreshBtn" style="display:none">↻ Refresh</button>
-  <button class="btn ghost sm" id="hoursBtn" style="display:none">🕘 Hours</button>
   <span class="spacer"></span>
   <span class="who" id="who"></span>
 </header>
@@ -258,8 +239,8 @@ const DEMO_CUST=[
 const $=id=>document.getElementById(id);
 let SB=null, STATE={customers:[],reps:[],live:false,email:""}, FILTERS={q:"",source:"",rep:"",status:"",priority:"",vip:false,review:false,due:false}, OPEN=null, WSVIEW=false;
 function setMode(live){ const m=$("mode"); STATE.live=live; m.textContent=live?"LIVE":"DEMO"; m.className="badge "+(live?"live":"demo"); }
-function showApp(){ $("gate").style.display="none"; $("app").style.display=WSVIEW?"none":"grid"; $("ws").style.display=WSVIEW?"block":"none"; $("wsToggle").style.display=""; $("refreshBtn").style.display=""; { const _h=$("hoursBtn"); if(_h){ _h.style.display=""; _h.onclick=openHoursModal; } } { const _o=$("oppBtn"); if(_o){ _o.style.display=""; _o.onclick=openOpportunities; } } }
-function showGate(html){ $("app").style.display="none"; $("ws").style.display="none"; $("wsToggle").style.display="none"; $("refreshBtn").style.display="none"; { const _h=$("hoursBtn"); if(_h) _h.style.display="none"; } $("gate").style.display="block"; $("gate").innerHTML=html; }
+function showApp(){ $("gate").style.display="none"; $("app").style.display=WSVIEW?"none":"grid"; $("ws").style.display=WSVIEW?"block":"none"; $("wsToggle").style.display=""; $("refreshBtn").style.display=""; { const _o=$("oppBtn"); if(_o){ _o.style.display=""; _o.onclick=openOpportunities; } } }
+function showGate(html){ $("app").style.display="none"; $("ws").style.display="none"; $("wsToggle").style.display="none"; $("refreshBtn").style.display="none"; $("gate").style.display="block"; $("gate").innerHTML=html; }
 function toast(t){ const e=$("toast"); e.textContent=t; e.classList.add("show"); clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove("show"),1900); }
 async function freshToken(){ try{ const {data:{session}}=await SB.auth.getSession(); return session?session.access_token:""; }catch(e){ return ""; } }
 
@@ -717,13 +698,13 @@ function detailHtml(cu, msgs, timeline, isTest){
   const repOpts='<option value="">Unassigned</option>'+STATE.reps.map(r=>`<option value="${r.id}" ${cu.assigned_rep===r.name?"selected":""}>${esc(r.name)}</option>`).join("");
   const statusOpts=STATUSES.map(s=>`<option value="${s[0]}" ${(cu.manager_status||"new")===s[0]?"selected":""}>${s[1]}</option>`).join("");
   const prioOpts=PRIORITIES.map(p=>`<option value="${p[0]}" ${(cu.priority||"normal")===p[0]?"selected":""}>${p[1]}</option>`).join("");
-  const mhtml=(msgs||[]).map(m=>`<div class="msg ${m.direction==="in"?"in":"out"}"><span class="mtxt" data-en="${m.translated_text&&m.language&&m.language!=="en"?esc(m.translated_text):""}">${esc(m.text||"["+(m.media_type||"message")+"]")}</span><div class="t">${msgMeta(m,cu)}</div></div>`).join("")+'<div class="clear"></div>';
+  const mhtml=(msgs||[]).map(m=>`<div class="msg ${m.direction==="in"?"in":"out"}">${esc(m.text||"["+(m.media_type||"message")+"]")}<div class="t">${msgMeta(m,cu)}</div></div>`).join("")+'<div class="clear"></div>';
   const notes=(timeline||[]).filter(e=>e.type==="note");
   const nhtml=notes.map(e=>`<div class="note"><span class="who">${esc((e.rep||"manager").split("@")[0])}</span> · <span class="t">${fmtAgo(e.ts)}</span><div>${esc(e.title||"")}${e.body?" — "+esc(e.body):""}</div></div>`).join("")||'<div class="t">No internal notes yet.</div>';
   const thtml=(timeline||[]).map(e=>`<li><span class="ic">${TLICON[e.type]||"•"}</span><div><span class="ty">${esc(e.title||e.type)}</span>${e.body?" — "+esc(e.body):""}<div class="t">${esc(e.type)} · ${esc(e.source||"")} · ${fmtAgo(e.ts)}</div></div></li>`).join("");
   const waCompose = (cu.phone ? `<div class="compose"><textarea id="waBody" placeholder="Write a WhatsApp message… sends from the assigned rep's WhatsApp number."></textarea><div class="crow"><button class="btn sm" id="waSendBtn">Send WhatsApp</button><span class="sendmsg" id="waSendMsg"></span></div></div>` : "");
   const convSection = cu._convId
-    ? `<h3 class="sec">WhatsApp conversation <span id="waTransChip" class="chip" style="float:right">EN</span></h3><div class="msgs">${mhtml||'<div class="t">No messages.</div>'}${waCompose}</div>`
+    ? `<h3 class="sec">WhatsApp conversation</h3><div class="msgs">${mhtml||'<div class="t">No messages.</div>'}${waCompose}</div>`
     : `<h3 class="sec">WhatsApp conversation</h3><div class="msgs"><div class="t">No WhatsApp conversation yet — this customer came from ${esc((cu._badges||["email"]).join(", "))}.</div>${waCompose}</div>`;
   const composeBox=`<div class="compose">
       <input type="text" id="composeSubject" placeholder="Subject (optional)"/>
@@ -815,7 +796,7 @@ async function openCustomer(cid,keep){
     cu._msgs=msgs; cu._tl=tl;
   }
   const isTest=/ZZ_WATEST/i.test(cu.name||"");
-  $("detail").innerHTML=detailHtml(cu,msgs,tl,isTest); wireDetail(cu); initCollapsibles($("detail"),"h3.sec"); try{ wireWaTrans(cu); }catch(e){}
+  $("detail").innerHTML=detailHtml(cu,msgs,tl,isTest); wireDetail(cu); initCollapsibles($("detail"),"h3.sec");
   if(STATE.repScope){ const cc=document.querySelector(".ctrls"); if(cc&&cc.closest(".pcard")) cc.closest(".pcard").style.display="none"; const nl=$("noteList"); if(nl){ const nb=nl.closest(".notes"); if(nb){ if(nb.previousElementSibling) nb.previousElementSibling.style.display="none"; nb.style.display="none"; } } }
   (function(){ try{ var ids=[].slice.call(document.querySelectorAll(".row")).map(function(e){return Number(e.dataset.cid);}); var idx=ids.indexOf(cid); var pv=idx>0?ids[idx-1]:null, nx=(idx>=0&&idx<ids.length-1)?ids[idx+1]:null; var nav=document.createElement("div"); nav.style.cssText="display:flex;gap:8px;justify-content:space-between;margin-bottom:8px"; nav.innerHTML='<button class="btn ghost sm" id="cPrev">\u2039 Prev</button><button class="btn ghost sm" id="cNext">Next \u203a</button>'; var dt=$("detail"); dt.insertBefore(nav, dt.firstChild); var pb=document.getElementById("cPrev"), nb=document.getElementById("cNext"); if(pb){ if(pv){ pb.onclick=function(){openCustomer(pv);}; } else { pb.disabled=true; pb.style.opacity=.4; } } if(nb){ if(nx){ nb.onclick=function(){openCustomer(nx);}; } else { nb.disabled=true; nb.style.opacity=.4; } } }catch(e){} })();
   // load the heavy sections (email / shipping / orders)
@@ -952,118 +933,5 @@ if(typeof window!=="undefined") window.__crm={statusLabel,nextAction,matchesFilt
 })();
 </script>
 
-<script>
-/* ===== v4: work hours + after-hours auto-reply settings, translate-to-English ===== */
-const WA_SET_FN = SB_URL + "/functions/v1/whatsapp/rep-settings";
-const WA_TR_FN  = SB_URL + "/functions/v1/whatsapp/translate";
-const WA_DAYS = [["mon","Mon"],["tue","Tue"],["wed","Wed"],["thu","Thu"],["fri","Fri"],["sat","Sat"],["sun","Sun"]];
-
-async function waApi(url, opts){
-  const h = { "x-user-jwt": (await freshToken()), apikey: SB_KEY, "content-type": "application/json" };
-  const r = await fetch(url, Object.assign({ headers: h }, opts||{}));
-  const d = await r.json().catch(()=>({}));
-  if(!r.ok || d.error) throw new Error(d.error || ("HTTP "+r.status));
-  return d;
-}
-
-function waTransOn(){ try{ return localStorage.getItem("waTransEN")==="1"; }catch(e){ return false; } }
-function applyTransState(){
-  const on = waTransOn();
-  document.querySelectorAll("#detail .mtxt").forEach(el=>{
-    const en = el.getAttribute("data-en")||"";
-    if(on && en && !el.dataset.showOrig){
-      if(!el.dataset.orig) el.dataset.orig = el.textContent;
-      el.textContent = en; el.title = "Translated - click for original"; el.style.cursor = "pointer";
-    } else if(el.dataset.orig){
-      el.textContent = el.dataset.orig; el.title = "";
-    }
-  });
-  const chip = document.getElementById("waTransChip");
-  if(chip){ chip.classList.toggle("on", on); if(chip.textContent !== "…") chip.textContent = on ? "EN ✓" : "EN"; }
-}
-function wireWaTrans(cu){
-  const chip = document.getElementById("waTransChip");
-  if(chip && !chip.dataset.wired){
-    chip.dataset.wired = "1";
-    chip.addEventListener("click", async (e)=>{
-      e.stopPropagation();
-      const turnOn = !waTransOn();
-      try{ localStorage.setItem("waTransEN", turnOn ? "1" : "0"); }catch(_e){}
-      if(turnOn && STATE.live){
-        chip.textContent = "…";
-        try{ await waApi(WA_TR_FN, { method: "POST", body: JSON.stringify({ customer_id: cu.id }) }); }
-        catch(err){ if(typeof toast === "function") toast("Translate: " + err.message); }
-        openCustomer(cu.id, true);
-        return;
-      }
-      applyTransState();
-    });
-  }
-  document.querySelectorAll("#detail .mtxt").forEach(el=>{
-    if(el.dataset.wiredClick) return; el.dataset.wiredClick = "1";
-    el.addEventListener("click", ()=>{
-      if(!waTransOn() || !(el.getAttribute("data-en")||"")) return;
-      el.dataset.showOrig = el.dataset.showOrig ? "" : "1";
-      if(el.dataset.showOrig){ if(!el.dataset.orig) el.dataset.orig = el.getAttribute("data-en") ? el.textContent : ""; el.textContent = el.dataset.orig || el.textContent; }
-      else { el.textContent = el.getAttribute("data-en"); }
-    });
-  });
-  applyTransState();
-}
-
-async function openHoursModal(){
-  let box = document.getElementById("hoursModal");
-  if(box) box.remove();
-  box = document.createElement("div");
-  box.id = "hoursModal";
-  box.innerHTML = '<div class="hm-card"><div class="hm-head"><b>Work hours &amp; after-hours auto-reply</b><span class="hm-x" id="hmClose">✕</span></div><div class="hm-body" id="hmBody">Loading…</div></div>';
-  document.body.appendChild(box);
-  document.getElementById("hmClose").onclick = ()=>box.remove();
-  box.addEventListener("click", e=>{ if(e.target===box) box.remove(); });
-  let data;
-  try{ data = await waApi(WA_SET_FN, { method: "GET" }); }
-  catch(err){ document.getElementById("hmBody").textContent = "Could not load settings: " + err.message; return; }
-  const reps = data.reps || [];
-  document.getElementById("hmBody").innerHTML = (reps.map(r=>{
-    const wh = r.work_hours || {};
-    const days = WA_DAYS.map(([k,lbl])=>{
-      const sp = Array.isArray(wh[k]) ? wh[k] : ["",""];
-      return '<div class="hm-day"><span>'+lbl+'</span><input type="time" data-day="'+k+'" data-part="0" value="'+(sp[0]||"")+'"><input type="time" data-day="'+k+'" data-part="1" value="'+(sp[1]||"")+'"></div>';
-    }).join("");
-    return '<div class="hm-rep" data-rep="'+r.id+'">'
-      + '<div class="hm-repname"><b>'+esc(r.name)+'</b>'
-      + '<label><input type="checkbox" class="hm-en" '+(r.auto_reply_enabled?"checked":"")+'> after-hours auto-reply</label>'
-      + '<label><input type="checkbox" class="hm-ur" '+(r.urgent_enabled!==false?"checked":"")+'> urgent handover</label></div>'
-      + '<div class="hm-days">'+days+'</div>'
-      + '<div class="hm-note">Blank both times = day off · times in '+esc(r.tz||"America/New_York")+'</div>'
-      + '<textarea class="hm-msg" placeholder="Custom after-hours reply for this rep (blank = standard message: rep is out, reply URGENT for immediate handover, otherwise rep replies next business day - send your order now)">'+(r.auto_reply_message?esc(r.auto_reply_message):"")+'</textarea>'
-      + '<div class="hm-row"><button class="btn sm hm-save">Save '+esc(String(r.name).split(" ")[0])+'</button><span class="hm-status"></span></div>'
-      + '</div>';
-  }).join("")) || "No reps found.";
-  document.querySelectorAll("#hoursModal .hm-save").forEach(btn=>{
-    btn.onclick = async ()=>{
-      const card = btn.closest(".hm-rep");
-      const wh = {};
-      WA_DAYS.forEach(([k])=>{
-        const a = card.querySelector('input[data-day="'+k+'"][data-part="0"]').value;
-        const b = card.querySelector('input[data-day="'+k+'"][data-part="1"]').value;
-        if(a && b) wh[k] = [a,b];
-      });
-      const st = card.querySelector(".hm-status");
-      st.textContent = "Saving…";
-      try{
-        await waApi(WA_SET_FN, { method: "POST", body: JSON.stringify({
-          rep_id: Number(card.dataset.rep), work_hours: wh,
-          auto_reply_enabled: card.querySelector(".hm-en").checked,
-          urgent_enabled: card.querySelector(".hm-ur").checked,
-          auto_reply_message: card.querySelector(".hm-msg").value.trim() || null
-        }) });
-        st.textContent = "Saved ✓";
-      }catch(err){ st.textContent = "Error: " + err.message; }
-      setTimeout(()=>{ st.textContent = ""; }, 4000);
-    };
-  });
-}
-</script>
 </body>
 </html>
