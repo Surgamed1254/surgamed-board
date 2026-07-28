@@ -2842,5 +2842,25 @@ new MutationObserver(add).observe(document.body,{childList:true,subtree:true});
   setInterval(tick, 2500); setTimeout(tick, 1500);
 })();
 </script>
+
+<!-- RZ-EMAILCOUNT-V1 -->
+<script>
+(function(){
+if(window.__rzEmailCount)return;window.__rzEmailCount=1;
+function txt(el){return (el.textContent||"");}
+function summ(box){if(/no emails/i.test(txt(box)))return "none yet";var n=box.querySelectorAll(".emrow").length;return n?(n+" email"+(n===1?"":"s")):"none yet";}
+var raf=null;
+function refresh(){
+ if(!document.querySelector(".overlay"))return;
+ var box=document.getElementById("emailBox");if(!box)return;
+ var hs=document.querySelectorAll(".overlay h4, .mbody h4, h4");var h=null;
+ for(var i=0;i<hs.length;i++){if(/email history/i.test(hs[i].textContent)){h=hs[i];break;}}
+ if(!h)return;var chip=h.querySelector(".sgchip");if(!chip)return;
+ var tn=chip.lastChild;if(!tn||tn.nodeType!==3)return;
+ var nv=summ(box);if((tn.nodeValue||"").trim()!==nv)tn.nodeValue=nv;
+}
+new MutationObserver(function(){if(raf)return;raf=requestAnimationFrame(function(){raf=null;refresh();});}).observe(document.body,{childList:true,subtree:true,characterData:true});
+})();
+</script>
 </body>
 </html>
