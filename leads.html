@@ -2843,12 +2843,12 @@ new MutationObserver(add).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
 
-<!-- RZ-LOOKUPTABS-V1 -->
+<!-- RZ-CUSTTABS-V1 -->
 <script>
 (function(){
-if(window.__rzLkTabs)return;window.__rzLkTabs=1;
-function tabifyLk(root){
- if(!root||root.querySelector(".rz-twrap"))return;
+if(window.__rzCustTabs)return;window.__rzCustTabs=1;
+function tabify(root){
+ if(!root||root.querySelector(":scope > .rz-twrap"))return;
  var kids=[].slice.call(root.children);if(kids.length<3)return;
  var order=["Overview","History","Inventory","Shipping","Tags","Email"];
  var B={Overview:[],History:[],Inventory:[],Shipping:[],Tags:[],Email:[]};var em=false;
@@ -2857,8 +2857,8 @@ function tabifyLk(root){
   if(/email history/.test(t)){em=true;B.Email.push(c);return;}
   if(/fieldbox/.test(cls)){B.Overview.push(c);return;}
   if(/acctblock/.test(cls)){B.History.push(c);return;}
-  if(id==="lkc_ms"||id==="lkc_sim"){B.Inventory.push(c);return;}
-  if(id==="lkc_notes"){B.Overview.push(c);return;}
+  if(/_ms$|_sim$/.test(id)){B.Inventory.push(c);return;}
+  if(/_notes$/.test(id)){B.Overview.push(c);return;}
   if(/bdhead/.test(cls)&&/order history/.test(t)){B.History.push(c);return;}
   if(/ships to|shipping/.test(t)){B.Shipping.push(c);return;}
   B.Overview.push(c);});
@@ -2867,8 +2867,9 @@ function tabifyLk(root){
  live.forEach(function(k,idx){var b=document.createElement("button");b.className="rz-tbtn"+(idx===0?" on":"");b.textContent=k;bar.appendChild(b);btns[k]=b;var p=document.createElement("div");p.className="rz-tpanel";p.style.display=idx===0?"":"none";panels.appendChild(p);pans[k]=p;B[k].forEach(function(el){p.appendChild(el);});b.addEventListener("click",function(){live.forEach(function(kk){btns[kk].classList.toggle("on",kk===k);pans[kk].style.display=kk===k?"":"none";});});});
  root.appendChild(wrap);
 }
+function scan(){var seen=[];document.querySelectorAll(".acctblock").forEach(function(ab){var p=ab.parentElement;if(!p||seen.indexOf(p)>=0)return;seen.push(p);if(p.classList&&p.classList.contains("mbody"))return;if(!p.querySelector(":scope > .fieldbox"))return;if(p.querySelector(":scope > .rz-twrap"))return;tabify(p);});}
 var tmr=null;
-new MutationObserver(function(){if(tmr)clearTimeout(tmr);tmr=setTimeout(function(){var d=document.getElementById("lkCustDetail");if(d)tabifyLk(d);},180);}).observe(document.body,{childList:true,subtree:true});
+new MutationObserver(function(){if(tmr)clearTimeout(tmr);tmr=setTimeout(scan,180);}).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
 </body>
