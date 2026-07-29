@@ -167,6 +167,7 @@
         <span class="chip" data-flag="vip">★ VIP</span>
         <span class="chip" data-flag="review">⚑ Review</span>
         <span class="chip" data-flag="due">⏰ Due</span>
+        <span class="chip" data-flag="multi">\uD83D\uDC65 Multi-rep</span>
       </div>
     </div>
     <div class="lcount" id="lcount">—</div>
@@ -240,7 +241,7 @@ function matchesFilters(cu,f){
   if(f.priority && (cu.priority||"normal")!==f.priority) return false;
   if(f.vip && !cu.vip) return false;
   if(f.review && !cu.review_flag) return false;
-  if(f.due && !dueSoon(cu)) return false;
+  if(f.due && !dueSoon(cu)) return false; if(f.multi && !MULTIREP.has(cu.id)) return false;
   return true;
 }
 
