@@ -1130,7 +1130,7 @@ function renderBoard(){
   const ref=businessRef();
   const byCat={}; CATS.forEach(c=>byCat[c.key]=[]);
   let shown=0;
-  LEADS.forEach(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&stt==="closed")return; if(statusF!=="all"&&stt!==statusF)return; if(repF!=="all"&&rep!==repF)return; byCat[l.cat].push(l); shown++; });
+  LEADS.forEach(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&(stt==="closed"||stt==="upsell"))return; if(statusF!=="all"&&stt!==statusF)return; if(repF!=="all"&&rep!==repF)return; byCat[l.cat].push(l); shown++; });
   for(const k in byCat) byCat[k].sort((a,b)=>new Date(b.date)-new Date(a.date));
   let html="";
   CATS.forEach(c=>{
@@ -1148,7 +1148,7 @@ function renderList(){
   const repF=document.getElementById("repFilter").value;
   const statusF=document.getElementById("statusFilter").value;
   const hideClosed=document.getElementById("hideClosed").checked;
-  let rows=LEADS.filter(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&stt==="closed")return false; if(statusF!=="all"&&stt!==statusF)return false; if(repF!=="all"&&rep!==repF)return false; return true; });
+  let rows=LEADS.filter(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&(stt==="closed"||stt==="upsell"))return false; if(statusF!=="all"&&stt!==statusF)return false; if(repF!=="all"&&rep!==repF)return false; return true; });
   rows.sort((a,b)=>new Date(b.date)-new Date(a.date));
   let h='<table class="ltab"><thead><tr><th>Date</th><th>Type</th><th>Customer</th><th>Item / details</th><th>Acct</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
   if(!rows.length) h+='<tr><td colspan="8"><div class="empty">No leads in window</div></td></tr>';
@@ -1233,7 +1233,7 @@ function renderWorkspace(){
   let rept='<div class="ws-card" id="wsRadarBoard"><h3>📡 Reorder Radar — reach out today</h3><div style="color:#9aa7b4;font-size:12px">Loading who to reach today…</div></div>';
   html+='<div class="ws-grid">'+pipe+rept+'</div>';
   // Dense active-leads table (respects all three filters)
-  let rows=LEADS.filter(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&stt==="closed")return false; if(statusF!=="all"&&stt!==statusF)return false; if(repF!=="all"&&rep!==repF)return false; return true; });
+  let rows=LEADS.filter(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&(stt==="closed"||stt==="upsell"))return false; if(statusF!=="all"&&stt!==statusF)return false; if(repF!=="all"&&rep!==repF)return false; return true; });
   rows.sort((a,b)=>new Date(b.date)-new Date(a.date));
   const totalRows=rows.length;
   const sizeNum = WS_SIZE==='all' ? (totalRows||1) : (parseInt(WS_SIZE,10)||10);
