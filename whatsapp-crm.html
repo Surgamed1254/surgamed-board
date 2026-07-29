@@ -223,6 +223,11 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;",
 // strip the garbled HTML-entity sender names that occasionally arrive from Outlook
 function cleanName(s){ if(!s) return ""; let x=String(s).replace(/&#x?[0-9a-fA-F]+;/g,"").replace(/[\u0000-\u001f]/g," ").replace(/\s+/g," ").trim(); return /[A-Za-z0-9]/.test(x)?x:""; }
 function dispName(cu){ return cleanName(cu.name)||cu.email||("Customer #"+cu.id); }
+const REP_BG=["#e8f1fb","#e6f6ee","#fdf3e2","#efe9fb","#d9f2ee","#f3e8ff","#fff4e5"];
+const REP_BD=["#185fa5","#1b9e6b","#b7791f","#6b46c1","#0f766e","#8b5cf6","#d97706"];
+function repCidx(id){ try{ const i=(STATE.reps||[]).findIndex(r=>r.id===id); return i>=0?i:0; }catch(e){ return 0; } }
+function repBg(id){ return REP_BG[repCidx(id)%REP_BG.length]; }
+function repBd(id){ return REP_BD[repCidx(id)%REP_BD.length]; }
 function repNm(id,cu){ try{ const r=(STATE.reps||[]).find(x=>x.id===id); return r?r.name:(cu.assigned_rep||"Rep"); }catch(e){ return (cu&&cu.assigned_rep)||"Rep"; } }
 function msgMeta(m,cu){ if(m.customer_id&&m.customer_id!==cu.id&&typeof STATE!=="undefined"){ const _c=(STATE.customers||[]).find(x=>x.id===m.customer_id); if(_c) cu=_c; } const cust=cleanName(cu.name)||cu.phone||"Customer"; const rep=repNm(m.rep_id,cu); const ago=fmtAgo(m.ts); if(m.direction==="in"){ return esc(cust)+" \u2192 "+esc(rep)+" · "+ago; } const via=/[a-zA-Z]/.test(String(m.sender||""))?"via CRM":"from cell"; return esc(rep)+" \u2192 "+esc(cust)+" · "+via+" · "+ago; }
 function htmlToText(h){ if(!h) return ""; if(!/[<&]/.test(h)) return h; const d=document.createElement("div"); d.innerHTML=h; return (d.textContent||d.innerText||"").replace(/\n{3,}/g,"\n\n").trim(); }
@@ -259,7 +264,7 @@ const DEMO_CUST=[
 
 // ---------- runtime ----------
 const $=id=>document.getElementById(id);
-let SB=null, STATE={customers:[],reps:[],live:false,email:""}, FILTERS={q:"",source:"",rep:"",status:"",priority:"",vip:false,review:false,due:false}, OPEN=null, WSVIEW=false;
+let MULTIREP=new Set(); let SB=null, STATE={customers:[],reps:[],live:false,email:""}, FILTERS={q:"",source:"",rep:"",status:"",priority:"",vip:false,review:false,due:false}, OPEN=null, WSVIEW=false;
 function setMode(live){ const m=$("mode"); STATE.live=live; m.textContent=live?"LIVE":"DEMO"; m.className="badge "+(live?"live":"demo"); }
 function showApp(){ $("gate").style.display="none"; $("app").style.display=WSVIEW?"none":"grid"; $("ws").style.display=WSVIEW?"block":"none"; $("wsToggle").style.display=""; $("refreshBtn").style.display=""; { const _h=$("hoursBtn"); if(_h){ _h.style.display=""; _h.onclick=function(){ openHoursModal(); }; } } { const _o=$("oppBtn"); if(_o){ _o.style.display=""; _o.onclick=openOpportunities; } } }
 function showGate(html){ $("app").style.display="none"; $("ws").style.display="none"; $("wsToggle").style.display="none"; $("refreshBtn").style.display="none"; { const _h=$("hoursBtn"); if(_h) _h.style.display="none"; } $("gate").style.display="block"; $("gate").innerHTML=html; }
@@ -276,7 +281,7 @@ function rowHtml(cu){
   const vip=cu.vip?'<span class="star" title="VIP">★</span>':"", rev=cu.review_flag?'<span class="flagx" title="Review">⚑</span>':"";
   const due=dueSoon(cu)?'<span class="pill follow">⏰ '+fmtDate(cu.follow_up_date)+'</span>':"";
   return `<div class="row" data-cid="${cu.id}">
-    <div class="nm">${esc(dispName(cu))} ${vip} ${rev}</div>
+    <div class="nm">${esc(dispName(cu))} ${vip} ${rev} ${MULTIREP.has(cu.id)?'<span title="More than one rep in contact with this customer">\uD83D\uDC65</span>':''}</div>
     <div class="sub">${esc(cu.assigned_rep||"Unassigned")} · ${esc(cu.company||cu.email||cu.phone||"")}</div>
     <div class="r2">${cu._actionNeeded?'<span class="pill ai-flag" title="AI: rep action needed">⚡ Action</span> ':''}${badgesHtml(cu._badges)} <span class="dot ${cu.priority||'normal'}" title="Priority"></span><span class="pill ${statusClass(cu)}">${esc(statusLabel(cu))}</span> ${due} <span class="sub">${fmtAgo(cu.last_contact_at)}</span></div>
   </div>`;
@@ -722,7 +727,7 @@ function detailHtml(cu, msgs, timeline, isTest){
   const repOpts='<option value="">Unassigned</option>'+STATE.reps.map(r=>`<option value="${r.id}" ${cu.assigned_rep===r.name?"selected":""}>${esc(r.name)}</option>`).join("");
   const statusOpts=STATUSES.map(s=>`<option value="${s[0]}" ${(cu.manager_status||"new")===s[0]?"selected":""}>${s[1]}</option>`).join("");
   const prioOpts=PRIORITIES.map(p=>`<option value="${p[0]}" ${(cu.priority||"normal")===p[0]?"selected":""}>${p[1]}</option>`).join("");
-  const mhtml=(msgs||[]).map(m=>`<div class="msg ${m.direction==="in"?"in":"out"}"><span class="mtxt" data-en="${m.translated_text&&m.language&&m.language!=="en"?esc(m.translated_text):""}">${esc(m.text||"["+(m.media_type||"message")+"]")}</span><div class="t">${msgMeta(m,cu)}</div></div>`).join("")+'<div class="clear"></div>';
+  const mhtml=(msgs||[]).map(m=>`<div class="msg ${m.direction==="in"?"in":"out"}" style="background:${repBg(m.rep_id)};border-${m.direction==="in"?"left":"right"}:3px solid ${repBd(m.rep_id)}"><span class="mtxt" data-en="${m.translated_text&&m.language&&m.language!=="en"?esc(m.translated_text):""}">${esc(m.text||"["+(m.media_type||"message")+"]")}</span><div class="t">${msgMeta(m,cu)}</div></div>`).join("")+'<div class="clear"></div>';
   const notes=(timeline||[]).filter(e=>e.type==="note");
   const nhtml=notes.map(e=>`<div class="note"><span class="who">${esc((e.rep||"manager").split("@")[0])}</span> · <span class="t">${fmtAgo(e.ts)}</span><div>${esc(e.title||"")}${e.body?" — "+esc(e.body):""}</div></div>`).join("")||'<div class="t">No internal notes yet.</div>';
   const thtml=(timeline||[]).map(e=>`<li><span class="ic">${TLICON[e.type]||"•"}</span><div><span class="ty">${esc(e.title||e.type)}</span>${e.body?" — "+esc(e.body):""}<div class="t">${esc(e.type)} · ${esc(e.source||"")} · ${fmtAgo(e.ts)}</div></div></li>`).join("");
@@ -874,6 +879,7 @@ async function loadLive(){
   (tl.data||[]).forEach(e=>{ const b=badgeFor(e); if(!b) return; (badgeMap[e.customer_id]=badgeMap[e.customer_id]||new Set()).add(b); });
   custs.forEach(c=>{ const set=badgeMap[c.id]||new Set(); if(waSet.has(c.id)) set.add("WhatsApp"); c._badges=[...set]; c._convId=waSet.has(c.id)?1:null; c._msgs=null; c._tl=null; const _cv=convMap[c.id]; c._aiSummary=(_cv&&_cv.summary)||null; c._aiNext=(_cv&&_cv.ai_next_action)||null; c._actionNeeded=!!(_cv&&_cv.action_needed); });
   STATE.customers=custs;
+  try{ const __mr=await SB.from("messages").select("customer_id,rep_id").is("deleted_at",null).limit(8000); const __rs={}; (__mr.data||[]).forEach(x=>{ if(x.rep_id==null)return; (__rs[x.customer_id]=__rs[x.customer_id]||new Set()).add(x.rep_id); }); MULTIREP=new Set(Object.keys(__rs).filter(k=>__rs[k].size>1).map(Number)); }catch(e){}
   fillFilterSelects(); renderList(); if(WSVIEW) renderWorkspace();
   const dl=deepLink(); if(dl) openCustomer(dl); else { const me=(location.hash||"").match(/email=([^&]+)/); if(me){ const em=decodeURIComponent(me[1]).toLowerCase(); const c=STATE.customers.find(x=>(x.email||"").toLowerCase()===em); if(c) openCustomer(c.id); } }
 }
