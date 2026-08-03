@@ -872,7 +872,7 @@ async function loadLive(){
     .select("id,name,company,phone,email,assigned_rep,vip,review_flag,country,preferred_language,last_contact_at,manager_status,priority,next_action_override,follow_up_date")
     .is("deleted_at",null).order("last_contact_at",{ascending:false,nullsFirst:false}).limit(500);
   let custs=cr.data||[];
-  const INTERNAL_NUMS=["7322788598","8482268748","8483334906","7325522816","8489867508","8483584048"];
+  const INTERNAL_NUMS=["7322788598","8482268748","8483334906","7325522816","8489867508","8483584048","3479710461"];
   if((STATE.email||"").toLowerCase()!=="mweinreb@surgamed.com"){ custs=custs.filter(c=>{ const d=String(c.phone||"").replace(/\D/g,"").slice(-10); return !INTERNAL_NUMS.includes(d); }); }
   const conv=await SB.from("wa_conversations").select("customer_id,rep_id,summary,ai_next_action,action_needed").is("deleted_at",null);
   const waSet=new Set((conv.data||[]).map(x=>x.customer_id)); const convMap={}; (conv.data||[]).forEach(x=>{ convMap[x.customer_id]=x; });
