@@ -1006,7 +1006,7 @@ function wireWaTrans(cu){
       try{ localStorage.setItem("waTransEN", turnOn ? "1" : "0"); }catch(_e){}
       if(turnOn && STATE.live){
         chip.textContent = "…";
-        try{ await waApi(WA_TR_FN, { method: "POST", body: JSON.stringify({ customer_ids: (cu._linkedIds&&cu._linkedIds.length?cu._linkedIds:[cu.id]) }) }); }
+        try{ await waApi(WA_TR_FN, { method: "POST", body: JSON.stringify({ customer_id: cu.id }) }); }
         catch(err){ if(typeof toast === "function") toast("Translate: " + err.message); }
         openCustomer(cu.id, true);
         return;
