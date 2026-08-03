@@ -882,7 +882,7 @@ async function loadLive(){
   (tl.data||[]).forEach(e=>{ const b=badgeFor(e); if(!b) return; (badgeMap[e.customer_id]=badgeMap[e.customer_id]||new Set()).add(b); });
   custs.forEach(c=>{ const set=badgeMap[c.id]||new Set(); if(waSet.has(c.id)) set.add("WhatsApp"); c._badges=[...set]; c._convId=waSet.has(c.id)?1:null; c._msgs=null; c._tl=null; const _cv=convMap[c.id]; c._aiSummary=(_cv&&_cv.summary)||null; c._aiNext=(_cv&&_cv.ai_next_action)||null; c._actionNeeded=!!(_cv&&_cv.action_needed); });
   STATE.customers=custs;
-  try{ const __mr=await SB.from("messages").select("customer_id,rep_id").is("deleted_at",null).limit(8000); const __rs={}; (__mr.data||[]).forEach(x=>{ if(x.rep_id==null)return; (__rs[x.customer_id]=__rs[x.customer_id]||new Set()).add(x.rep_id); }); MULTIREP=new Set(Object.keys(__rs).filter(k=>__rs[k].size>1).map(Number)); }catch(e){}
+  try{ const __mr=await SB.from("multirep_customer_ids").select("customer_id"); MULTIREP=new Set((__mr.data||[]).map(x=>x.customer_id)); }catch(e){}
   fillFilterSelects(); renderList(); if(WSVIEW) renderWorkspace();
   const dl=deepLink(); if(dl) openCustomer(dl); else { const me=(location.hash||"").match(/email=([^&]+)/); if(me){ const em=decodeURIComponent(me[1]).toLowerCase(); const c=STATE.customers.find(x=>(x.email||"").toLowerCase()===em); if(c) openCustomer(c.id); } }
 }
