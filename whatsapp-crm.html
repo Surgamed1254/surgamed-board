@@ -1190,7 +1190,7 @@ document.documentElement.classList.add("crm-embed");
 if(window.__crmChat)return;window.__crmChat=1;
 var isChat=/chat/.test(location.hash+location.search);
 var css=".qr-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 0}.qr-chip{border:1px solid #cbd5e1;border-radius:20px;padding:2px 10px;font-size:12px;cursor:pointer;font-family:monospace;background:#fff}.qr-chip:hover{background:#f1f5f9}.lbl-chip{border-radius:20px;padding:1px 9px;font-size:12px;display:inline-flex;align-items:center;gap:4px}.asg-sel{font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid #e5e7eb;background:#fff}";
-if(isChat){css+=" header.top{display:none!important}.list{display:none!important}#app.wrap{display:block!important}#detail.detail{width:100%!important;max-width:100%!important;margin:0!important;padding:8px!important}#ws{display:none!important}.crm-tabbar{display:none!important}.crm-tabpanel{display:none!important}.crm-tabpanel[data-tab=\"wa\"]{display:block!important}#detail>div:first-child{display:none!important}#detail .pcard:nth-of-type(2){display:none!important}";}
+if(isChat){css+=" header.top{display:none!important}.list{display:none!important}#app.wrap{display:block!important}#detail.detail{width:100%!important;max-width:100%!important;margin:0!important;padding:8px!important}#ws{display:none!important}.crm-tabbar{display:none!important}.crm-tabpanel{display:none!important}.crm-tabpanel[data-tab=\"wa\"]{display:block!important}#detail>div:first-child{display:none!important}#detail .pcard:nth-of-type(3){display:none!important}";}
 var st=document.createElement("style");st.textContent=css;document.head.appendChild(st);
 if(isChat)document.documentElement.classList.add("crm-embed");
 var QR=null;
