@@ -818,7 +818,7 @@ function wireDetail(cu){
 async function openCustomer(cid,keep){
   OPEN=cid;
   document.querySelectorAll(".row").forEach(e=>e.classList.toggle("active",Number(e.dataset.cid)===cid));
-  const cu=STATE.customers.find(c=>c.id===cid); if(!cu) return;
+  let cu=STATE.customers.find(c=>c.id===cid); if(!cu && SB){ try{ const _r=await SB.from("customers").select("id,name,company,phone,email,assigned_rep,vip,review_flag,country,preferred_language,last_contact_at,manager_status,priority,next_action_override,follow_up_date").eq("id",cid).maybeSingle(); if(_r&&_r.data){ cu=_r.data; cu._convId=1; STATE.customers.push(cu); } }catch(_e){} } if(!cu) return;
   let msgs=cu._msgs, tl=cu._tl;
   if(SB && STATE.live){
     let _ids=[cid]; try{ _ids=await waLinkedIds(cid); }catch(e){} try{ const _p10=String(cu.phone||"").replace(/\D/g,"").slice(-10); if(_p10.length>=10){ const _sp=await SB.from("customers").select("id").ilike("phone","%"+_p10); const _extra=(_sp.data||[]).map(x=>x.id); _ids=[...new Set([..._ids,..._extra])]; } }catch(e){} cu._linkedIds=_ids;
