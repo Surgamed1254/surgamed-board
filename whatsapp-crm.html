@@ -1219,7 +1219,7 @@ async function setInternal(cid,v){try{var r=await fetch(SB_URL+"/rest/v1/custome
 var st=document.createElement("style");st.textContent=".int-tog{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6b21a8;background:#f5f3ff;border:1px solid #e9d5ff;border-radius:999px;padding:2px 10px;cursor:pointer;margin-left:8px;font-weight:600;vertical-align:middle}.int-tog.on{background:#6b21a8;color:#fff;border-color:#6b21a8}";document.head.appendChild(st);
 function curCid(){var ar=document.querySelector(".row.active,.list .active");return ar?parseInt(ar.getAttribute("data-cid"),10):0;}
 var lastId=null,lastVal=false;
-function apply(tog,v){v=!!v;if(tog.dataset.on===(v?"1":"0"))return;tog.dataset.on=v?"1":"0";tog.classList.toggle("on",v);tog.textContent=v?"🔒 Internal · owner-only":"🔒 Mark internal";}
+function apply(tog,v){v=!!v;if(tog.dataset.on===(v?"1":"0"))return;tog.dataset.on=v?"1":"0";tog.classList.toggle("on",v);tog.textContent=v?"🔒 In-house · you see all, reps see only their own":"🔒 Mark in-house";}
 async function ensure(){
 if(!isOwner())return;
 var d=document.getElementById("detail");if(!d)return;
@@ -1227,7 +1227,7 @@ var cid=curCid();if(!cid)return;
 var host=d.querySelector(".pcard");if(!host)return;
 var pn=host.querySelector(".pname")||host;
 var tog=pn.querySelector("#intTog");
-if(!tog){tog=document.createElement("button");tog.id="intTog";tog.type="button";tog.className="int-tog";tog.textContent="🔒 Mark internal";pn.appendChild(tog);tog.onclick=async function(){var c=curCid();if(!c)return;var nv=tog.dataset.on!=="1";tog.disabled=true;var ok=await setInternal(c,nv);tog.disabled=false;if(ok){lastVal=nv;apply(tog,nv);}};}
+if(!tog){tog=document.createElement("button");tog.id="intTog";tog.type="button";tog.className="int-tog";tog.textContent="🔒 Mark in-house";pn.appendChild(tog);tog.onclick=async function(){var c=curCid();if(!c)return;var nv=tog.dataset.on!=="1";tog.disabled=true;var ok=await setInternal(c,nv);tog.disabled=false;if(ok){lastVal=nv;apply(tog,nv);}};}
 if(lastId!==cid){lastId=cid;lastVal=false;apply(tog,false);lastVal=await getInternal(cid);apply(tog,lastVal);}else{apply(tog,lastVal);}
 }
 var t;var mo=new MutationObserver(function(){clearTimeout(t);t=setTimeout(ensure,150);});
