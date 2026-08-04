@@ -1177,5 +1177,13 @@ function start(){var d=document.getElementById("detail");if(d){obs=new MutationO
 if(document.readyState!=="loading")start();else document.addEventListener("DOMContentLoaded",start);
 })();
 </script>
+<script>
+(function(){
+if(!/embed/.test(location.hash+location.search))return;
+var css="header.top{display:none!important}.list{display:none!important}#app.wrap{display:block!important}#detail.detail{width:100%!important;max-width:100%!important;margin:0!important;padding:8px!important}#ws{display:none!important}body{background:#fff!important}";
+var st=document.createElement("style");st.textContent=css;document.head.appendChild(st);
+document.documentElement.classList.add("crm-embed");
+})();
+</script>
 </body>
 </html>
