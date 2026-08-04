@@ -1206,5 +1206,28 @@ var t;function sch(){clearTimeout(t);t=setTimeout(function(){try{enhanceComposer
 new MutationObserver(sch).observe(document.body,{childList:true,subtree:true});sch();
 })();
 </script>
+<script>
+(function(){
+if(window.__crmIntTog)return;window.__crmIntTog=1;
+var OWNER="mweinreb@surgamed.com";
+function ownerEmail(){try{if(window.STATE&&STATE.email)return String(STATE.email).toLowerCase();}catch(e){}try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/auth-token/.test(k)){var v=JSON.parse(localStorage.getItem(k));var t=v&&(v.access_token||(v.currentSession&&v.currentSession.access_token));if(t){var p=JSON.parse(decodeURIComponent(escape(atob(t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")))));return String(p.email||"").toLowerCase();}}}}catch(e){}return "";}
+function isOwner(){return ownerEmail()===OWNER;}
+var st=document.createElement("style");st.textContent=".int-tog{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6b21a8;background:#f5f3ff;border:1px solid #e9d5ff;border-radius:999px;padding:3px 10px;cursor:pointer;margin-left:8px;font-weight:600;vertical-align:middle}.int-tog.on{background:#6b21a8;color:#fff;border-color:#6b21a8}";document.head.appendChild(st);
+var lastId=null,lastVal=false;
+function apply(tog,v){v=!!v;if(tog.dataset.on===(v?"1":"0"))return;tog.dataset.on=v?"1":"0";tog.classList.toggle("on",v);tog.textContent=v?"🔒 Internal · owner-only":"🔒 Mark internal";}
+async function ensure(){
+if(!isOwner())return;
+var d=document.getElementById("detail");if(!d)return;
+var cid=window.OPEN;if(!cid)return;
+var host=d.querySelector(".pcard");if(!host)return;
+var tog=host.querySelector("#intTog");
+if(!tog){tog=document.createElement("button");tog.id="intTog";tog.type="button";tog.className="int-tog";tog.textContent="🔒 Mark internal";var anchor=host.querySelector("h3");if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(tog,anchor.nextSibling);else host.insertBefore(tog,host.firstChild);tog.onclick=async function(){var nv=tog.dataset.on!=="1";tog.disabled=true;var ok=true;try{if(window.SB){var res=await SB.from("customers").update({internal:nv}).eq("id",window.OPEN);if(res&&res.error)ok=false;}}catch(e){ok=false;}tog.disabled=false;if(ok){lastVal=nv;apply(tog,nv);}};}
+if(lastId!==cid){lastId=cid;lastVal=false;apply(tog,false);try{if(window.SB){var r=await SB.from("customers").select("internal").eq("id",cid).maybeSingle();if(r&&r.data){lastVal=!!r.data.internal;}}}catch(e){}apply(tog,lastVal);}else{apply(tog,lastVal);}
+}
+var t;var mo=new MutationObserver(function(){clearTimeout(t);t=setTimeout(ensure,150);});
+function boot(){var d=document.getElementById("detail");if(d){mo.observe(d,{childList:true,subtree:true});ensure();}else setTimeout(boot,400);}
+if(document.readyState!=="loading")boot();else document.addEventListener("DOMContentLoaded",boot);
+})();
+</script>
 </body>
 </html>
