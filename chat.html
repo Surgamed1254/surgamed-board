@@ -6,6 +6,7 @@
 <script>
 fetch("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/chat-ui").then(function(r){if(!r.ok)throw new Error(r.status);return r.text();}).then(function(h){
 if(h.indexOf(String.fromCharCode(118)+"alue=\"1\">Same day")<0){h=h.replace('<option value="7">Week</option>','<option value="1">Same day</option><option value="7">Week</option>');}
+if(h.indexOf("not delivered to the cloud")<0){h=h.split('document:"\ud83d\udcc4 Document",sticker:"Sticker"}[t]||"\ud83d\udcce Media")'+String.fromCharCode(43)+String.fromCharCode(39)+' (not saved)').join('document:"\ud83d\udcc4 Document",sticker:"Sticker",media:"\ud83d\udcf1 Sent from phone",unsupported:"\u26a0\ufe0f View-once / unsupported"}[t]||"\ud83d\udcce Media")'+String.fromCharCode(43)+String.fromCharCode(39)+' \u2014 not delivered to the cloud by WhatsApp');}
 document.open();document.write(h);document.close();}).catch(function(e){document.getElementById("ld").innerHTML='Could not load the WhatsApp view ('+e.message+'). <a href="whatsapp-crm.html">Open classic CRM</a>';});
 </script>
 </body>
