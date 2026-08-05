@@ -1236,5 +1236,13 @@ if(document.readyState!=="loading")boot();else document.addEventListener("DOMCon
 })();
 </script>
 
+<script>
+(function(){
+if(window.__waWebLink)return;window.__waWebLink=1;
+function add(){var h=document.querySelector("header.top");if(!h||h.querySelector("#waWebBtn"))return;var a=document.createElement("a");a.id="waWebBtn";a.href="chat.html";a.textContent="💬 WhatsApp view";a.style.cssText="margin-left:8px;background:#00a884;color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center";h.appendChild(a);}
+if(document.readyState!=="loading")add();else document.addEventListener("DOMContentLoaded",add);
+setTimeout(add,1200);
+})();
+</script>
 </body>
 </html>
