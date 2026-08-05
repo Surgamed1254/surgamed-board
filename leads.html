@@ -2932,5 +2932,21 @@ function start(){new MutationObserver(schedule).observe(document.body,{childList
 if(document.readyState!=="loading")start();else document.addEventListener("DOMContentLoaded",start);
 })();
 </script>
+<script>
+(function(){
+if(window.__waTabLink)return;window.__waTabLink=1;
+function add(){
+ var all=[].slice.call(document.querySelectorAll("a,button"));
+ var wb=all.filter(function(a){return /wallboard/i.test(a.textContent||"");})[0];
+ var host=wb?wb.parentNode:null;
+ if(!host||document.getElementById("waTabBtn"))return;
+ var a=document.createElement("a");a.id="waTabBtn";a.href="chat.html";a.textContent="💬 WhatsApp";
+ a.style.cssText="margin-right:6px;background:#00a884;color:#fff;border-radius:9px;padding:6px 12px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;vertical-align:middle";
+ host.insertBefore(a,wb);
+}
+if(document.readyState!=="loading")add();else document.addEventListener("DOMContentLoaded",add);
+setTimeout(add,1200);setTimeout(add,3000);
+})();
+</script>
 </body>
 </html>
