@@ -610,13 +610,9 @@ function extractLead(email,catKey){
 function acctLabel(email){ const r=(email.recipients&&email.recipients.join(" "))||""; return /shortdated/i.test(r)?{t:"ShortDated",sd:true}:{t:"SurgaMed",sd:false}; }
 
 async function loadState(){
+  const { data, error } = await sb.from("lead_state").select("*");
   STATE = {};
-  for(let off=0; off<20000; off+=1000){
-    const { data, error } = await sb.from("lead_state").select("*").order("id").range(off, off+999);
-    if(error || !data) break;
-    data.forEach(r=>{ STATE[r.id]=r; });
-    if(data.length<1000) break;
-  }
+  if(!error && data) data.forEach(r=>{ STATE[r.id]=r; });
 }
 async function upsertState(id, patch){
   STATE[id] = Object.assign({ id }, STATE[id]||{}, patch, { updated_at:new Date().toISOString(), updated_by:ME });
