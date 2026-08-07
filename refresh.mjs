@@ -97,9 +97,10 @@ const MON=['January','February','March','April','May','June','July','August','Se
 const lmStart=new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth()-1, 1));
 const lmRows=all.filter(o=>o.date>=lmStart && o.date<monthStart);
 const lmBy={}; lmRows.forEach(o=>{ lmBy[o.rep]=(lmBy[o.rep]||0)+o.total; });
-const lmReps=REPS.map(R=>[R.rep, Math.round((lmBy[R.rep]||0)*100)/100]).sort((a,b)=>b[1]-a[1]);
+const lmSameBy={}; lmRows.filter(o=>o.date.getUTCDate()<=daysElapsed).forEach(o=>{ lmSameBy[o.rep]=(lmSameBy[o.rep]||0)+o.total; });
+const lmReps=REPS.map(R=>[R.rep, Math.round((lmBy[R.rep]||0)*100)/100, Math.round((lmSameBy[R.rep]||0)*100)/100]).sort((a,b)=>b[1]-a[1]);
 const lmTotal=Math.round(lmReps.reduce((s,r)=>s+r[1],0)*100)/100;
-const lmSameDays=Math.round(lmRows.filter(o=>o.date.getUTCDate()<=daysElapsed).reduce((s,o)=>s+o.total,0)*100)/100;
+const lmSameDays=Math.round(lmReps.reduce((s,r)=>s+r[2],0)*100)/100;
 const lastMonth={ name:MON[lmStart.getUTCMonth()], total:lmTotal, sameDays:lmSameDays, reps:lmReps };
 const snap={ asOf:now.toISOString(), today:ymd(todayUTC), monthStart:ymd(monthStart), monthName:MON[todayUTC.getUTCMonth()], daysElapsed, goal:GOAL_MONTH,
   biggest:{rep:biggest.rep, amount:Math.round(biggest.total), date:ymd(biggest.date)},
