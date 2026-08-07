@@ -1791,8 +1791,9 @@ function suggSrcRows(list){
 // Collapsible AI-similar section with a "click here for more" beyond the first 5.
 function simSectionHtml(sim, uid){
   if(!sim||!sim.length) return '';
+  window.SIM_DATA=window.SIM_DATA||{}; window.SIM_DATA[uid]=sim;
   const head=sim.slice(0,5), rest=sim.slice(5);
-  let h='<div class="sg-hdr" data-target="'+uid+'_b" style="font-weight:600;color:#0b66c3;margin-top:10px;cursor:pointer;user-select:none"><span class="sgcx">▾</span> ✨ AI-suggested similar items in stock — SurgaMed · ShortDated · Medstock ('+sim.length+')</div>';
+  let h='<div class="sg-hdr" data-target="'+uid+'_b" style="font-weight:600;color:#0b66c3;margin-top:10px;cursor:pointer;user-select:none"><span class="sgcx">▾</span> ✨ AI-suggested similar items in stock — SurgaMed · ShortDated · Medstock ('+sim.length+')<a href="#" class="sg-xl" data-sim="'+uid+'" title="Download this AI list to Excel" style="float:right;color:#1d7a3f;font-size:12px;text-decoration:none;font-weight:700;margin-left:12px">⬇ Excel</a></div>';
   h+='<div id="'+uid+'_b">'+suggSrcRows(head);
   if(rest.length){ h+='<div id="'+uid+'_m" style="display:none">'+suggSrcRows(rest)+'</div>'; h+='<div style="margin:4px 0 2px"><a href="#" class="sg-more" data-target="'+uid+'_m" data-n="'+rest.length+'" style="color:#0b66c3;font-size:12px;text-decoration:none">▾ Click here for '+rest.length+' more AI suggestion'+(rest.length===1?'':'s')+'</a></div>'; }
   h+='</div>';
@@ -1801,8 +1802,20 @@ function simSectionHtml(sim, uid){
 // Wire minimize (.sg-hdr) and show-more (.sg-more) toggles inside a container.
 function wireSuggToggles(root){
   if(!root) return;
-  root.querySelectorAll('.sg-hdr').forEach(function(hd){ if(hd._wired) return; hd._wired=1; hd.onclick=function(){ const el=document.getElementById(this.getAttribute('data-target')); if(!el)return; const show=(el.style.display==='none'); el.style.display=show?'':'none'; const cx=this.querySelector('.sgcx'); if(cx)cx.textContent=show?'▾':'▸'; }; });
+  root.querySelectorAll('.sg-hdr').forEach(function(hd){ if(hd._wired) return; hd._wired=1; hd.onclick=function(ev){ if(ev&&ev.target&&ev.target.closest&&ev.target.closest('.sg-xl'))return; const el=document.getElementById(this.getAttribute('data-target')); if(!el)return; const show=(el.style.display==='none'); el.style.display=show?'':'none'; const cx=this.querySelector('.sgcx'); if(cx)cx.textContent=show?'▾':'▸'; }; });
   root.querySelectorAll('.sg-more').forEach(function(a){ if(a._wired) return; a._wired=1; a.onclick=function(ev){ ev.preventDefault(); const el=document.getElementById(this.getAttribute('data-target')); if(!el)return false; const sh=(el.style.display==='none'); el.style.display=sh?'':'none'; const n=this.getAttribute('data-n'); this.innerHTML=sh?'▴ Show fewer':('▾ Click here for '+n+' more AI suggestion'+(n==='1'?'':'s')); return false; }; });
+  root.querySelectorAll('.sg-xl').forEach(function(a){ if(a._wired) return; a._wired=1; a.onclick=function(ev){ ev.preventDefault(); ev.stopPropagation(); exportSimXlsx(this.getAttribute('data-sim')); return false; }; });
+}
+// Export an AI-suggested list to a real Excel file (SheetJS loaded on first use).
+async function exportSimXlsx(uid){
+  const sim=(window.SIM_DATA||{})[uid]||[];
+  if(!sim.length){ alert('Nothing to export'); return; }
+  if(!window.XLSX){ await new Promise(function(res,rej){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+  const rows=sim.map(function(r){ return { 'Item': r.name||'', 'REF': r.ref||'', 'Why suggested': r.reason||'', 'Source': r.source||'', 'Dated': (r.dated||r.exp_date||''), 'Category': r.category||'', 'Price': (r.price!=null&&r.price!=='')?Number(r.price):'', 'Link': r.url||'' }; });
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:45},{wch:12},{wch:42},{wch:16},{wch:10},{wch:22},{wch:10},{wch:40}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'AI suggestions');
+  XLSX.writeFile(wb,'AI-similar-items-'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 // Shared: AI-ranked "similar items" candidate pool across ALL THREE inventories
 // (SurgaMed + ShortDated via `listings`, and Medstock via `medstock_inventory`).
