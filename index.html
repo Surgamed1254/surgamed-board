@@ -37,17 +37,20 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 .col{ display:flex; flex-direction:column; gap:1vw; min-height:0; }
 .panel{ background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-radius:16px; padding:1vw 1.2vw; display:flex; flex-direction:column; min-height:0; }
 .panel h3{ font-size:.95vw; color:var(--mut); text-transform:uppercase; letter-spacing:2px; margin-bottom:.7vw; font-weight:700; display:flex; justify-content:space-between; align-items:center;}
-.race{ flex:1; display:flex; flex-direction:column; justify-content:space-around; gap:.5vw; }
+.race{ flex:1; display:flex; flex-direction:column; justify-content:space-around; gap:.28vw; }
 .row{ display:grid; grid-template-columns:2.6vw 1fr; align-items:center; gap:.8vw; }
 .rank{ width:2.4vw; height:2.4vw; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.1vw; color:#0a0e1a; }
 .r1{ background:linear-gradient(135deg,#fde047,#f59e0b);} .r2{ background:linear-gradient(135deg,#e5e7eb,#9ca3af);} .r3{ background:linear-gradient(135deg,#f0a675,#b4793f);} .r4{ background:#2a3550; color:var(--mut);}
-.bhead{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.3vw; }
-.bname{ font-size:1.4vw; font-weight:800; }
+.bhead{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.1vw; }
+.bname{ font-size:1.2vw; font-weight:800; }
 .bsub{ font-size:.82vw; color:var(--mut); margin-left:.6vw; font-weight:600;}
-.bval{ font-size:1.45vw; font-weight:800; font-variant-numeric:tabular-nums; }
-.track{ height:1.4vw; background:#0c1426; border-radius:10px; overflow:hidden; position:relative; }
-.lmmark{ position:absolute; top:0; bottom:0; width:3px; background:#fff; opacity:.75; border-radius:2px; box-shadow:0 0 6px rgba(255,255,255,.5); z-index:2 }
-.pchip{ font-size:.78vw; font-weight:800; margin-left:.6vw }
+.bval{ font-size:1.25vw; font-weight:800; font-variant-numeric:tabular-nums; }
+.track{ height:1vw; background:#0c1426; border-radius:10px; overflow:hidden; position:relative; }
+.sub2{ margin-top:.12vw; display:flex; align-items:center; gap:.6vw }
+.jtrack{ flex:1; height:.55vw; background:#0c1426; border-radius:8px; position:relative }
+.jfill{ height:100%; width:0; border-radius:8px; background:linear-gradient(90deg,#22c55e,#22d3ee); transition:width 1.8s cubic-bezier(.22,1,.36,1) }
+.jdot{ position:absolute; top:50%; transform:translate(-50%,-50%); width:.85vw; height:.85vw; border-radius:50%; background:#fde047; box-shadow:0 0 8px rgba(253,224,71,.85); z-index:2 }
+.jlab{ font-size:.72vw; color:var(--mut); white-space:nowrap; font-weight:700 }
 .fill{ height:100%; width:0; border-radius:10px; transition:width 1.6s cubic-bezier(.22,1,.36,1); }
 .goal{ display:flex; flex-direction:column; gap:.6vw; }
 .goalbar{ height:2vw; background:#0c1426; border-radius:14px; overflow:hidden; position:relative; border:1px solid var(--line); }
@@ -98,7 +101,7 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
   <div class="main">
     <div class="col">
       <div class="panel" style="flex:1">
-        <h3>Rep Leaderboard &mdash; This Month <span style="color:var(--mut);font-size:.8vw">revenue race &middot; white line = where they were last month to date</span></h3>
+        <h3>Rep Leaderboard &mdash; This Month <span style="color:var(--mut);font-size:.8vw">revenue race &middot; 🟡 gold dot = last month's pace &middot; slim bar = climb to their own record</span></h3>
         <div class="race" id="race"></div>
         <div class="lmstrip" id="lmStrip"></div>
       </div>
@@ -166,7 +169,7 @@ function countUp(el,to,fmt,dur){ const t0=performance.now(); function f(t){ let 
 const T=S.totals;
 const LM=S.lastMonth||null;
 let paceTxt='month to date';
-if(LM && LM.sameDays>0){ const p=Math.round((T.revenue-LM.sameDays)/LM.sameDays*100); paceTxt='month to date \u00b7 '+(p>=0?'+':'')+p+'% vs '+LM.name+' pace'; }
+if(LM && LM.sameDays>0){ paceTxt = T.revenue>=LM.sameDays ? ('month to date \u00b7 ahead of '+LM.name+' pace \u26a1') : ('month to date \u00b7 '+money(LM.sameDays-T.revenue)+' to catch '+LM.name+' pace'); }
 const cards=[
   {lab:'Revenue', val:T.revenue, fmt:money, acc:'#fde047', meta:paceTxt},
   {lab:'Orders', val:T.orders, fmt:v=>Math.round(v).toLocaleString(), acc:ACC[0], meta:'month to date'}
@@ -179,13 +182,14 @@ const maxRev=Math.max(...S.reps.map(r=>r[1]),1);
 const lmM={}; if(LM&&LM.reps)LM.reps.forEach(x=>lmM[x[0]]=x);
 document.getElementById('race').innerHTML=S.reps.map((r,i)=>{
   const c=C[r[0]]||'#64748b';
-  const lm=lmM[r[0]]; const lmS=lm?(lm[2]||0):0;
-  const pc=lmS>0?Math.round((r[1]-lmS)/lmS*100):null;
-  const pcHtml=pc==null?'':`<span class="pchip" style="color:${pc>=0?'var(--green)':'#f87171'}">${pc>=0?'+':''}${pc}% vs ${LM.name.slice(0,3)} MTD</span>`;
-  const markHtml=lmS>0?`<div class="lmmark" style="left:${Math.min(99,lmS/maxRev*100)}%" title="${LM.name} to date: ${money(lmS)}"></div>`:'';
-  return `<div class="row"><div class="rank r${i+1}">${i+1}</div><div><div class="bhead"><div><span class="bname">${r[0]}</span><span class="bsub">${r[2]} orders${DOT}${r[3].toLocaleString()} units</span>${pcHtml}</div><div class="bval" style="color:${c}">${money(r[1])}</div></div><div class="track">${markHtml}<div class="fill" id="fill${i}" style="background:linear-gradient(90deg,${c},${c}cc)"></div></div></div></div>`;
+  const lm=lmM[r[0]]; const lmFull=lm?(lm[1]||0):0; const lmS=lm?(lm[2]||0):0;
+  const ahead=lmS>0&&r[1]>=lmS;
+  const flame=ahead?' \u26a1':'';
+  const jdotPct=lmFull>0?Math.min(97,lmS/lmFull*100):0;
+  const subHtml=lmFull>0?`<div class="sub2"><div class="jtrack"><div class="jdot" style="left:${jdotPct}%" title="${LM.name} by day ${S.daysElapsed}: ${money(lmS)}"></div><div class="jfill" id="jfill${i}"></div></div><div class="jlab">${LM.name} record ${money(lmFull)}</div></div>`:'';
+  return `<div class="row"><div class="rank r${i+1}">${i+1}</div><div><div class="bhead"><div><span class="bname">${r[0]}${flame}</span><span class="bsub">${r[2]} orders${DOT}${r[3].toLocaleString()} units</span></div><div class="bval" style="color:${c}">${money(r[1])}</div></div><div class="track"><div class="fill" id="fill${i}" style="background:linear-gradient(90deg,${c},${c}cc)"></div></div>${subHtml}</div></div>`;
 }).join('');
-setTimeout(()=>S.reps.forEach((r,i)=>{document.getElementById('fill'+i).style.width=(r[1]/maxRev*100)+'%';}),200);
+setTimeout(()=>S.reps.forEach((r,i)=>{document.getElementById('fill'+i).style.width=(r[1]/maxRev*100)+'%';const jf=document.getElementById('jfill'+i);if(jf){const lm=lmM[r[0]];const lmFull=lm?(lm[1]||0):0;jf.style.width=(lmFull>0?Math.min(100,r[1]/lmFull*100):0)+'%';}}),200);
 if(LM && LM.reps){
   document.getElementById('lmStrip').innerHTML =
     '<span style="font-weight:800;color:var(--txt)">'+LM.name+':</span>' +
