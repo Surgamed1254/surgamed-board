@@ -93,9 +93,17 @@ const weekTop = wkSorted.length ? {rep:wkSorted[0][0], revenue:Math.round(wkSort
 const biggest=monthRows.reduce((m,o)=>o.total>m.total?o:m,{total:0,rep:'',date:todayUTC});
 const recent=[...monthRows].sort((a,b)=>b.date-a.date).slice(0,10).map(o=>[o.rep,o.name,ymd(o.date),o.total]);
 const MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
+// Last month: per-rep totals, combined total, and same-days pace figure for a fair MTD comparison.
+const lmStart=new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth()-1, 1));
+const lmRows=all.filter(o=>o.date>=lmStart && o.date<monthStart);
+const lmBy={}; lmRows.forEach(o=>{ lmBy[o.rep]=(lmBy[o.rep]||0)+o.total; });
+const lmReps=REPS.map(R=>[R.rep, Math.round((lmBy[R.rep]||0)*100)/100]).sort((a,b)=>b[1]-a[1]);
+const lmTotal=Math.round(lmReps.reduce((s,r)=>s+r[1],0)*100)/100;
+const lmSameDays=Math.round(lmRows.filter(o=>o.date.getUTCDate()<=daysElapsed).reduce((s,o)=>s+o.total,0)*100)/100;
+const lastMonth={ name:MON[lmStart.getUTCMonth()], total:lmTotal, sameDays:lmSameDays, reps:lmReps };
 const snap={ asOf:now.toISOString(), today:ymd(todayUTC), monthStart:ymd(monthStart), monthName:MON[todayUTC.getUTCMonth()], daysElapsed, goal:GOAL_MONTH,
   biggest:{rep:biggest.rep, amount:Math.round(biggest.total), date:ymd(biggest.date)},
-  totals, reps, weekTop, dailyRev:dailyRev.map(x=>Math.round(x*100)/100), dailyOrd, recent, files };
+  totals, reps, weekTop, dailyRev:dailyRev.map(x=>Math.round(x*100)/100), dailyOrd, recent, files, lastMonth };
 writeFileSync('data.json', JSON.stringify(snap));
 let pageHtml = readFileSync('index.html','utf8');
 pageHtml = pageHtml.replace(/(<script id="snapshot-data"[^>]*>)[\s\S]*?(<\/script>)/, (m,a,b)=> a + '\n' + JSON.stringify(snap) + '\n' + b);
