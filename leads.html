@@ -1722,7 +1722,8 @@ async function reorderDraftInto(ns, email, name){
   if(msg){ msg.style.color='#5a6b7b'; msg.textContent='Writing a reorder draft…'; }
   try{
     const repName = MY_REP ? repFull(MY_REP) : (ME||'');
-    const r=await fetch(SB_URL+'/functions/v1/reorder-draft',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({customer_email:email,channel:'email',rep_name:repName})});
+    let exactM=[]; try{ const ek=String(email||'').toLowerCase(); exactM=(window.__EXACT&&window.__EXACT[ek])||[]; if(!exactM.length){ const _rowsE=(window.__ROWS4&&window.__ROWS4[ek])||[]; if(_rowsE.length){ exactM=(await exactMatchesFor(_rowsE, ek)).map(function(x){return {ref:x.ref,name:x.name,source:x.source,price:x.price,lastBought:x.lastBought};}); } } }catch(e){}
+    const r=await fetch(SB_URL+'/functions/v1/reorder-draft',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({customer_email:email,channel:'email',rep_name:repName,customer_name:name,exact_matches:exactM})});
     const d=await r.json();
     if(!r.ok||d.error) throw new Error(d.error||('HTTP '+r.status));
     const subj=document.getElementById(ns+'_subj'), body=document.getElementById(ns+'_body');
@@ -1888,6 +1889,7 @@ async function loadSuggestions(rows, l){
     const mfgs=[...new Set((rows||[]).map(r=>{ const m=(r.item||'').trim().match(/^[A-Za-z0-9][A-Za-z0-9&.\-]*/); return m?m[0].replace(/[*,()]/g,'').toUpperCase():''; }).filter(w=>w&&w.length>=2))].slice(0,10);
     const email=((l&&l.custEmail)||topEmail(rows)||'').toLowerCase();
     const exact = await exactMatchesFor(rows, email);
+    try{ window.__EXACT=window.__EXACT||{}; window.__ROWS4=window.__ROWS4||{}; if(email){ const ek=String(email).toLowerCase(); window.__EXACT[ek]=exact.map(function(x){return {ref:x.ref,name:x.name,source:x.source,price:x.price,lastBought:x.lastBought};}); window.__ROWS4[ek]=rows; } }catch(e){}
     let similar=[];
     const exactRefs=new Set(exact.map(x=>NK(x.ref)));
     try{ similar=await aiSimilarFor(rows, email, exactRefs); }catch(e){}
