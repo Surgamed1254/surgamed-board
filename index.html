@@ -26,8 +26,11 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 .clock{ font-size:1.4vw; font-weight:700; font-variant-numeric:tabular-nums; }
 .upd{ font-size:.8vw; color:var(--mut); text-align:right; }
 .kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:1.2vw; }
-.lmstrip{ margin-top:.6vw; padding-top:.6vw; border-top:1px solid var(--line); font-size:.95vw; color:var(--mut); display:flex; flex-wrap:wrap; gap:.3vw 1.4vw; align-items:center }
-.lmstrip b{ color:var(--txt) }
+.m3{ display:flex; gap:.55vw; align-items:flex-end; padding-bottom:.2vw }
+.m3 .mc{ display:flex; flex-direction:column; align-items:center; gap:.12vw }
+.m3 .mv{ font-size:.62vw; color:var(--mut); font-weight:800; font-variant-numeric:tabular-nums }
+.m3 .mb{ width:1.15vw; border-radius:4px 4px 2px 2px }
+.m3 .ml{ font-size:.58vw; color:var(--mut); text-transform:uppercase; letter-spacing:.5px; font-weight:700 }
 .kpi{ background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-radius:16px; padding:1.2vw 1.5vw; position:relative; overflow:hidden; }
 .kpi::after{ content:""; position:absolute; top:0; left:0; width:100%; height:4px; background:var(--accent); }
 .kpi .lab{ font-size:.82vw; color:var(--mut); text-transform:uppercase; letter-spacing:1.5px; font-weight:700; }
@@ -38,7 +41,7 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 .panel{ background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-radius:16px; padding:.8vw 1.2vw; display:flex; flex-direction:column; min-height:0; }
 .panel h3{ font-size:.95vw; color:var(--mut); text-transform:uppercase; letter-spacing:2px; margin-bottom:.7vw; font-weight:700; display:flex; justify-content:space-between; align-items:center;}
 .race{ flex:1; display:flex; flex-direction:column; justify-content:space-around; gap:.15vw; }
-.row{ display:grid; grid-template-columns:2.2vw 1fr; align-items:center; gap:.7vw; }
+.row{ display:grid; grid-template-columns:2.2vw 1fr auto; align-items:center; gap:.7vw; }
 .rank{ width:2vw; height:2vw; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1vw; color:#0a0e1a; }
 .r1{ background:linear-gradient(135deg,#fde047,#f59e0b);} .r2{ background:linear-gradient(135deg,#e5e7eb,#9ca3af);} .r3{ background:linear-gradient(135deg,#f0a675,#b4793f);} .r4{ background:#2a3550; color:var(--mut);}
 .bhead{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.1vw; }
@@ -103,7 +106,6 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
       <div class="panel" style="flex:1">
         <h3>Rep Leaderboard &mdash; This Month <span style="color:var(--mut);font-size:.8vw">revenue race &middot; 🟡 gold dot = last month's pace &middot; slim bar = climb to their own record</span></h3>
         <div class="race" id="race"></div>
-        <div class="lmstrip" id="lmStrip"></div>
       </div>
     </div>
     <div class="col">
@@ -187,15 +189,16 @@ document.getElementById('race').innerHTML=S.reps.map((r,i)=>{
   const flame=ahead?' \u26a1':'';
   const jdotPct=lmFull>0?Math.min(97,lmS/lmFull*100):0;
   const subHtml=lmFull>0?`<div class="sub2"><div class="jtrack"><div class="jdot" style="left:${jdotPct}%" title="${LM.name} by day ${S.daysElapsed}: ${money(lmS)}"></div><div class="jfill" id="jfill${i}"></div></div><div class="jlab">${LM.name} record ${money(lmFull)}</div></div>`:'';
-  return `<div class="row"><div class="rank r${i+1}">${i+1}</div><div><div class="bhead"><div><span class="bname">${r[0]}${flame}</span><span class="bsub">${r[2]} orders${DOT}${r[3].toLocaleString()} units</span></div><div class="bval" style="color:${c}">${money(r[1])}</div></div><div class="track"><div class="fill" id="fill${i}" style="background:linear-gradient(90deg,${c},${c}cc)"></div></div>${subHtml}</div></div>`;
+  let trioHtml='';
+  const H3=S.hist3;
+  if(H3&&H3.byRep&&H3.byRep[r[0]]&&H3.byRep[r[0]].some(v=>v>0)){
+    const vals=H3.byRep[r[0]]; const mx=Math.max.apply(null,vals.concat([1]));
+    trioHtml='<div class="m3">'+vals.map(function(v,k){var op=[.45,.7,1][k];var hh=(0.5+2.1*(v/mx)).toFixed(2);var lab=v>0?(v>=1000?('$'+(v/1000).toFixed(v>=9500?0:1)+'k'):('$'+Math.round(v))):'\u2014';return '<div class="mc"><div class="mv">'+lab+'</div><div class="mb" style="height:'+hh+'vw;background:'+c+';opacity:'+op+'"></div><div class="ml">'+H3.names[k]+'</div></div>';}).join('')+'</div>';
+  }
+  return `<div class="row"><div class="rank r${i+1}">${i+1}</div><div><div class="bhead"><div><span class="bname">${r[0]}${flame}</span><span class="bsub">${r[2]} orders${DOT}${r[3].toLocaleString()} units</span></div><div class="bval" style="color:${c}">${money(r[1])}</div></div><div class="track"><div class="fill" id="fill${i}" style="background:linear-gradient(90deg,${c},${c}cc)"></div></div>${subHtml}</div>${trioHtml}</div>`;
 }).join('');
 setTimeout(()=>S.reps.forEach((r,i)=>{document.getElementById('fill'+i).style.width=(r[1]/maxRev*100)+'%';const jf=document.getElementById('jfill'+i);if(jf){const lm=lmM[r[0]];const lmFull=lm?(lm[1]||0):0;jf.style.width=(lmFull>0?Math.min(100,r[1]/lmFull*100):0)+'%';}}),200);
-if(LM && LM.reps){
-  document.getElementById('lmStrip').innerHTML =
-    '<span style="font-weight:800;color:var(--txt)">'+LM.name+':</span>' +
-    LM.reps.map(r=>'<span><span style="color:'+(C[r[0]]||'#64748b')+';font-weight:700">'+r[0]+'</span> '+money(r[1])+'</span>').join('') +
-    '<span style="margin-left:auto"><b>Team '+money(LM.total)+'</b></span>';
-}
+
 
 const pct=Math.min(100, S.totals.revenue/S.goal*100);
 setTimeout(()=>{document.getElementById('goalfill').style.width=pct+'%';},300);
