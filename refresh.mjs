@@ -102,9 +102,18 @@ const lmReps=REPS.map(R=>[R.rep, Math.round((lmBy[R.rep]||0)*100)/100, Math.roun
 const lmTotal=Math.round(lmReps.reduce((s,r)=>s+r[1],0)*100)/100;
 const lmSameDays=Math.round(lmReps.reduce((s,r)=>s+r[2],0)*100)/100;
 const lastMonth={ name:MON[lmStart.getUTCMonth()], total:lmTotal, sameDays:lmSameDays, reps:lmReps };
+// Trailing 3 full months per rep (oldest first) for the leaderboard mini-charts.
+const hist3={ names:[], byRep:{} }; REPS.forEach(R=>hist3.byRep[R.rep]=[]);
+for(let k=3;k>=1;k--){
+  const s=new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth()-k, 1));
+  const e=new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth()-k+1, 1));
+  hist3.names.push(MON[s.getUTCMonth()].slice(0,3));
+  const by={}; all.filter(o=>o.date>=s&&o.date<e).forEach(o=>{ by[o.rep]=(by[o.rep]||0)+o.total; });
+  REPS.forEach(R=>hist3.byRep[R.rep].push(Math.round(by[R.rep]||0)));
+}
 const snap={ asOf:now.toISOString(), today:ymd(todayUTC), monthStart:ymd(monthStart), monthName:MON[todayUTC.getUTCMonth()], daysElapsed, goal:GOAL_MONTH,
   biggest:{rep:biggest.rep, amount:Math.round(biggest.total), date:ymd(biggest.date)},
-  totals, reps, weekTop, dailyRev:dailyRev.map(x=>Math.round(x*100)/100), dailyOrd, recent, files, lastMonth };
+  totals, reps, weekTop, dailyRev:dailyRev.map(x=>Math.round(x*100)/100), dailyOrd, recent, files, lastMonth, hist3 };
 writeFileSync('data.json', JSON.stringify(snap));
 let pageHtml = readFileSync('index.html','utf8');
 pageHtml = pageHtml.replace(/(<script id="snapshot-data"[^>]*>)[\s\S]*?(<\/script>)/, (m,a,b)=> a + '\n' + JSON.stringify(snap) + '\n' + b);
