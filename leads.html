@@ -1858,16 +1858,6 @@ async function exactMatchesFor(rows, email){
   let dm=[];
   if(mfgs.length){ const orf=mfgs.map(m=>'mfg.ilike.'+m+'*').join(','); const { data }=await sb.from('listings').select('id,account,mfg,model,name,category,price,url').or(orf).eq('in_stock',true).limit(500);
     dm=(data||[]).filter(x=>boughtHas(NK(x.model))).map(x=>({ source:x.account||'SurgaMed', inDate:(x.account!=='SurgaMed'), name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(), ref:x.model, category:x.category, price:x.price, url:x.url, lastBought:lastBought(x.model) })); }
-  // v2: targeted REF sweep by codes from past-order texts — immune to big-brand 500-row truncation; checks model AND sku.
-  try{
-    const rawTxt=(rows||[]).map(r=>String(r.item||'')).join(' ');
-    const codes=[...new Set((rawTxt.match(/\b[A-Za-z]{0,4}\d[A-Za-z0-9\-\.\/]{3,}\b/g)||[]).map(c=>NK(c)).filter(c=>c.length>=4&&c.length<=14&&/\d/.test(c)))].slice(0,12);
-    if(codes.length){
-      const orf2=codes.map(c=>'model.ilike.*'+c+'*,sku.ilike.*'+c+'*').join(',');
-      const { data:d2 }=await sb.from('listings').select('id,account,mfg,model,sku,name,category,price,url').or(orf2).eq('in_stock',true).limit(200);
-      dm=dm.concat((d2||[]).filter(x=>boughtHas(NK(x.model))||boughtHas(NK(x.sku))).map(x=>({ source:x.account||'SurgaMed', inDate:(x.account!=='SurgaMed'), name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(), ref:x.model||x.sku, category:x.category, price:x.price, url:x.url, lastBought:lastBought(x.model||x.sku) })));
-    }
-  }catch(e){}
   let ms=[];
   if(email){ try{ const pbi=await sb.from('purchase_brand_index').select('brand_key').eq('customer_email',email); const bks=[...new Set((pbi.data||[]).map(b=>b.brand_key))]; if(bks.length){ const { data }=await sb.from('medstock_inventory').select('manufacturer,ref,ref_key,description,category,quantity,exp_date').eq('active',true).in('mfg_key',bks).limit(500);
     ms=(data||[]).filter(x=>boughtHas(x.ref_key)).map(x=>({ source:'Medstock', inDate:true, name:x.description||((x.manufacturer||'')+' '+(x.ref||'')).trim(), ref:x.ref, category:x.category, price:null, url:null, exp:x.exp_date, lastBought:lastBought(x.ref_key) })); } }catch(e){} }
