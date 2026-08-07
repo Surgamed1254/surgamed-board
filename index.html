@@ -46,11 +46,8 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 .bsub{ font-size:.82vw; color:var(--mut); margin-left:.6vw; font-weight:600;}
 .bval{ font-size:1.45vw; font-weight:800; font-variant-numeric:tabular-nums; }
 .track{ height:1.4vw; background:#0c1426; border-radius:10px; overflow:hidden; position:relative; }
-.sub2{ margin-top:.28vw; display:flex; align-items:center; gap:.6vw }
-.jtrack{ flex:1; height:.55vw; background:#0c1426; border-radius:8px; position:relative }
-.jfill{ height:100%; width:0; border-radius:8px; background:linear-gradient(90deg,#22c55e,#22d3ee); transition:width 1.8s cubic-bezier(.22,1,.36,1) }
-.jdot{ position:absolute; top:50%; transform:translate(-50%,-50%); width:.85vw; height:.85vw; border-radius:50%; background:#fde047; box-shadow:0 0 8px rgba(253,224,71,.85); z-index:2 }
-.jlab{ font-size:.72vw; color:var(--mut); white-space:nowrap; font-weight:700 }
+.lmmark{ position:absolute; top:0; bottom:0; width:3px; background:#fff; opacity:.75; border-radius:2px; box-shadow:0 0 6px rgba(255,255,255,.5); z-index:2 }
+.pchip{ font-size:.78vw; font-weight:800; margin-left:.6vw }
 .fill{ height:100%; width:0; border-radius:10px; transition:width 1.6s cubic-bezier(.22,1,.36,1); }
 .goal{ display:flex; flex-direction:column; gap:.6vw; }
 .goalbar{ height:2vw; background:#0c1426; border-radius:14px; overflow:hidden; position:relative; border:1px solid var(--line); }
@@ -101,7 +98,7 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
   <div class="main">
     <div class="col">
       <div class="panel" style="flex:1">
-        <h3>Rep Leaderboard &mdash; This Month <span style="color:var(--mut);font-size:.8vw">revenue race &middot; 🟡 gold dot = last month's pace &middot; slim bar = climb to their own record</span></h3>
+        <h3>Rep Leaderboard &mdash; This Month <span style="color:var(--mut);font-size:.8vw">revenue race &middot; white line = where they were last month to date</span></h3>
         <div class="race" id="race"></div>
         <div class="lmstrip" id="lmStrip"></div>
       </div>
@@ -139,7 +136,7 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 </div>
 
 <script id="snapshot-data" type="application/json">
-{"asOf":"2026-08-07T13:30:40.608Z","today":"2026-08-07","monthStart":"2026-08-01","monthName":"August","daysElapsed":7,"goal":200000,"biggest":{"rep":"Mirian","amount":4310,"date":"2026-08-04"},"totals":{"revenue":15635,"orders":29,"units":571,"aov":539.14},"reps":[["Mirian",8225,7,234],["Jennifer",5442,12,223],["Deysi",1868,9,106],["Tehila",100,1,8]],"weekTop":{"rep":"Mirian","revenue":8225},"dailyRev":[2178,100,1335,8964,1028,2030,0],"dailyOrd":[2,1,5,10,5,6,0],"recent":[["Deysi","LEONEL MONTEJO","2026-08-06",235],["Deysi","IGAL","2026-08-06",125],["Deysi","ALEXANDRA RUEDA","2026-08-06",303],["Deysi","BOB BATTLE","2026-08-06",260],["Mirian","Genesis Porras","2026-08-06",790],["Jennifer","jhid2000","2026-08-06",317],["Jennifer","Graham Whitley","2026-08-05",227],["Jennifer","Graham Whitley","2026-08-05",114],["Jennifer","Irina Bakumova","2026-08-05",503],["Jennifer","Gerardo Lugo","2026-08-05",115]],"files":[["Tehila",true],["Deysi",true],["Mirian",true],["Jennifer",true]],"lastMonth":{"name":"July","total":138499.9,"sameDays":27146.5,"reps":[["Mirian",49427,17656],["Jennifer",45827,6838],["Tehila",29880.2,726.5],["Deysi",13365.7,1926]]}}
+{"asOf":"2026-08-07T13:45:44.837Z","today":"2026-08-07","monthStart":"2026-08-01","monthName":"August","daysElapsed":7,"goal":200000,"biggest":{"rep":"Mirian","amount":4310,"date":"2026-08-04"},"totals":{"revenue":15635,"orders":29,"units":571,"aov":539.14},"reps":[["Mirian",8225,7,234],["Jennifer",5442,12,223],["Deysi",1868,9,106],["Tehila",100,1,8]],"weekTop":{"rep":"Mirian","revenue":8225},"dailyRev":[2178,100,1335,8964,1028,2030,0],"dailyOrd":[2,1,5,10,5,6,0],"recent":[["Deysi","LEONEL MONTEJO","2026-08-06",235],["Deysi","IGAL","2026-08-06",125],["Deysi","ALEXANDRA RUEDA","2026-08-06",303],["Deysi","BOB BATTLE","2026-08-06",260],["Mirian","Genesis Porras","2026-08-06",790],["Jennifer","jhid2000","2026-08-06",317],["Jennifer","Graham Whitley","2026-08-05",227],["Jennifer","Graham Whitley","2026-08-05",114],["Jennifer","Irina Bakumova","2026-08-05",503],["Jennifer","Gerardo Lugo","2026-08-05",115]],"files":[["Tehila",true],["Deysi",true],["Mirian",true],["Jennifer",true]],"lastMonth":{"name":"July","total":138499.9,"sameDays":27146.5,"reps":[["Mirian",49427,17656],["Jennifer",45827,6838],["Tehila",29880.2,726.5],["Deysi",13365.7,1926]]}}
 </script>
 
 <script>
@@ -169,7 +166,7 @@ function countUp(el,to,fmt,dur){ const t0=performance.now(); function f(t){ let 
 const T=S.totals;
 const LM=S.lastMonth||null;
 let paceTxt='month to date';
-if(LM && LM.sameDays>0){ paceTxt = T.revenue>=LM.sameDays ? ('month to date \u00b7 ahead of '+LM.name+' pace \u26a1') : ('month to date \u00b7 '+money(LM.sameDays-T.revenue)+' to catch '+LM.name+' pace'); }
+if(LM && LM.sameDays>0){ const p=Math.round((T.revenue-LM.sameDays)/LM.sameDays*100); paceTxt='month to date \u00b7 '+(p>=0?'+':'')+p+'% vs '+LM.name+' pace'; }
 const cards=[
   {lab:'Revenue', val:T.revenue, fmt:money, acc:'#fde047', meta:paceTxt},
   {lab:'Orders', val:T.orders, fmt:v=>Math.round(v).toLocaleString(), acc:ACC[0], meta:'month to date'}
@@ -182,14 +179,13 @@ const maxRev=Math.max(...S.reps.map(r=>r[1]),1);
 const lmM={}; if(LM&&LM.reps)LM.reps.forEach(x=>lmM[x[0]]=x);
 document.getElementById('race').innerHTML=S.reps.map((r,i)=>{
   const c=C[r[0]]||'#64748b';
-  const lm=lmM[r[0]]; const lmFull=lm?(lm[1]||0):0; const lmS=lm?(lm[2]||0):0;
-  const ahead=lmS>0&&r[1]>=lmS;
-  const flame=ahead?' \u26a1':'';
-  const jdotPct=lmFull>0?Math.min(97,lmS/lmFull*100):0;
-  const subHtml=lmFull>0?`<div class="sub2"><div class="jtrack"><div class="jdot" style="left:${jdotPct}%" title="${LM.name} by day ${S.daysElapsed}: ${money(lmS)}"></div><div class="jfill" id="jfill${i}"></div></div><div class="jlab">${LM.name} record ${money(lmFull)}</div></div>`:'';
-  return `<div class="row"><div class="rank r${i+1}">${i+1}</div><div><div class="bhead"><div><span class="bname">${r[0]}${flame}</span><span class="bsub">${r[2]} orders${DOT}${r[3].toLocaleString()} units</span></div><div class="bval" style="color:${c}">${money(r[1])}</div></div><div class="track"><div class="fill" id="fill${i}" style="background:linear-gradient(90deg,${c},${c}cc)"></div></div>${subHtml}</div></div>`;
+  const lm=lmM[r[0]]; const lmS=lm?(lm[2]||0):0;
+  const pc=lmS>0?Math.round((r[1]-lmS)/lmS*100):null;
+  const pcHtml=pc==null?'':`<span class="pchip" style="color:${pc>=0?'var(--green)':'#f87171'}">${pc>=0?'+':''}${pc}% vs ${LM.name.slice(0,3)} MTD</span>`;
+  const markHtml=lmS>0?`<div class="lmmark" style="left:${Math.min(99,lmS/maxRev*100)}%" title="${LM.name} to date: ${money(lmS)}"></div>`:'';
+  return `<div class="row"><div class="rank r${i+1}">${i+1}</div><div><div class="bhead"><div><span class="bname">${r[0]}</span><span class="bsub">${r[2]} orders${DOT}${r[3].toLocaleString()} units</span>${pcHtml}</div><div class="bval" style="color:${c}">${money(r[1])}</div></div><div class="track">${markHtml}<div class="fill" id="fill${i}" style="background:linear-gradient(90deg,${c},${c}cc)"></div></div></div></div>`;
 }).join('');
-setTimeout(()=>S.reps.forEach((r,i)=>{document.getElementById('fill'+i).style.width=(r[1]/maxRev*100)+'%';const jf=document.getElementById('jfill'+i);if(jf){const lm=lmM[r[0]];const lmFull=lm?(lm[1]||0):0;jf.style.width=(lmFull>0?Math.min(100,r[1]/lmFull*100):0)+'%';}}),200);
+setTimeout(()=>S.reps.forEach((r,i)=>{document.getElementById('fill'+i).style.width=(r[1]/maxRev*100)+'%';}),200);
 if(LM && LM.reps){
   document.getElementById('lmStrip').innerHTML =
     '<span style="font-weight:800;color:var(--txt)">'+LM.name+':</span>' +
