@@ -25,7 +25,9 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 .9vw rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
 .clock{ font-size:1.4vw; font-weight:700; font-variant-numeric:tabular-nums; }
 .upd{ font-size:.8vw; color:var(--mut); text-align:right; }
-.kpis{ display:grid; grid-template-columns:repeat(2,1fr); gap:1.2vw; }
+.kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:1.2vw; }
+.lmstrip{ margin-top:.6vw; padding-top:.6vw; border-top:1px solid var(--line); font-size:.95vw; color:var(--mut); display:flex; flex-wrap:wrap; gap:.3vw 1.4vw; align-items:center }
+.lmstrip b{ color:var(--txt) }
 .kpi{ background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-radius:16px; padding:1.2vw 1.5vw; position:relative; overflow:hidden; }
 .kpi::after{ content:""; position:absolute; top:0; left:0; width:100%; height:4px; background:var(--accent); }
 .kpi .lab{ font-size:.82vw; color:var(--mut); text-transform:uppercase; letter-spacing:1.5px; font-weight:700; }
@@ -96,6 +98,7 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
       <div class="panel" style="flex:1">
         <h3>Rep Leaderboard &mdash; This Month <span style="color:var(--mut);font-size:.8vw">revenue race</span></h3>
         <div class="race" id="race"></div>
+        <div class="lmstrip" id="lmStrip"></div>
       </div>
     </div>
     <div class="col">
@@ -159,10 +162,14 @@ document.getElementById('goalDays').textContent=daysLeft+' days left in '+MON[no
 function countUp(el,to,fmt,dur){ const t0=performance.now(); function f(t){ let p=Math.min(1,(t-t0)/dur); p=1-Math.pow(1-p,3); el.textContent=fmt(to*p); if(p<1)requestAnimationFrame(f);} requestAnimationFrame(f); }
 
 const T=S.totals;
+const LM=S.lastMonth||null;
+let paceTxt='month to date';
+if(LM && LM.sameDays>0){ const p=Math.round((T.revenue-LM.sameDays)/LM.sameDays*100); paceTxt='month to date \u00b7 '+(p>=0?'+':'')+p+'% vs '+LM.name+' pace'; }
 const cards=[
-  {lab:'Revenue', val:T.revenue, fmt:money, acc:'#fde047', meta:'month to date'},
+  {lab:'Revenue', val:T.revenue, fmt:money, acc:'#fde047', meta:paceTxt},
   {lab:'Orders', val:T.orders, fmt:v=>Math.round(v).toLocaleString(), acc:ACC[0], meta:'month to date'}
 ];
+if(LM){ cards.push({lab:'Last Month \u00b7 '+LM.name, val:LM.total, fmt:money, acc:'#a855f7', meta:'team total \u00b7 full month'}); }
 document.getElementById('kpis').innerHTML=cards.map((k,i)=>`<div class="kpi" style="--accent:${k.acc}"><div class="lab">${k.lab}</div><div class="val" id="kpi${i}">0</div><div class="meta">${k.meta}</div></div>`).join('');
 cards.forEach((k,i)=>countUp(document.getElementById('kpi'+i),k.val,k.fmt,1400));
 
@@ -172,6 +179,12 @@ document.getElementById('race').innerHTML=S.reps.map((r,i)=>{
   return `<div class="row"><div class="rank r${i+1}">${i+1}</div><div><div class="bhead"><div><span class="bname">${r[0]}</span><span class="bsub">${r[2]} orders${DOT}${r[3].toLocaleString()} units</span></div><div class="bval" style="color:${c}">${money(r[1])}</div></div><div class="track"><div class="fill" id="fill${i}" style="background:linear-gradient(90deg,${c},${c}cc)"></div></div></div></div>`;
 }).join('');
 setTimeout(()=>S.reps.forEach((r,i)=>{document.getElementById('fill'+i).style.width=(r[1]/maxRev*100)+'%';}),200);
+if(LM && LM.reps){
+  document.getElementById('lmStrip').innerHTML =
+    '<span style="font-weight:800;color:var(--txt)">'+LM.name+':</span>' +
+    LM.reps.map(r=>'<span><span style="color:'+(C[r[0]]||'#64748b')+';font-weight:700">'+r[0]+'</span> '+money(r[1])+'</span>').join('') +
+    '<span style="margin-left:auto"><b>Team '+money(LM.total)+'</b></span>';
+}
 
 const pct=Math.min(100, S.totals.revenue/S.goal*100);
 setTimeout(()=>{document.getElementById('goalfill').style.width=pct+'%';},300);
