@@ -45,7 +45,9 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
 .bname{ font-size:1.4vw; font-weight:800; }
 .bsub{ font-size:.82vw; color:var(--mut); margin-left:.6vw; font-weight:600;}
 .bval{ font-size:1.45vw; font-weight:800; font-variant-numeric:tabular-nums; }
-.track{ height:1.4vw; background:#0c1426; border-radius:10px; overflow:hidden; }
+.track{ height:1.4vw; background:#0c1426; border-radius:10px; overflow:hidden; position:relative; }
+.lmmark{ position:absolute; top:0; bottom:0; width:3px; background:#fff; opacity:.75; border-radius:2px; box-shadow:0 0 6px rgba(255,255,255,.5); z-index:2 }
+.pchip{ font-size:.78vw; font-weight:800; margin-left:.6vw }
 .fill{ height:100%; width:0; border-radius:10px; transition:width 1.6s cubic-bezier(.22,1,.36,1); }
 .goal{ display:flex; flex-direction:column; gap:.6vw; }
 .goalbar{ height:2vw; background:#0c1426; border-radius:14px; overflow:hidden; position:relative; border:1px solid var(--line); }
@@ -96,7 +98,7 @@ body{ background:radial-gradient(1200px 700px at 80% -10%, #16203a 0%, var(--bg)
   <div class="main">
     <div class="col">
       <div class="panel" style="flex:1">
-        <h3>Rep Leaderboard &mdash; This Month <span style="color:var(--mut);font-size:.8vw">revenue race</span></h3>
+        <h3>Rep Leaderboard &mdash; This Month <span style="color:var(--mut);font-size:.8vw">revenue race &middot; white line = where they were last month to date</span></h3>
         <div class="race" id="race"></div>
         <div class="lmstrip" id="lmStrip"></div>
       </div>
@@ -174,9 +176,14 @@ document.getElementById('kpis').innerHTML=cards.map((k,i)=>`<div class="kpi" sty
 cards.forEach((k,i)=>countUp(document.getElementById('kpi'+i),k.val,k.fmt,1400));
 
 const maxRev=Math.max(...S.reps.map(r=>r[1]),1);
+const lmM={}; if(LM&&LM.reps)LM.reps.forEach(x=>lmM[x[0]]=x);
 document.getElementById('race').innerHTML=S.reps.map((r,i)=>{
   const c=C[r[0]]||'#64748b';
-  return `<div class="row"><div class="rank r${i+1}">${i+1}</div><div><div class="bhead"><div><span class="bname">${r[0]}</span><span class="bsub">${r[2]} orders${DOT}${r[3].toLocaleString()} units</span></div><div class="bval" style="color:${c}">${money(r[1])}</div></div><div class="track"><div class="fill" id="fill${i}" style="background:linear-gradient(90deg,${c},${c}cc)"></div></div></div></div>`;
+  const lm=lmM[r[0]]; const lmS=lm?(lm[2]||0):0;
+  const pc=lmS>0?Math.round((r[1]-lmS)/lmS*100):null;
+  const pcHtml=pc==null?'':`<span class="pchip" style="color:${pc>=0?'var(--green)':'#f87171'}">${pc>=0?'+':''}${pc}% vs ${LM.name.slice(0,3)} MTD</span>`;
+  const markHtml=lmS>0?`<div class="lmmark" style="left:${Math.min(99,lmS/maxRev*100)}%" title="${LM.name} to date: ${money(lmS)}"></div>`:'';
+  return `<div class="row"><div class="rank r${i+1}">${i+1}</div><div><div class="bhead"><div><span class="bname">${r[0]}</span><span class="bsub">${r[2]} orders${DOT}${r[3].toLocaleString()} units</span>${pcHtml}</div><div class="bval" style="color:${c}">${money(r[1])}</div></div><div class="track">${markHtml}<div class="fill" id="fill${i}" style="background:linear-gradient(90deg,${c},${c}cc)"></div></div></div></div>`;
 }).join('');
 setTimeout(()=>S.reps.forEach((r,i)=>{document.getElementById('fill'+i).style.width=(r[1]/maxRev*100)+'%';}),200);
 if(LM && LM.reps){
