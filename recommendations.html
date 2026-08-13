@@ -1,0 +1,97 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SurgaMed — AI Recommendations</title>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--b:#1f4e78;--bg:#f4f6f9;--line:#e2e8f0}
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+body{margin:0;background:var(--bg);color:#1a2330}
+header{background:var(--b);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:14px}
+header h1{font-size:17px;margin:0;font-weight:700}
+header .sub{font-size:12px;opacity:.85}
+.wrap{display:flex;height:calc(100vh - 46px)}
+.side{width:340px;border-right:1px solid var(--line);background:#fff;display:flex;flex-direction:column}
+.side .ctl{padding:10px;border-bottom:1px solid var(--line)}
+select,input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px}
+.clist{overflow:auto;flex:1}
+.cust{padding:9px 12px;border-bottom:1px solid #eef2f6;cursor:pointer}
+.cust:hover{background:#f0f6ff}.cust.sel{background:#e3f0ff}
+.cust .nm{font-weight:600;font-size:13px}
+.cust .mt{font-size:11px;color:#64748b;margin-top:2px}
+.pill{display:inline-block;background:#eaf1fb;color:var(--b);border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px}
+.main{flex:1;overflow:auto;padding:16px}
+.chdr{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.chdr h2{margin:0 0 3px;font-size:18px;color:var(--b)}
+.chdr .meta{font-size:12px;color:#475569}
+.btns button{background:var(--b);color:#fff;border:0;border-radius:6px;padding:9px 14px;font-size:13px;cursor:pointer;margin-left:8px}
+.btns button.ghost{background:#fff;color:var(--b);border:1px solid var(--b)}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+th{background:var(--b);color:#fff;font-size:11px;text-align:left;padding:8px;position:sticky;top:0}
+td{padding:7px 8px;border-bottom:1px solid #eef2f6;font-size:12px;vertical-align:top}
+tr:hover td{background:#fafcff}
+.tag{font-size:10px;padding:1px 6px;border-radius:8px}
+.t-reorder{background:#dcfce7;color:#166534}.t-cross{background:#fef3c7;color:#92400e}
+.exp{color:#b91c1c}.muted{color:#94a3b8}.empty{padding:40px;text-align:center;color:#94a3b8}
+</style></head><body>
+<header><h1>SurgaMed — AI Recommendations</h1><span class="sub" id="sub">loading…</span></header>
+<div class="wrap">
+ <div class="side">
+   <div class="ctl"><select id="rep"><option value="(all)">All reps</option></select></div>
+   <div class="ctl"><input id="q" placeholder="Search customer name or email…"></div>
+   <div class="clist" id="clist"></div>
+ </div>
+ <div class="main" id="main"><div class="empty">Pick a customer on the left to see their recommended in-stock items.</div></div>
+</div>
+<script>
+const KEY=new URLSearchParams(location.search).get("k")||"sm-recs-7bf39a2c";
+const api=(a,p={})=>{const u=new URL("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/recs-dashboard");u.searchParams.set("k",KEY);u.searchParams.set("action",a);for(const k in p)u.searchParams.set(k,p[k]);return fetch(u).then(r=>r.json());};
+let cur=null,curRecs=[];
+async function boot(){
+  const reps=await api("reps");
+  const sel=document.getElementById("rep");
+  reps.sort((a,b)=>(b.potential||0)-(a.potential||0)).forEach(r=>{const o=document.createElement("option");o.value=r.rep;o.textContent=r.rep+" — "+r.customers+" custs";sel.appendChild(o);});
+  const tot=reps.reduce((s,r)=>s+(r.recs||0),0),cst=reps.reduce((s,r)=>s+(r.customers||0),0);
+  document.getElementById("sub").textContent=tot.toLocaleString()+" recommendations · "+cst.toLocaleString()+" customers";
+  loadCusts();
+}
+async function loadCusts(){
+  const rep=document.getElementById("rep").value,q=document.getElementById("q").value.trim();
+  const list=await api("customers",{rep,q});
+  const el=document.getElementById("clist");el.innerHTML="";
+  if(!list.length){el.innerHTML='<div class="empty">No customers.</div>';return;}
+  list.forEach(c=>{const d=document.createElement("div");d.className="cust";d.dataset.email=c.email;
+    d.innerHTML='<div class="nm">'+esc(c.customer_name||c.email)+'</div><div class="mt">'+(c.assigned_rep||"")+' · '+c.recs+' items<span class="pill">$'+(c.potential_value||0).toLocaleString()+'</span></div>';
+    d.onclick=()=>selectCust(c,d);el.appendChild(d);});
+}
+async function selectCust(c,node){
+  cur=c;document.querySelectorAll(".cust").forEach(n=>n.classList.remove("sel"));if(node)node.classList.add("sel");
+  curRecs=await api("recs",{email:c.email});
+  const m=document.getElementById("main");
+  let h='<div class="chdr"><div><h2>'+esc(c.customer_name||c.email)+'</h2>'+
+    '<div class="meta">'+esc(c.email)+(c.assigned_rep?' · rep '+esc(c.assigned_rep):'')+' · '+curRecs.length+' recommended items</div></div>'+
+    '<div class="btns"><button onclick="dlExcel()">⬇ Download Excel (send to customer)</button><button class="ghost" onclick="copyWA()">Copy for WhatsApp</button></div></div>';
+  h+='<table><thead><tr><th>#</th><th>Manufacturer</th><th>REF</th><th>Description</th><th>Price</th><th>Exp</th><th>Account</th><th>Why recommended</th></tr></thead><tbody>';
+  curRecs.forEach((r,i)=>{const tag=r.match_type==="reorder"?'<span class="tag t-reorder">reorder</span>':'<span class="tag t-cross">cross-sell</span>';
+    h+='<tr><td>'+(i+1)+'</td><td>'+esc(r.mfg||"")+'</td><td><b>'+esc(r.model||"")+'</b></td><td>'+esc((r.description||"").slice(0,70))+'</td><td>$'+(r.price??"")+'</td><td class="'+(r.exp_date?'exp':'')+'">'+esc(r.exp_date||"")+'</td><td>'+esc(acct(r.account))+'</td><td>'+tag+' '+esc(r.reason||"")+'</td></tr>';});
+  h+='</tbody></table>';m.innerHTML=h;
+}
+function acct(a){return a==="SurgaMed"?"Expired":a==="ShortDated Surgical"?"In-date":a||"";}
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function dlExcel(){
+  if(!cur||!curRecs.length)return;
+  if(typeof XLSX==="undefined"){alert("Excel library still loading — try again in a second.");return;}
+  const rows=curRecs.map(r=>({"Manufacturer":r.mfg||"","REF":r.model||"","Description":r.description||"","Our Price (USD)":Number(r.price)||"","Expiration":r.exp_date||"","Availability":acct(r.account),"Notes":r.reason||""}));
+  const ws=XLSX.utils.json_to_sheet(rows);ws["!cols"]=[{wch:20},{wch:16},{wch:50},{wch:14},{wch:12},{wch:10},{wch:40}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Recommended items");
+  const nm=(cur.customer_name||cur.email).replace(/[^A-Za-z0-9]+/g,"_").slice(0,40);
+  XLSX.writeFile(wb,"SurgaMed_Recommended_"+nm+".xlsx");
+}
+function copyWA(){
+  if(!curRecs.length)return;
+  let t="Hi"+(cur.customer_name?" "+cur.customer_name.split(" ")[0]:"")+", a few items in stock you may want:\n\n";
+  curRecs.slice(0,15).forEach(r=>{t+="• "+(r.mfg||"")+" "+(r.model||"")+" — "+(r.description||"").slice(0,50)+" — $"+(r.price||"")+"\n";});
+  navigator.clipboard.writeText(t).then(()=>alert("Copied "+Math.min(curRecs.length,15)+" items — paste into WhatsApp."));
+}
+document.getElementById("rep").onchange=loadCusts;
+let qt;document.getElementById("q").oninput=()=>{clearTimeout(qt);qt=setTimeout(loadCusts,300);};
+boot();
+</script></body></html>
