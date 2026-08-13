@@ -1,26 +1,14 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SurgaMed · Assistant</title>
-<meta http-equiv="refresh" content="0; url=https://web.whatsapp.com/send?phone=17327036519">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SurgaMed · WhatsApp</title></head>
+<body style="margin:0;background:#d1d7db;font:14px system-ui">
+<div id="ld" style="display:flex;height:100vh;align-items:center;justify-content:center;color:#54656f">Loading WhatsApp view…</div>
 <script>
-  // Forward straight to the SurgaMed Assistant WhatsApp line (732-703-6519).
-  var DEST = "https://web.whatsapp.com/send?phone=17327036519";
-  try { window.top.location.replace(DEST); } catch (e) { window.location.replace(DEST); }
+fetch("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/chat-ui").then(function(r){if(!r.ok)throw new Error(r.status);return r.text();}).then(function(h){
+if(h.indexOf(String.fromCharCode(118)+"alue=\"1\">Same day")<0){h=h.replace('<option value="7">Week</option>','<option value="1">Same day</option><option value="7">Week</option>');}
+if(h.indexOf("not delivered to the cloud")<0){h=h.split('document:"\ud83d\udcc4 Document",sticker:"Sticker"}[t]||"\ud83d\udcce Media")'+String.fromCharCode(43)+String.fromCharCode(39)+' (not saved)').join('document:"\ud83d\udcc4 Document",sticker:"Sticker",media:"\ud83d\udcf1 Sent from phone",unsupported:"\u26a0\ufe0f View-once / unsupported"}[t]||"\ud83d\udcce Media")'+String.fromCharCode(43)+String.fromCharCode(39)+' \u2014 not delivered to the cloud by WhatsApp');}
+if(h.indexOf("tick fail")<0){h=h.split("function tickHtml(status){").join('function tickHtml(status){if(status==="failed")return \'<span class="tick fail" title="WhatsApp rejected this message: the contact has not messaged this line in over 24 hours, so WhatsApp blocks new messages until they reply. Send it from the phone instead - it will still be captured here.">⚠ Not delivered</span>\';');h=h.split(".tick.read{color:var(--tickblue)}").join(".tick.read{color:var(--tickblue)} .tick.fail{color:#e53935;letter-spacing:0;font-weight:600;cursor:help}");}
+document.open();document.write(h);document.close();}).catch(function(e){document.getElementById("ld").innerHTML='Could not load the WhatsApp view ('+e.message+'). <a href="whatsapp-crm.html">Open classic CRM</a>';});
 </script>
-<style>
-  html,body{height:100%;margin:0}
-  body{font-family:Arial,Helvetica,sans-serif;background:#f4f6f9;color:#1a2330;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
-  a{color:#1f4e78;font-weight:700}
-</style>
-</head>
-<body>
-  <div>
-    <div style="font-size:16px;margin-bottom:8px">Opening the SurgaMed Assistant on WhatsApp…</div>
-    <div style="font-size:13px;color:#64748b">(732) 703-6519</div>
-    <div style="margin-top:14px"><a href="https://web.whatsapp.com/send?phone=17327036519" target="_top" rel="noopener">Tap here to open the WhatsApp chat</a></div>
-  </div>
 </body>
 </html>
