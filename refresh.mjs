@@ -11,7 +11,7 @@ const GRAPH = 'https://graph.microsoft.com/v1.0';
 // no basis = all rows, bucket by order date, amount from TOTAL.
 const REPS = [
   { rep:'Tehila',   user:'tcohen@surgamed.com', path:'Tehila/Tehila - Ventas.xlsx',          sheet:'Sheet1', basis:'paid' },
-  { rep:'Deysi',    user:'dcalvo@surgamed.com', path:'Deysi Sales list NEW COMPUTER.xlsx',    sheet:'Deysi Sales', basis:'paid' },
+  { rep:'Deysi',    user:'dcalvo@surgamed.com', link:'https://netorgft3242511-my.sharepoint.com/:x:/g/personal/dcalvo_surgamed_com/IQB-BC_SvqB2RJhtHUCRkYp_AXgvOY4TjiU9bPaCwHmKkc4?e=se1JTU', path:'Deysi Sales list NEW COMPUTER.xlsx', sheet:'Deysi Sales', basis:'paid' },
   { rep:'Mirian',   user:'malejo@surgamed.com', path:'MIRI - PAYPAL SENT ORDERS.xlsx',        sheet:'Sheet1', basis:'paidflag' },
   { rep:'Jennifer', user:'jlugo@surgamed.com',  path:'Desktop/Jennifer Lugo Saless.xlsx',     sheet:'Invoiced-Sales', basis:'paid' },
 ];
@@ -23,10 +23,20 @@ async function getToken(){
   if(!r.ok) throw new Error('token '+r.status+' '+await r.text());
   return (await r.json()).access_token;
 }
-async function download(tok, user, path){
-  const enc = path.split('/').map(encodeURIComponent).join('/');
-  const r = await fetch(`${GRAPH}/users/${encodeURIComponent(user)}/drive/root:/${enc}:/content`, { headers:{ Authorization:`Bearer ${tok}` } });
-  if(!r.ok) throw new Error('download '+user+' '+r.status);
+function shareId(url){ const b=Buffer.from(url,'utf8').toString('base64'); return 'u!'+b.replace(/=+$/,'').replace(/\//g,'_').replace(/\+/g,'-'); }
+async function download(tok, R){
+  let url;
+  if(R.link){
+    const sr = await fetch(`${GRAPH}/shares/${shareId(R.link)}/driveItem?$select=id,parentReference`, { headers:{ Authorization:`Bearer ${tok}` } });
+    if(!sr.ok) throw new Error('share '+R.rep+' '+sr.status);
+    const si = await sr.json();
+    url = `${GRAPH}/drives/${si.parentReference.driveId}/items/${si.id}/content`;
+  } else {
+    const enc = R.path.split('/').map(encodeURIComponent).join('/');
+    url = `${GRAPH}/users/${encodeURIComponent(R.user)}/drive/root:/${enc}:/content`;
+  }
+  const r = await fetch(url, { headers:{ Authorization:`Bearer ${tok}` } });
+  if(!r.ok) throw new Error('download '+R.rep+' '+r.status);
   return Buffer.from(await r.arrayBuffer());
 }
 const EXCEL_EPOCH = Date.UTC(1899,11,30);
@@ -66,7 +76,7 @@ function parseRep(buf, R){
 const tok = await getToken();
 let all=[]; const files=[];
 for(const R of REPS){
-  try{ const buf=await download(tok,R.user,R.path); const o=parseRep(buf,R);
+  try{ const buf=await download(tok,R); const o=parseRep(buf,R);
        if(o){ all=all.concat(o); files.push([R.rep,true]); } else files.push([R.rep,false]); }
   catch(e){ console.error(R.rep, e.message); files.push([R.rep,false]); }
 }
