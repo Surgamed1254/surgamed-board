@@ -67,7 +67,7 @@ async function selectCust(c,node){
   curRecs=await api("recs",{email:c.email});
   const m=document.getElementById("main");
   let h='<div class="chdr"><div><h2>'+esc(c.customer_name||c.email)+'</h2>'+
-    '<div class="meta">'+esc(c.email)+(c.assigned_rep?' · rep '+esc(c.assigned_rep):'')+' · '+curRecs.length+' recommended items</div></div>'+
+    '<div class="meta">'+esc(c.email)+' · '+curRecs.length+' recommended items · rep: <select id="repSel" onchange="setRep(this.value)" style="padding:2px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px">'+repOptions(c.assigned_rep)+'</select></div></div>'+
     '<div class="btns"><button onclick="dlExcel()">⬇ Download Excel (send to customer)</button><button class="ghost" onclick="dlExcelNoNotes()">⬇ Excel — no notes</button><button class="ghost" onclick="copyWA()">Copy for WhatsApp</button></div></div>';
   h+='<table><thead><tr><th>#</th><th>Manufacturer</th><th>REF</th><th>Description</th><th>Price</th><th>Exp</th><th>Account</th><th>Why recommended</th></tr></thead><tbody>';
   curRecs.forEach((r,i)=>{const tag=r.match_type==="reorder"?'<span class="tag t-reorder">reorder</span>':'<span class="tag t-cross">cross-sell</span>';
@@ -104,6 +104,22 @@ function copyWA(){
   });
   t+=NL+"Let me know if any of these work for you.";
   navigator.clipboard.writeText(t).then(()=>alert("Copied "+Math.min(curRecs.length,15)+" items — paste into WhatsApp."));
+}
+
+const REP_CHOICES=["(unassigned)","Mirian Alejo","Jennifer Lugo","Deysi Calvo","Tehila Cohen","Meir Weinreb"];
+function repOptions(curRep){
+  var seen={}; var out="";
+  var list=REP_CHOICES.slice();
+  if(curRep && list.indexOf(curRep)<0) list.unshift(curRep);
+  list.forEach(function(r){ if(seen[r])return; seen[r]=1;
+    out+='<option value="'+esc(r)+'"'+(r===(curRep||"(unassigned)")?" selected":"")+'>'+esc(r)+'</option>'; });
+  return out;
+}
+async function setRep(rep){
+  if(!cur)return;
+  const r=await api("setrep",{email:cur.email,rep:rep});
+  if(r&&r.ok){ cur.assigned_rep=(rep==="(unassigned)")?null:rep; alert("Rep updated to "+rep+" for "+(cur.customer_name||cur.email)); loadCusts(); }
+  else alert("Could not update rep"+(r&&r.error?": "+r.error:""));
 }
 document.getElementById("rep").onchange=loadCusts;
 let qt;document.getElementById("q").oninput=()=>{clearTimeout(qt);qt=setTimeout(loadCusts,300);};
