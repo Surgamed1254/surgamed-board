@@ -68,7 +68,7 @@ async function selectCust(c,node){
   const m=document.getElementById("main");
   let h='<div class="chdr"><div><h2>'+esc(c.customer_name||c.email)+'</h2>'+
     '<div class="meta">'+esc(c.email)+(c.assigned_rep?' · rep '+esc(c.assigned_rep):'')+' · '+curRecs.length+' recommended items</div></div>'+
-    '<div class="btns"><button onclick="dlExcel()">⬇ Download Excel (send to customer)</button><button class="ghost" onclick="copyWA()">Copy for WhatsApp</button></div></div>';
+    '<div class="btns"><button onclick="dlExcel()">⬇ Download Excel (send to customer)</button><button class="ghost" onclick="dlExcelNoNotes()">⬇ Excel — no notes</button><button class="ghost" onclick="copyWA()">Copy for WhatsApp</button></div></div>';
   h+='<table><thead><tr><th>#</th><th>Manufacturer</th><th>REF</th><th>Description</th><th>Price</th><th>Exp</th><th>Account</th><th>Why recommended</th></tr></thead><tbody>';
   curRecs.forEach((r,i)=>{const tag=r.match_type==="reorder"?'<span class="tag t-reorder">reorder</span>':'<span class="tag t-cross">cross-sell</span>';
     h+='<tr><td>'+(i+1)+'</td><td>'+esc(r.mfg||"")+'</td><td><b>'+esc(r.model||"")+'</b></td><td>'+esc((r.description||"").slice(0,70))+'</td><td>$'+(r.price??"")+'</td><td class="'+(r.exp_date?'exp':'')+'">'+esc(r.exp_date||"")+'</td><td>'+esc(acct(r.account))+'</td><td>'+tag+' '+esc(r.reason||"")+'</td></tr>';});
@@ -85,10 +85,24 @@ function dlExcel(){
   const nm=(cur.customer_name||cur.email).replace(/[^A-Za-z0-9]+/g,"_").slice(0,40);
   XLSX.writeFile(wb,"SurgaMed_Recommended_"+nm+".xlsx");
 }
+function dlExcelNoNotes(){
+  if(!cur||!curRecs.length)return;
+  if(typeof XLSX==="undefined"){alert("Excel library still loading — try again in a second.");return;}
+  const rows=curRecs.map(r=>({"Manufacturer":r.mfg||"","REF":r.model||"","Description":r.description||"","Our Price (USD)":Number(r.price)||"","Expiration":r.exp_date||"","Availability":acct(r.account)}));
+  const ws=XLSX.utils.json_to_sheet(rows);ws["!cols"]=[{wch:20},{wch:16},{wch:50},{wch:14},{wch:12},{wch:10}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Items");
+  const nm=(cur.customer_name||cur.email).replace(/[^A-Za-z0-9]+/g,"_").slice(0,40);
+  XLSX.writeFile(wb,"SurgaMed_Items_"+nm+".xlsx");
+}
 function copyWA(){
   if(!curRecs.length)return;
-  let t="Hi"+(cur.customer_name?" "+cur.customer_name.split(" ")[0]:"")+", a few items in stock you may want:\\n\\n";
-  curRecs.slice(0,15).forEach(r=>{t+="• "+(r.mfg||"")+" "+(r.model||"")+" — "+(r.description||"").slice(0,50)+" — $"+(r.price||"")+"\\n";});
+  var NL=String.fromCharCode(10);
+  var first=cur.customer_name?" "+cur.customer_name.split(" ")[0]:"";
+  var t="Hi"+first+"! This is SurgaMed — a few in-stock items picked for you:"+NL+NL;
+  curRecs.slice(0,15).forEach(function(r,i){
+    t+=(i+1)+". *"+(r.mfg||"")+" "+(r.model||"")+"*"+NL+"    "+(r.description||"").slice(0,60)+" — $"+(r.price||"")+NL;
+  });
+  t+=NL+"Reply here and we'll set them aside for you.";
   navigator.clipboard.writeText(t).then(()=>alert("Copied "+Math.min(curRecs.length,15)+" items — paste into WhatsApp."));
 }
 document.getElementById("rep").onchange=loadCusts;
