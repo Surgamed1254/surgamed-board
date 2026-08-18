@@ -37,6 +37,7 @@ tr:hover td{background:#fafcff}
  <div class="side">
    <div class="ctl"><select id="rep"><option value="(all)">All reps</option></select></div>
    <div class="ctl"><input id="q" placeholder="Search customer name or email…"></div>
+   <div class="ctl"><select id="hideSent"><option value="0">Show all</option><option value="7">Hide sent — past week</option><option value="30">Hide sent — past month</option><option value="90">Hide sent — past 3 months</option></select></div>
    <div class="clist" id="clist"></div>
  </div>
  <div class="main" id="main"><div class="empty">Pick a customer on the left to see their recommended in-stock items.</div></div>
@@ -58,9 +59,16 @@ async function loadCusts(){
   const list=await api("customers",{rep,q});
   const el=document.getElementById("clist");el.innerHTML="";
   if(!list.length){el.innerHTML='<div class="empty">No customers.</div>';return;}
-  list.forEach(c=>{const d=document.createElement("div");d.className="cust";d.dataset.email=c.email;
-    d.innerHTML='<div class="nm">'+esc(c.customer_name||c.email)+'</div><div class="mt">'+(c.assigned_rep||"")+' · '+c.recs+' items<span class="pill">$'+(c.potential_value||0).toLocaleString()+'</span></div>';
-    d.onclick=()=>selectCust(c,d);el.appendChild(d);});
+  const hideDays=Number(document.getElementById("hideSent").value||0);
+  const now=Date.now();
+  let shown=0;
+  list.forEach(c=>{
+    if(hideDays>0 && c.last_sent && (now-new Date(c.last_sent).getTime()) < hideDays*86400000) return;
+    const d=document.createElement("div");d.className="cust";d.dataset.email=c.email;
+    const sent=c.last_sent?('<span style="color:#94a3b8;font-size:10px"> · sent '+new Date(c.last_sent).toLocaleDateString(undefined,{month:"numeric",day:"numeric"})+(c.last_sent_via==="whatsapp"?" 💬":" ✉️")+'</span>'):"";
+    d.innerHTML='<div class="nm">'+esc(c.customer_name||c.email)+'</div><div class="mt">'+(c.assigned_rep||"")+' · '+c.recs+' items<span class="pill">$'+(c.potential_value||0).toLocaleString()+'</span>'+sent+'</div>';
+    d.onclick=()=>selectCust(c,d);el.appendChild(d);shown++;});
+  if(!shown){el.innerHTML='<div class="empty">All recently contacted — change the "Hide sent" filter to see them.</div>';}
 }
 async function selectCust(c,node){
   cur=c;document.querySelectorAll(".cust").forEach(n=>n.classList.remove("sel"));if(node)node.classList.add("sel");
@@ -68,7 +76,7 @@ async function selectCust(c,node){
   const m=document.getElementById("main");
   let h='<div class="chdr"><div><h2>'+esc(c.customer_name||c.email)+'</h2>'+
     '<div class="meta">'+esc(c.email)+' · '+curRecs.length+' recommended items · rep: <select id="repSel" onchange="setRep(this.value)" style="padding:2px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px">'+repOptions(c.assigned_rep)+'</select></div></div>'+
-    '<div class="btns"><button onclick="dlExcel()">⬇ Download Excel (send to customer)</button><button class="ghost" onclick="dlExcelNoNotes()">⬇ Excel — no notes</button><button class="ghost" onclick="copyWA()">Copy for WhatsApp</button></div></div>';
+    '<div class="btns"><button onclick="dlExcel()">⬇ Download Excel (send to customer)</button><button class="ghost" onclick="dlExcelNoNotes()">⬇ Excel — no notes</button><button class="ghost" onclick="copyWA()">Copy for WhatsApp</button><span style="margin-left:10px;font-size:11px;color:#64748b">Mark sent: <a href="#" onclick="markSent('whatsapp');return false" style="color:#0e7a3d;font-weight:700;text-decoration:none">💬 WA</a> · <a href="#" onclick="markSent('email');return false" style="color:#1f4e78;font-weight:700;text-decoration:none">✉️ Email</a></span></div></div>';
   h+='<table><thead><tr><th>#</th><th>Manufacturer</th><th>REF</th><th>Description</th><th>Price</th><th>Exp</th><th>Account</th><th>Why recommended</th></tr></thead><tbody>';
   curRecs.forEach((r,i)=>{const tag=r.match_type==="reorder"?'<span class="tag t-reorder">reorder</span>':'<span class="tag t-cross">cross-sell</span>';
     h+='<tr><td>'+(i+1)+'</td><td>'+esc(r.mfg||"")+'</td><td><b>'+esc(r.model||"")+'</b></td><td>'+esc((r.description||"").slice(0,70))+'</td><td>$'+(r.price??"")+'</td><td class="'+(r.exp_date?'exp':'')+'">'+esc(r.exp_date||"")+'</td><td>'+esc(acct(r.account))+'</td><td>'+tag+' '+esc(r.reason||"")+'</td></tr>';});
@@ -121,6 +129,14 @@ async function setRep(rep){
   if(r&&r.ok){ cur.assigned_rep=(rep==="(unassigned)")?null:rep; alert("Rep updated to "+rep+" for "+(cur.customer_name||cur.email)); loadCusts(); }
   else alert("Could not update rep"+(r&&r.error?": "+r.error:""));
 }
+
+async function markSent(via){
+  if(!cur)return;
+  const r=await api("marksent",{email:cur.email,via:via});
+  if(r&&r.ok){ cur.last_sent=r.sent_at; cur.last_sent_via=via; alert("Logged: list sent via "+(via==="whatsapp"?"WhatsApp":"email")+" to "+(cur.customer_name||cur.email)); loadCusts(); }
+  else alert("Could not log send"+(r&&r.error?": "+r.error:""));
+}
+document.getElementById("hideSent").onchange=loadCusts;
 document.getElementById("rep").onchange=loadCusts;
 let qt;document.getElementById("q").oninput=()=>{clearTimeout(qt);qt=setTimeout(loadCusts,300);};
 boot();
