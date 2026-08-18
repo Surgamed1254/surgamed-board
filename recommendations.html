@@ -98,11 +98,11 @@ function copyWA(){
   if(!curRecs.length)return;
   var NL=String.fromCharCode(10);
   var first=cur.customer_name?" "+cur.customer_name.split(" ")[0]:"";
-  var t="Hi"+first+"! This is SurgaMed — a few in-stock items picked for you:"+NL+NL;
+  var t="Hi"+first+"! We have a few items in stock that you may be interested in:"+NL+NL;
   curRecs.slice(0,15).forEach(function(r,i){
     t+=(i+1)+". *"+(r.mfg||"")+" "+(r.model||"")+"*"+NL+"    "+(r.description||"").slice(0,60)+" — $"+(r.price||"")+NL;
   });
-  t+=NL+"Reply here and we'll set them aside for you.";
+  t+=NL+"Let me know if any of these work for you.";
   navigator.clipboard.writeText(t).then(()=>alert("Copied "+Math.min(curRecs.length,15)+" items — paste into WhatsApp."));
 }
 document.getElementById("rep").onchange=loadCusts;
