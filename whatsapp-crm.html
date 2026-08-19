@@ -187,7 +187,7 @@ const MANAGER_FN=SB_URL+"/functions/v1/manager";
 const WA_FN=SB_URL+"/functions/v1/whatsapp/send";
 const FN_URL=SB_URL+"/functions/v1/leads";   // shared mailbox/shipping/send function (same as dotMed board)
 const MANAGERS=["mweinreb@surgamed.com","sgluck@surgamed.com","orders@surgamed.com"];
-const REPS={"jlugo@surgamed.com":"Jennifer","dcalvo@surgamed.com":"Deysi","tcohen@surgamed.com":"Tehila","malejo@surgamed.com":"Mirian"};
+const REPS={"jlugo@surgamed.com":"Jennifer Lugo","dcalvo@surgamed.com":"Deysi Calvo","tcohen@surgamed.com":"Tehila Cohen","malejo@surgamed.com":"Mirian Alejo"};
 const STATUSES=[["new","New"],["in_progress","In progress"],["quoted","Quoted"],["awaiting_customer","Awaiting customer"],["won","Won"],["lost","Lost"],["closed","Closed"]];
 const STATUS_COLOR={new:"#185fa5",in_progress:"#2563eb",quoted:"#6b46c1",awaiting_customer:"#647387",won:"#1b9e6b",lost:"#c0392b",closed:"#1b9e6b"};
 const PRIORITIES=[["urgent","Urgent"],["high","High"],["normal","Normal"],["low","Low"]];
@@ -877,7 +877,7 @@ async function loadLive(){
   if((STATE.email||"").toLowerCase()!=="mweinreb@surgamed.com"){ custs=custs.filter(c=>{ const d=String(c.phone||"").replace(/\D/g,"").slice(-10); return !INTERNAL_NUMS.includes(d); }); }
   let __convRows=[]; { let __cf=0; while(true){ const __cr=await SB.from("wa_conversations").select("customer_id,rep_id,summary,ai_next_action,action_needed").is("deleted_at",null).range(__cf,__cf+999); const __rows2=__cr.data||[]; __convRows=__convRows.concat(__rows2); if(__rows2.length<1000) break; __cf+=1000; } } const conv={data:__convRows};
   const waSet=new Set((conv.data||[]).map(x=>x.customer_id)); const convMap={}; (conv.data||[]).forEach(x=>{ convMap[x.customer_id]=x; });
-  if(STATE.repScope){ const myRep=STATE.reps.find(r=>r.name===STATE.repScope); const myConv=new Set((conv.data||[]).filter(x=>myRep&&x.rep_id===myRep.id).map(x=>x.customer_id)); custs=custs.filter(c=>c.assigned_rep===STATE.repScope||myConv.has(c.id)); }
+  if(STATE.repScope){ const _sc=STATE.repScope; const _match=(a,b)=>{a=String(a||"");b=String(b||"");return a===b||a.indexOf(b+" ")===0||b.indexOf(a+" ")===0;}; const myRep=STATE.reps.find(r=>_match(r.name,_sc)); const myConv=new Set((conv.data||[]).filter(x=>myRep&&x.rep_id===myRep.id).map(x=>x.customer_id)); custs=custs.filter(c=>_match(c.assigned_rep,_sc)||myConv.has(c.id)); }
   const tl=await SB.from("timeline_events").select("customer_id,source,type").is("deleted_at",null).order("ts",{ascending:false}).limit(4000);
   const badgeMap={};
   (tl.data||[]).forEach(e=>{ const b=badgeFor(e); if(!b) return; (badgeMap[e.customer_id]=badgeMap[e.customer_id]||new Set()).add(b); });
