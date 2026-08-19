@@ -237,7 +237,7 @@ function linkify(t){ return esc(t).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1"
 function matchesFilters(cu,f){
   if(f.q){ const blob=(cu.name+" "+cu.company+" "+cu.phone+" "+cu.email+" "+cu.assigned_rep).toLowerCase(); if(!blob.includes(f.q.toLowerCase())) return false; }
   if(f.source && !(cu._badges||[]).includes(f.source)) return false;
-  if(f.rep){ if(f.rep==="__none"){ if(cu.assigned_rep) return false; } else if(cu.assigned_rep!==f.rep) return false; }
+  if(f.rep){ if(f.rep==="__none"){ if(cu.assigned_rep) return false; } else { const _a=String(cu.assigned_rep||""),_b=String(f.rep); if(!(_a===_b||_a.indexOf(_b+" ")===0||_b.indexOf(_a+" ")===0)) return false; } }
   if(f.status && (cu.manager_status||"new")!==f.status) return false;
   if(f.priority && (cu.priority||"normal")!==f.priority) return false;
   if(f.vip && !cu.vip) return false;
