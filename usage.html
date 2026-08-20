@@ -1,0 +1,89 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SurgaMed — Feature Usage</title>
+<style>
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+body{margin:0;background:#f4f6f9;color:#1a2330}
+header{background:#1f4e78;color:#fff;padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{font-size:17px;margin:0}
+header .nav{margin-left:auto;display:flex;gap:6px}
+header .nav a{background:rgba(255,255,255,.16);color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600}
+.wrap{padding:16px;max-width:1200px;margin:0 auto}
+.ctl{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+select{padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff}
+.note{font-size:12px;color:#64748b}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+th{background:#1f4e78;color:#fff;font-size:11px;text-align:right;padding:7px 8px;position:sticky;top:0}
+th:first-child{text-align:left}
+td{padding:6px 8px;border-bottom:1px solid #eef2f6;font-size:12px;text-align:right}
+td:first-child{text-align:left}
+tr.feat td{background:#eaf1fb;font-weight:700;cursor:pointer}
+tr.ev td:first-child{padding-left:26px;color:#475569}
+td.z{color:#cbd5e1}
+td.tot{font-weight:700;background:#fafcff}
+.empty{padding:40px;text-align:center;color:#94a3b8}
+</style></head><body>
+<header><h1>📈 Feature Usage — per rep, per day</h1>
+<span class="nav"><a href="index.html">📊 Wallboard</a><a href="leads.html">📋 Leads</a><a href="whatsapp-crm.html">💬 CRM</a><a href="recommendations.html">🤖 AI Recs</a></span></header>
+<div class="wrap">
+<div class="ctl">
+ <select id="rep"><option value="">All reps</option></select>
+ <select id="days"><option value="7">Last 7 days</option><option value="14" selected>Last 14 days</option><option value="30">Last 30 days</option></select>
+ <span class="note">Click a feature row to expand its actions. Counts = clicks/opens/messages that day.</span>
+</div>
+<div id="out" class="empty">Loading…</div>
+</div>
+<script>
+const KEY="sm-recs-7bf39a2c";
+const NAMES={wallboard:"📊 Wallboard (TV)",lead_board:"📋 DotMed Lead Board",whatsapp_crm:"💬 WhatsApp CRM",ai_recommendations:"🤖 AI Recommendations",whatsapp_bot:"🤖 WhatsApp Assistant (bot)",usage_report:"📈 Usage report"};
+const EVN={page_view:"page opened",message:"messages to bot",customer_open:"customer opened",excel_download:"Excel download",excel_download_nonotes:"Excel download (no notes)",copy_whatsapp:"Copy for WhatsApp",mark_sent_whatsapp:"marked sent (WA)",mark_sent_email:"marked sent (email)"};
+let DATA=[],open={};
+async function load(){
+  const days=document.getElementById("days").value;
+  const r=await fetch("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?action=summary&days="+days+"&k="+KEY);
+  DATA=await r.json();
+  const reps=[...new Set(DATA.map(x=>x.rep))].filter(x=>x&&x!=="(unknown)").sort();
+  const sel=document.getElementById("rep"),cur=sel.value;sel.innerHTML='<option value="">All reps</option>';
+  reps.forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;sel.appendChild(o);});
+  sel.value=cur||"";
+  render();
+}
+function render(){
+  const rep=document.getElementById("rep").value;
+  const rows=rep?DATA.filter(x=>x.rep===rep):DATA;
+  if(!rows.length){document.getElementById("out").innerHTML='<div class="empty">No usage recorded yet for this view. Counts start today — give it a day.</div>';return;}
+  const daysN=Number(document.getElementById("days").value);
+  const ds=[];for(let i=daysN-1;i>=0;i--){ds.push(new Date(Date.now()-i*864e5).toISOString().slice(0,10));}
+  const agg={};
+  rows.forEach(x=>{
+    const f=x.feature;agg[f]=agg[f]||{__tot:{},__ev:{}};
+    agg[f].__tot[x.d]=(agg[f].__tot[x.d]||0)+x.n;
+    agg[f].__ev[x.event]=agg[f].__ev[x.event]||{};
+    agg[f].__ev[x.event][x.d]=(agg[f].__ev[x.event][x.d]||0)+x.n;
+  });
+  let h='<table><thead><tr><th>Feature</th>'+ds.map(d=>'<th>'+d.slice(5).replace("-","/")+'</th>').join("")+'<th>Total</th></tr></thead><tbody>';
+  const feats=Object.keys(agg).sort((a,b)=>sum(agg[b].__tot)-sum(agg[a].__tot));
+  feats.forEach(f=>{
+    const t=agg[f].__tot,tt=sum(t);
+    h+='<tr class="feat" onclick="tog(\''+f+'\')"><td>'+(open[f]?"▾ ":"▸ ")+(NAMES[f]||f)+'</td>'+ds.map(d=>cell(t[d])).join("")+'<td class="tot">'+tt.toLocaleString()+'</td></tr>';
+    if(open[f]){
+      Object.keys(agg[f].__ev).sort((a,b)=>sum(agg[f].__ev[b])-sum(agg[f].__ev[a])).forEach(ev=>{
+        const e=agg[f].__ev[ev];
+        h+='<tr class="ev"><td>'+(EVN[ev]||ev)+'</td>'+ds.map(d=>cell(e[d])).join("")+'<td class="tot">'+sum(e).toLocaleString()+'</td></tr>';
+      });
+    }
+  });
+  // grand total row
+  const g={};rows.forEach(x=>{g[x.d]=(g[x.d]||0)+x.n;});
+  h+='<tr class="feat"><td>All features</td>'+ds.map(d=>cell(g[d])).join("")+'<td class="tot">'+sum(g).toLocaleString()+'</td></tr>';
+  h+='</tbody></table>';
+  document.getElementById("out").innerHTML=h;
+}
+function sum(o){return Object.values(o).reduce((s,n)=>s+n,0);}
+function cell(v){return v?'<td>'+v.toLocaleString()+'</td>':'<td class="z">·</td>';}
+function tog(f){open[f]=!open[f];render();}
+document.getElementById("rep").onchange=render;
+document.getElementById("days").onchange=load;
+load();
+</script>
+<script>window.__SMFEAT="usage_report"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script>
+</body></html>
