@@ -32,7 +32,7 @@ tr:hover td{background:#fafcff}
 .t-reorder{background:#dcfce7;color:#166534}.t-cross{background:#fef3c7;color:#92400e}
 .exp{color:#b91c1c}.muted{color:#94a3b8}.empty{padding:40px;text-align:center;color:#94a3b8}
 </style></head><body>
-<header><h1>SurgaMed — AI Recommendations</h1><span class="sub" id="sub">loading…</span><span style="margin-left:auto;display:flex;gap:6px"><a href="index.html" style="background:rgba(255,255,255,.16);color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600">📊 Board</a><a href="leads.html" style="background:rgba(255,255,255,.16);color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600">📋 Leads</a><a href="whatsapp-crm.html" style="background:rgba(255,255,255,.16);color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600">💬 CRM</a></span></header>
+<header><h1>SurgaMed — AI Recommendations</h1><span class="sub" id="sub">loading…</span><span style="margin-left:auto;display:flex;gap:6px"><a href="index.html" style="background:rgba(255,255,255,.16);color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600">📊 Board</a><a href="leads.html" style="background:rgba(255,255,255,.16);color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600">📋 Leads</a><a href="whatsapp-crm.html" style="background:rgba(255,255,255,.16);color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600">💬 CRM</a><a href="usage.html" style="background:rgba(255,255,255,.16);color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600">📈 Usage</a></span></header>
 <div class="wrap">
  <div class="side">
    <div class="ctl"><select id="rep"><option value="(all)">All reps</option></select></div>
@@ -72,7 +72,7 @@ async function loadCusts(){
 }
 async function selectCust(c,node){
   cur=c;document.querySelectorAll(".cust").forEach(n=>n.classList.remove("sel"));if(node)node.classList.add("sel");
-  curRecs=await api("recs",{email:c.email});
+  curRecs=await api("recs",{email:c.email});window.smTrack&&smTrack("customer_open",c.email);
   const m=document.getElementById("main");
   let h='<div class="chdr"><div><h2>'+esc(c.customer_name||c.email)+'</h2>'+
     '<div class="meta">'+esc(c.email)+' · '+curRecs.length+' recommended items · rep: <select id="repSel" onchange="setRep(this.value)" style="padding:2px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px">'+repOptions(c.assigned_rep)+'</select></div></div>'+
@@ -91,7 +91,7 @@ function dlExcel(){
   const ws=XLSX.utils.json_to_sheet(rows);ws["!cols"]=[{wch:20},{wch:16},{wch:50},{wch:14},{wch:12},{wch:10},{wch:40}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Recommended items");
   const nm=(cur.customer_name||cur.email).replace(/[^A-Za-z0-9]+/g,"_").slice(0,40);
-  XLSX.writeFile(wb,"SurgaMed_Recommended_"+nm+".xlsx");
+  XLSX.writeFile(wb,"SurgaMed_Recommended_"+nm+".xlsx");window.smTrack&&smTrack("excel_download",nm);
 }
 function dlExcelNoNotes(){
   if(!cur||!curRecs.length)return;
@@ -100,7 +100,7 @@ function dlExcelNoNotes(){
   const ws=XLSX.utils.json_to_sheet(rows);ws["!cols"]=[{wch:20},{wch:16},{wch:50},{wch:14},{wch:12},{wch:10}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Items");
   const nm=(cur.customer_name||cur.email).replace(/[^A-Za-z0-9]+/g,"_").slice(0,40);
-  XLSX.writeFile(wb,"SurgaMed_Items_"+nm+".xlsx");
+  XLSX.writeFile(wb,"SurgaMed_Items_"+nm+".xlsx");window.smTrack&&smTrack("excel_download_nonotes",nm);
 }
 function copyWA(){
   if(!curRecs.length)return;
@@ -111,7 +111,7 @@ function copyWA(){
     t+=(i+1)+". *"+(r.mfg||"")+" "+(r.model||"")+"*"+NL+"    "+(r.description||"").slice(0,60)+" — $"+(r.price||"")+NL;
   });
   t+=NL+"Let me know if any of these work for you.";
-  navigator.clipboard.writeText(t).then(()=>alert("Copied "+Math.min(curRecs.length,15)+" items — paste into WhatsApp."));
+  navigator.clipboard.writeText(t).then(()=>alert("Copied "+Math.min(curRecs.length,15)+" items — paste into WhatsApp."));window.smTrack&&smTrack("copy_whatsapp",cur&&cur.email);
 }
 
 const REP_CHOICES=["(unassigned)","Mirian Alejo","Jennifer Lugo","Deysi Calvo","Tehila Cohen","Meir Weinreb"];
@@ -130,14 +130,14 @@ async function setRep(rep){
   else alert("Could not update rep"+(r&&r.error?": "+r.error:""));
 }
 
-async function markSent(via){
+async function markSent(via){window.smTrack&&smTrack("mark_sent_"+via,cur&&cur.email);
   if(!cur)return;
   const r=await api("marksent",{email:cur.email,via:via});
   if(r&&r.ok){ cur.last_sent=r.sent_at; cur.last_sent_via=via; alert("Logged: list sent via "+(via==="whatsapp"?"WhatsApp":"email")+" to "+(cur.customer_name||cur.email)); loadCusts(); }
   else alert("Could not log send"+(r&&r.error?": "+r.error:""));
 }
 document.getElementById("hideSent").onchange=loadCusts;
-document.getElementById("rep").onchange=loadCusts;
+document.getElementById("rep").onchange=()=>{const v=document.getElementById("rep").value;window.__SMREP=(v&&v!=="(all)")?v:"(unknown)";loadCusts();};
 let qt;document.getElementById("q").oninput=()=>{clearTimeout(qt);qt=setTimeout(loadCusts,300);};
 boot();
-</script></body></html>
+</script><script>window.__SMFEAT="ai_recommendations"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script></body></html>
