@@ -146,7 +146,7 @@
   <span class="brand">SurgaMed · CRM</span>
   <a class="btn ghost sm" href="leads.html" style="text-decoration:none">📋 Leads</a>
   <a class="btn ghost sm" href="index.html" style="text-decoration:none">📺 Wallboard</a>
-  <a class="btn ghost sm" href="recommendations.html" style="text-decoration:none">🤖 AI Recs</a>
+  <a class="btn ghost sm" href="recommendations.html" style="text-decoration:none">🤖 AI Recs</a> <a class="btn ghost sm" href="usage.html" style="text-decoration:none">📈 Usage</a>
   <span id="mode" class="badge demo">DEMO</span>
   <button class="btn ghost sm" id="wsToggle" style="display:none">📊 Workspace</button>
   <button class="btn ghost sm" id="oppBtn" style="display:none">🎯 Opportunities</button>
@@ -906,7 +906,7 @@ async function boot(){
   if(!session){ showGate(`<h2>SurgaMed CRM — Managers only</h2><p class="who">Sign in with your SurgaMed Microsoft account.</p><p><button class="btn" id="si2">Sign in with Microsoft</button></p><p class="who">Or open <a href="?demo=1">demo mode</a>.</p>`);
     $("si2").addEventListener("click",()=>SB.auth.signInWithOAuth({provider:"azure",options:{redirectTo:location.href}})); return; }
   const email=(session.user.email||"").toLowerCase(); STATE.email=email; $("who").textContent=email;
-  const repScope=REPS[email]||null; STATE.repScope=repScope;
+  const repScope=REPS[email]||null; STATE.repScope=repScope; window.__SMREP=repScope||email;
   if(!MANAGERS.includes(email) && !repScope){ showGate(`<h2>Access needed</h2><p class="who">${esc(email)} doesn't have access. Ask an admin.</p>`); return; }
   
   showApp(); if(STATE.repScope){ $("wsToggle").style.display="none"; } await loadLive();
@@ -1245,5 +1245,5 @@ if(document.readyState!=="loading")add();else document.addEventListener("DOMCont
 setTimeout(add,1200);
 })();
 </script>
-</body>
+<script>window.__SMFEAT="whatsapp_crm"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script></body>
 </html>
