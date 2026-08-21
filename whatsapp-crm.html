@@ -348,7 +348,7 @@ async function loadEmailThread(cu){
 async function sendReply(cu){
   const ta=$("composeBody"), msg=$("sendMsg"), btn=$("sendBtn"); if(!ta) return;
   const text=(ta.value||"").trim(); if(!text){ ta.focus(); return; }
-  const to=((cu.email||waLinkedEmails(cu)[0])||"").trim(); if(!to){ msg.style.color="var(--red)"; msg.textContent="No customer email to reply to."; return; }
+  const to=((($("composeTo")||{}).value)||cu.email||waLinkedEmails(cu)[0]||"").trim(); if(!to){ msg.style.color="var(--red)"; msg.textContent="No customer email to reply to."; return; }
   btn.disabled=true; msg.style.color="var(--muted)"; msg.textContent="Sending…";
   try{
     if(!STATE.live){ await new Promise(r=>setTimeout(r,500)); ta.value=""; msg.style.color="var(--green)"; msg.textContent="Sent ✓ (demo)"; btn.disabled=false; return; }
@@ -749,6 +749,7 @@ function detailHtml(cu, msgs, timeline, isTest){
     ? `${(cu._aiSummary||cu._aiNext) ? '<div class="ai-nextbox">'+(cu._actionNeeded?'<span class="ai-flag">⚡ Action needed</span> ':'')+(cu._aiSummary?esc(cu._aiSummary):'')+(cu._aiNext?' <span class="ai-next"><b>Next:</b> '+esc(cu._aiNext)+'</span>':'')+'</div>' : ''}<h3 class="sec">WhatsApp conversation <span id="waTransChip" class="chip" style="float:right">EN</span></h3><div class="msgs">${mhtml||'<div class="t">No messages.</div>'}${waCompose}</div>`
     : `<h3 class="sec">WhatsApp conversation</h3><div class="msgs"><div class="t">No WhatsApp conversation yet — this customer came from ${esc((cu._badges||["email"]).join(", "))}.</div>${waCompose}</div>`;
   const composeBox=`<div class="compose">
+      ${(function(){const es3=waLinkedEmails(cu);return es3.length>1?('<select id="composeTo" style="margin-bottom:6px">'+es3.map(e=>'<option>'+esc(e)+'</option>').join("")+'</select>'):'';})()}
       <input type="text" id="composeSubject" placeholder="Subject (optional)"/>
       <textarea id="composeBody" placeholder="Write a reply… sends from SurgaMed, attributed to ${esc(cu.assigned_rep||'you')}, and appears in the history above."></textarea>
       <div class="crow"><button class="btn sm" id="sendBtn">Send email</button><span class="sendmsg" id="sendMsg"></span></div>
@@ -760,7 +761,7 @@ function detailHtml(cu, msgs, timeline, isTest){
       <span class="iconbtn rev ${cu.review_flag?"on":""}" data-act="review">⚑ Review</span>
     </div>
     ${waLinkChips(cu)}<div class="meta">
-      <span><b>Email:</b> ${esc(cu.email||"")||((waLinkedEmails(cu)[0])?esc(waLinkedEmails(cu)[0])+' <i style="color:var(--muted)">(linked)</i>':"—")}</span><span><b>Phone:</b> ${esc(cu.phone||"—")}</span>
+      <span><b>Email:</b> ${(function(){const es2=waLinkedEmails(cu);if(!es2.length)return "—";return es2.slice(0,3).map(esc).join(", ")+(es2.length>3?" +"+(es2.length-3)+" more":"")+(cu.email?"":" <i style=\"color:var(--muted)\">(linked)</i>");})()}</span><span><b>Phone:</b> <span id="hdrPhones">${esc(cu.phone||"—")}</span></span>
       <span><b>Company:</b> ${esc(cu.company||"—")}</span><span><b>Country:</b> ${esc(cu.country||"—")}</span>
       <span><b>Last activity:</b> ${fmtAgo(cu.last_contact_at)}</span>
     </div>
@@ -843,7 +844,7 @@ async function openCustomer(cid,keep){
   if(STATE.repScope){ const cc=document.querySelector(".ctrls"); if(cc&&cc.closest(".pcard")) cc.closest(".pcard").style.display="none"; const nl=$("noteList"); if(nl){ const nb=nl.closest(".notes"); if(nb){ if(nb.previousElementSibling) nb.previousElementSibling.style.display="none"; nb.style.display="none"; } } }
   (function(){ try{ var ids=[].slice.call(document.querySelectorAll(".row")).map(function(e){return Number(e.dataset.cid);}); var idx=ids.indexOf(cid); var pv=idx>0?ids[idx-1]:null, nx=(idx>=0&&idx<ids.length-1)?ids[idx+1]:null; var nav=document.createElement("div"); nav.style.cssText="display:flex;gap:8px;justify-content:space-between;margin-bottom:8px"; nav.innerHTML='<button class="btn ghost sm" id="cPrev">\u2039 Prev</button><button class="btn ghost sm" id="cNext">Next \u203a</button>'; var dt=$("detail"); dt.insertBefore(nav, dt.firstChild); var pb=document.getElementById("cPrev"), nb=document.getElementById("cNext"); if(pb){ if(pv){ pb.onclick=function(){openCustomer(pv);}; } else { pb.disabled=true; pb.style.opacity=.4; } } if(nb){ if(nx){ nb.onclick=function(){openCustomer(nx);}; } else { nb.disabled=true; nb.style.opacity=.4; } } }catch(e){} })();
   // load the heavy sections (email / shipping / orders)
-  loadEmailThread(cu); loadShipping(cu); loadPurchases(cu);
+  loadEmailThread(cu); loadShipping(cu); loadPurchases(cu); fillHdrPhones(cu);
 }
 function deepLink(){ const m=(location.hash||"").match(/customer=(\d+)/); return m?Number(m[1]):null; }
 
@@ -1123,13 +1124,35 @@ function waLinkedEmails(cu){
   for(const pe2 of (cu.purchase_emails||[])){ const e2=String(pe2||"").toLowerCase().trim(); if(e2 && !seen.has(e2)){ seen.add(e2); out.push(e2); } }
   return out;
 }
+window.__ROLO_CACHE=window.__ROLO_CACHE||{};
+async function getRolodex(cu,emails){
+  const key=emails&&emails[0]||"";
+  if(key && window.__ROLO_CACHE[key]!==undefined) return window.__ROLO_CACHE[key];
+  if(cu._rolo!==undefined) return cu._rolo;
+  cu._rolo=null;
+  try{
+    if(emails&&emails.length){
+      const {data:m}=await SB.from("customer_email_map").select("canon_email").eq("email",emails[0]).limit(1);
+      const ce=m&&m[0]&&m[0].canon_email;
+      if(ce){ const {data:r}=await SB.from("contact_rolodex").select("*").eq("canon_email",ce).limit(1); cu._rolo=(r&&r[0])||null; }
+    }
+  }catch(e){}
+  if(emails&&emails[0]) window.__ROLO_CACHE[emails[0]]=cu._rolo;
+  return cu._rolo;
+}
+async function fillHdrPhones(cu){
+  try{
+    const c=await getRolodex(cu,waLinkedEmails(cu)); if(!c) return;
+    const own=String(cu.phone||"").replace(/\D/g,"").slice(-10);
+    const extra=[...new Set([...(c.wa_numbers||[]),...(c.phones||[])])].filter(p=>p&&p!==own);
+    const el=$("hdrPhones");
+    if(el&&extra.length) el.innerHTML=esc(cu.phone||"—")+", "+extra.slice(0,3).map(esc).join(", ")+(extra.length>3?" +"+(extra.length-3)+" more":"");
+  }catch(e){}
+}
 async function injectRolodex(emails,box){
   try{
     if(!emails||!emails.length||!box) return;
-    const {data:m}=await SB.from("customer_email_map").select("canon_email").eq("email",emails[0]).limit(1);
-    const ce=m&&m[0]&&m[0].canon_email; if(!ce) return;
-    const {data:r}=await SB.from("contact_rolodex").select("*").eq("canon_email",ce).limit(1);
-    const c=r&&r[0]; if(!c) return;
+    const c=await getRolodex({}, emails); if(!c) return;
     const chip=t=>'<span style="display:inline-block;background:#eef2f7;border:1px solid #dde5ee;border-radius:999px;padding:1px 8px;margin:2px;font-size:11px">'+esc(t)+'</span>';
     const ph=[...new Set([...(c.wa_numbers||[]),...(c.phones||[])])];
     let h='<div class="t" style="margin:6px 0 10px;line-height:1.9"><b>\ud83d\udcc7 Rolodex</b> \u2014 all contact info on file:';
