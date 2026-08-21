@@ -162,6 +162,7 @@
       <input type="search" id="q" placeholder="Search name, company, phone, email…" autocomplete="off"/>
       <div class="frow">
         <select id="fSource"><option value="">All sources</option><option>WhatsApp</option><option>Email</option><option>DOTmed</option><option>Shipping</option><option>PayPal</option></select>
+        <select id="fInfo"><option value="">Contact info: any</option><option value="both">📧+💬 Email & WhatsApp</option><option value="waonly">💬 WhatsApp only (no email)</option><option value="emailonly">📧 Email only (no chat)</option></select>
         <select id="fRep"><option value="">All reps</option></select>
         <select id="fStatus"><option value="">Any status</option></select>
         <select id="fPriority"><option value="">Any priority</option></select>
@@ -237,6 +238,10 @@ function linkify(t){ return esc(t).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1"
 function matchesFilters(cu,f){
   if(f.q){ const blob=(cu.name+" "+cu.company+" "+cu.phone+" "+cu.email+" "+cu.assigned_rep).toLowerCase(); if(!blob.includes(f.q.toLowerCase())) return false; }
   if(f.source && !(cu._badges||[]).includes(f.source)) return false;
+  if(f.cinfo){ const he=!!(cu.email)||((cu.purchase_emails||[]).length>0); const hw=!!cu._convId;
+    if(f.cinfo==="both" && !(he&&hw)) return false;
+    if(f.cinfo==="waonly" && !(hw&&!he)) return false;
+    if(f.cinfo==="emailonly" && !(he&&!hw)) return false; }
   if(f.rep){ if(f.rep==="__none"){ if(cu.assigned_rep) return false; } else { const _a=String(cu.assigned_rep||""),_b=String(f.rep); if(!(_a===_b||_a.indexOf(_b+" ")===0||_b.indexOf(_a+" ")===0)) return false; } }
   if(f.status && (cu.manager_status||"new")!==f.status) return false;
   if(f.priority && (cu.priority||"normal")!==f.priority) return false;
@@ -891,6 +896,7 @@ async function loadLive(){
 function wireFilters(){
   $("q").addEventListener("input",e=>{ FILTERS.q=e.target.value; renderList(); });
   $("fSource").addEventListener("change",e=>{ FILTERS.source=e.target.value; renderList(); });
+  $("fInfo").addEventListener("change",e=>{ FILTERS.cinfo=e.target.value; renderList(); });
   $("fRep").addEventListener("change",e=>{ FILTERS.rep=e.target.value; renderList(); });
   $("fStatus").addEventListener("change",e=>{ FILTERS.status=e.target.value; renderList(); });
   $("fPriority").addEventListener("change",e=>{ FILTERS.priority=e.target.value; renderList(); });
