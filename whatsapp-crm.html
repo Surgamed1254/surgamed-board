@@ -697,7 +697,7 @@ async function loadPurchases(cu){
   const box=$("purchBox"); if(!box) return;
   if(!STATE.live){ box.innerHTML=renderPurchases(cu._purch||[]); injectMedstock((cu.email||''), cu._purch||[], box); return; }
   const _pEmails=waLinkedEmails(cu); const email=_pEmails[0]||"";
-  if(!email){ box.innerHTML='<div class="t" style="color:var(--muted)">No email on file to look up orders.</div>'; return; }
+  if(!email){ box.innerHTML='<div class="t" style="color:var(--muted)">No email on file to look up orders. <button class="btn sm" style="margin-left:8px" onclick="linkEmailPrompt('+cu.id+')">\ud83d\udd17 Link email</button></div>'; return; }
   try{
     const {data}=await SB.from("purchases").select("account,order_date,item,price,listing,qty,rep,source,invoice,order_number,order_total,ship_name,company,ship_address1,ship_address2,ship_city,ship_state,ship_postal").or(_pEmails.map(e=>"customer_email.ilike."+e).join(",")).order("order_date",{ascending:false}).limit(500);
     box.innerHTML=renderPurchases(data||[]);
@@ -819,7 +819,7 @@ function wireDetail(cu){
 async function openCustomer(cid,keep){
   OPEN=cid;
   document.querySelectorAll(".row").forEach(e=>e.classList.toggle("active",Number(e.dataset.cid)===cid));
-  let cu=STATE.customers.find(c=>c.id===cid); if(!cu && SB){ try{ const _r=await SB.from("customers").select("id,name,company,phone,email,assigned_rep,vip,review_flag,country,preferred_language,last_contact_at,manager_status,priority,next_action_override,follow_up_date").eq("id",cid).maybeSingle(); if(_r&&_r.data){ cu=_r.data; cu._convId=1; STATE.customers.push(cu); } }catch(_e){} } if(!cu) return;
+  let cu=STATE.customers.find(c=>c.id===cid); if(!cu && SB){ try{ const _r=await SB.from("customers").select("id,name,company,phone,email,assigned_rep,vip,review_flag,country,preferred_language,last_contact_at,manager_status,priority,next_action_override,follow_up_date,purchase_emails").eq("id",cid).maybeSingle(); if(_r&&_r.data){ cu=_r.data; cu._convId=1; STATE.customers.push(cu); } }catch(_e){} } if(!cu) return;
   let msgs=cu._msgs, tl=cu._tl;
   if(SB && STATE.live){
     let _ids=[cid]; try{ _ids=await waLinkedIds(cid); }catch(e){} try{ const _p10=String(cu.phone||"").replace(/\D/g,"").slice(-10); if(_p10.length>=10){ const _sp=await SB.from("customers").select("id").ilike("phone","%"+_p10); const _extra=(_sp.data||[]).map(x=>x.id); _ids=[...new Set([..._ids,..._extra])]; } }catch(e){} cu._linkedIds=_ids;
@@ -872,7 +872,7 @@ async function loadLive(){
   const cr=await SB.from("customers")
     .select("id,name,company,phone,email,assigned_rep,vip,review_flag,country,preferred_language,last_contact_at,manager_status,priority,next_action_override,follow_up_date")
     .is("deleted_at",null).order("last_contact_at",{ascending:false,nullsFirst:false}).limit(500);
-  let custs=cr.data||[]; try{ const __mv=await SB.from("multirep_customer_ids").select("customer_id"); const __mids=[...new Set((__mv.data||[]).map(x=>x.customer_id))]; const __have=new Set(custs.map(c=>c.id)); const __missing=__mids.filter(id=>!__have.has(id)); for(let __i=0;__i<__missing.length;__i+=300){ const __ex=await SB.from("customers").select("id,name,company,phone,email,assigned_rep,vip,review_flag,country,preferred_language,last_contact_at,manager_status,priority,next_action_override,follow_up_date").in("id",__missing.slice(__i,__i+300)); custs=custs.concat(__ex.data||[]); } }catch(e){}
+  let custs=cr.data||[]; try{ const __mv=await SB.from("multirep_customer_ids").select("customer_id"); const __mids=[...new Set((__mv.data||[]).map(x=>x.customer_id))]; const __have=new Set(custs.map(c=>c.id)); const __missing=__mids.filter(id=>!__have.has(id)); for(let __i=0;__i<__missing.length;__i+=300){ const __ex=await SB.from("customers").select("id,name,company,phone,email,assigned_rep,vip,review_flag,country,preferred_language,last_contact_at,manager_status,priority,next_action_override,follow_up_date,purchase_emails").in("id",__missing.slice(__i,__i+300)); custs=custs.concat(__ex.data||[]); } }catch(e){}
   const INTERNAL_NUMS=["7322788598","8482268748","8483334906","7325522816","8489867508","8483584048","3479710461"];
   if((STATE.email||"").toLowerCase()!=="mweinreb@surgamed.com"){ custs=custs.filter(c=>{ const d=String(c.phone||"").replace(/\D/g,"").slice(-10); return !INTERNAL_NUMS.includes(d); }); }
   let __convRows=[]; { let __cf=0; while(true){ const __cr=await SB.from("wa_conversations").select("customer_id,rep_id,summary,ai_next_action,action_needed").is("deleted_at",null).range(__cf,__cf+999); const __rows2=__cr.data||[]; __convRows=__convRows.concat(__rows2); if(__rows2.length<1000) break; __cf+=1000; } } const conv={data:__convRows};
@@ -1108,7 +1108,18 @@ function waLinkedEmails(cu){
     const e = (c && c.email || "").toLowerCase().trim();
     if(e && !seen.has(e)){ seen.add(e); out.push(e); }
   }
+  for(const pe2 of (cu.purchase_emails||[])){ const e2=String(pe2||"").toLowerCase().trim(); if(e2 && !seen.has(e2)){ seen.add(e2); out.push(e2); } }
   return out;
+}
+async function linkEmailPrompt(cid){
+  const em=prompt("Customer's email (from PayPal/DotMed orders) to link to this WhatsApp contact:");
+  if(!em) return;
+  try{
+    const r=await fetch("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/crm-link",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({customer_id:cid,email:em.trim(),rep:(STATE.repScope||STATE.email||""),k:"sm-recs-7bf39a2c"})});
+    const d=await r.json();
+    if(d.ok){ alert("Linked! Emails on file now: "+(d.linked_emails||[]).join(", ")+"\nReloading\u2026"); location.reload(); }
+    else alert("Could not link: "+(d.error||"unknown"));
+  }catch(e){ alert("Could not link: "+e); }
 }
 function waLinkChips(cu){
   const ids = (cu._linkedIds||[]).filter(id=>id!==cu.id);
