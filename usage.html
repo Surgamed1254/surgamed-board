@@ -33,14 +33,15 @@ td.tot{font-weight:700;background:#fafcff}
 <div id="out" class="empty">Loading…</div>
 </div>
 <script>
-const KEY="sm-recs-7bf39a2c";
+const KEY=new URLSearchParams(location.search).get("k")||"";
 const NAMES={wallboard:"📊 Wallboard (TV)",lead_board:"📋 DotMed Lead Board",whatsapp_crm:"💬 WhatsApp CRM",ai_recommendations:"🤖 AI Recommendations",whatsapp_bot:"🤖 WhatsApp Assistant (bot)",usage_report:"📈 Usage report"};
 const EVN={page_view:"page opened",message:"messages to bot",customer_open:"customer opened",excel_download:"Excel download",excel_download_nonotes:"Excel download (no notes)",copy_whatsapp:"Copy for WhatsApp",mark_sent_whatsapp:"marked sent (WA)",mark_sent_email:"marked sent (email)"};
 let DATA=[],open={};
 async function load(){
+  if(!KEY){document.getElementById("out").innerHTML='<div class="empty">🔒 This report is owner-only. Open it with your private link.</div>';return;}
   const days=document.getElementById("days").value;
   const r=await fetch("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?action=summary&days="+days+"&k="+KEY);
-  DATA=await r.json();
+  if(r.status===401){document.getElementById("out").innerHTML='<div class="empty">🔒 Wrong key — this report is owner-only.</div>';return;}DATA=await r.json();
   const reps=[...new Set(DATA.map(x=>x.rep))].filter(x=>x&&x!=="(unknown)").sort();
   const sel=document.getElementById("rep"),cur=sel.value;sel.innerHTML='<option value="">All reps</option>';
   reps.forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;sel.appendChild(o);});
