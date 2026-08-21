@@ -233,7 +233,12 @@ function repBg(id){ return REP_BG[repCidx(id)%REP_BG.length]; }
 function repBd(id){ return REP_BD[repCidx(id)%REP_BD.length]; }
 function repNm(id,cu){ try{ const r=(STATE.reps||[]).find(x=>x.id===id); return r?r.name:(cu.assigned_rep||"Rep"); }catch(e){ return (cu&&cu.assigned_rep)||"Rep"; } }
 function msgMeta(m,cu){ if(m.customer_id&&m.customer_id!==cu.id&&typeof STATE!=="undefined"){ const _c=(STATE.customers||[]).find(x=>x.id===m.customer_id); if(_c) cu=_c; } const cust=cleanName(cu.name)||cu.phone||"Customer"; const rep=repNm(m.rep_id,cu); const ago=fmtAgo(m.ts); if(m.direction==="in"){ return esc(cust)+" \u2192 "+esc(rep)+" · "+ago; } const via=/[a-zA-Z]/.test(String(m.sender||""))?"via CRM":"from cell"; return esc(rep)+" \u2192 "+esc(cust)+" · "+via+" · "+ago; }
-function htmlToText(h){ if(!h) return ""; if(!/[<&]/.test(h)) return h; const d=document.createElement("div"); d.innerHTML=h; return (d.textContent||d.innerText||"").replace(/\n{3,}/g,"\n\n").trim(); }
+function htmlToText(h){ if(!h) return "";
+ h=String(h).replace(/<!--[\s\S]*?-->/g," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<script[\s\S]*?<\/script>/gi," ");
+ if(!/[<&]/.test(h)) return h.replace(/[ \t]{2,}/g," ").trim();
+ const d=document.createElement("div"); d.innerHTML=h;
+ d.querySelectorAll("style,script").forEach(x=>x.remove());
+ return (d.textContent||d.innerText||"").replace(/\r/g,"").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim(); }
 function linkify(t){ return esc(t).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>'); }
 function matchesFilters(cu,f){
   if(f.q){ const blob=(cu.name+" "+cu.company+" "+cu.phone+" "+cu.email+" "+cu.assigned_rep).toLowerCase(); if(!blob.includes(f.q.toLowerCase())) return false; }
@@ -343,7 +348,7 @@ async function loadEmailThread(cu){
 async function sendReply(cu){
   const ta=$("composeBody"), msg=$("sendMsg"), btn=$("sendBtn"); if(!ta) return;
   const text=(ta.value||"").trim(); if(!text){ ta.focus(); return; }
-  const to=(cu.email||"").trim(); if(!to){ msg.style.color="var(--red)"; msg.textContent="No customer email to reply to."; return; }
+  const to=((cu.email||waLinkedEmails(cu)[0])||"").trim(); if(!to){ msg.style.color="var(--red)"; msg.textContent="No customer email to reply to."; return; }
   btn.disabled=true; msg.style.color="var(--muted)"; msg.textContent="Sending…";
   try{
     if(!STATE.live){ await new Promise(r=>setTimeout(r,500)); ta.value=""; msg.style.color="var(--green)"; msg.textContent="Sent ✓ (demo)"; btn.disabled=false; return; }
@@ -755,7 +760,7 @@ function detailHtml(cu, msgs, timeline, isTest){
       <span class="iconbtn rev ${cu.review_flag?"on":""}" data-act="review">⚑ Review</span>
     </div>
     ${waLinkChips(cu)}<div class="meta">
-      <span><b>Email:</b> ${esc(cu.email||"—")}</span><span><b>Phone:</b> ${esc(cu.phone||"—")}</span>
+      <span><b>Email:</b> ${esc(cu.email||"")||((waLinkedEmails(cu)[0])?esc(waLinkedEmails(cu)[0])+' <i style="color:var(--muted)">(linked)</i>':"—")}</span><span><b>Phone:</b> ${esc(cu.phone||"—")}</span>
       <span><b>Company:</b> ${esc(cu.company||"—")}</span><span><b>Country:</b> ${esc(cu.country||"—")}</span>
       <span><b>Last activity:</b> ${fmtAgo(cu.last_contact_at)}</span>
     </div>
