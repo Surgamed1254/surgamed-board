@@ -701,6 +701,7 @@ async function loadPurchases(cu){
   try{
     const {data}=await SB.from("purchases").select("account,order_date,item,price,listing,qty,rep,source,invoice,order_number,order_total,ship_name,company,ship_address1,ship_address2,ship_city,ship_state,ship_postal").or(_pEmails.map(e=>"customer_email.ilike."+e).join(",")).order("order_date",{ascending:false}).limit(500);
     box.innerHTML=renderPurchases(data||[]);
+    injectRolodex(_pEmails, box);
     injectMedstock(email, data||[], box);
   }catch(e){ box.innerHTML='<div class="t" style="color:var(--red)">Couldn’t load orders: '+esc(String(e.message||e))+'</div>'; }
 }
@@ -1110,6 +1111,24 @@ function waLinkedEmails(cu){
   }
   for(const pe2 of (cu.purchase_emails||[])){ const e2=String(pe2||"").toLowerCase().trim(); if(e2 && !seen.has(e2)){ seen.add(e2); out.push(e2); } }
   return out;
+}
+async function injectRolodex(emails,box){
+  try{
+    if(!emails||!emails.length||!box) return;
+    const {data:m}=await SB.from("customer_email_map").select("canon_email").eq("email",emails[0]).limit(1);
+    const ce=m&&m[0]&&m[0].canon_email; if(!ce) return;
+    const {data:r}=await SB.from("contact_rolodex").select("*").eq("canon_email",ce).limit(1);
+    const c=r&&r[0]; if(!c) return;
+    const chip=t=>'<span style="display:inline-block;background:#eef2f7;border:1px solid #dde5ee;border-radius:999px;padding:1px 8px;margin:2px;font-size:11px">'+esc(t)+'</span>';
+    const ph=[...new Set([...(c.wa_numbers||[]),...(c.phones||[])])];
+    let h='<div class="t" style="margin:6px 0 10px;line-height:1.9"><b>\ud83d\udcc7 Rolodex</b> \u2014 all contact info on file:';
+    if(ph.length)h+='<br>\ud83d\udcde '+ph.map(chip).join("");
+    if((c.emails||[]).length)h+='<br>\u2709\ufe0f '+c.emails.slice(0,12).map(chip).join("")+(c.emails.length>12?' +'+(c.emails.length-12)+' more':'');
+    if((c.names||[]).length)h+='<br>\ud83d\udc64 '+c.names.slice(0,8).map(chip).join("");
+    if((c.companies||[]).length)h+='<br>\ud83c\udfe2 '+c.companies.slice(0,6).map(chip).join("");
+    h+='</div>';
+    box.insertAdjacentHTML("afterbegin",h);
+  }catch(e){}
 }
 async function linkEmailPrompt(cid){
   const em=prompt("Customer's email (from PayPal/DotMed orders) to link to this WhatsApp contact:");
