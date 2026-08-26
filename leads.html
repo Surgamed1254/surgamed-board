@@ -1863,20 +1863,27 @@ async function exactMatchesFor(rows, email){
   const mfgs=[...new Set((rows||[]).map(r=>{ const m=(r.item||'').trim().match(/^[A-Za-z0-9][A-Za-z0-9&.\-]*/); return m?m[0].replace(/[*,()]/g,'').toUpperCase():''; }).filter(w=>w&&w.length>=2))].slice(0,10);
   email=(email||'').toLowerCase();
   function lastBought(ref){ const k=NK(ref); if(!k||k.length<4) return ''; let best=''; (rows||[]).forEach(r=>{ if(NK(r.item).includes(k)){ const d=String(r.order_date||'').slice(0,10); if(d>best) best=d; } }); return best; }
+  const mapL=x=>({ source:x.account||'SurgaMed', inDate:(x.account!=='SurgaMed'), name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(), ref:x.model, category:x.category, price:x.price, url:x.url, qty:x.quantity, lastBought:lastBought(x.model) });
   let dm=[];
-  if(mfgs.length){ const orf=mfgs.map(m=>'mfg.ilike.'+m+'*').join(','); const { data }=await sb.from('listings').select('id,account,mfg,model,name,category,price,url').or(orf).eq('in_stock',true).limit(500);
-    dm=(data||[]).filter(x=>boughtHas(NK(x.model))).map(x=>({ source:x.account||'SurgaMed', inDate:(x.account!=='SurgaMed'), name:x.name||((x.mfg||'')+' '+(x.model||'')).trim(), ref:x.model, category:x.category, price:x.price, url:x.url, lastBought:lastBought(x.model) })); }
+  if(mfgs.length){ const orf=mfgs.map(m=>'mfg.ilike.'+m+'*').join(','); const { data }=await sb.from('listings').select('id,account,mfg,model,name,category,price,url,quantity').or(orf).eq('in_stock',true).limit(500);
+    dm=(data||[]).filter(x=>boughtHas(NK(x.model))).map(mapL); }
+  try{
+    const boughtRefs=[...new Set((rows||[]).flatMap(r=>String(r.item||'').split(/[\s,]+/)).filter(t=>{const d=(t.match(/\d/g)||[]).length; return d>=4 && t.length>=5;}).map(t=>t.replace(/[^A-Za-z0-9\-\/.]/g,'')))].slice(0,40);
+    if(boughtRefs.length){ const orf2=boughtRefs.map(rf=>'model.ilike.*'+rf+'*').join(',');
+      const { data:dr }=await sb.from('listings').select('id,account,mfg,model,name,category,price,url,quantity').or(orf2).eq('in_stock',true).limit(300);
+      (dr||[]).filter(x=>boughtHas(NK(x.model))).forEach(x=>dm.push(mapL(x))); }
+  }catch(e){}
   let ms=[];
   if(email){ try{ const pbi=await sb.from('purchase_brand_index').select('brand_key').eq('customer_email',email); const bks=[...new Set((pbi.data||[]).map(b=>b.brand_key))]; if(bks.length){ const { data }=await sb.from('medstock_inventory').select('manufacturer,ref,ref_key,description,category,quantity,exp_date').eq('active',true).in('mfg_key',bks).limit(500);
-    ms=(data||[]).filter(x=>boughtHas(x.ref_key)).map(x=>({ source:'Medstock', inDate:true, name:x.description||((x.manufacturer||'')+' '+(x.ref||'')).trim(), ref:x.ref, category:x.category, price:null, url:null, exp:x.exp_date, lastBought:lastBought(x.ref_key) })); } }catch(e){} }
+    ms=(data||[]).filter(x=>boughtHas(x.ref_key)).map(x=>({ source:'Medstock', inDate:true, name:x.description||((x.manufacturer||'')+' '+(x.ref||'')).trim(), ref:x.ref, category:x.category, price:null, url:null, qty:x.quantity, exp:x.exp_date, lastBought:lastBought(x.ref_key) })); } }catch(e){} }
   let exact=dm.concat(ms); const seen={}; exact=exact.filter(x=>{ const k=x.source+'|'+NK(x.ref); if(seen[k])return false; seen[k]=1; return true; });
   exact.sort((a,b)=>String(b.lastBought||'').localeCompare(String(a.lastBought||''))||(b.inDate-a.inDate));
   return exact;
 }
 function exactRowsHtml(exact){
-  let h='<table class="phtab"><thead><tr><th>Source</th><th>Item</th><th>REF / Model</th><th>Price</th><th>Last bought</th></tr></thead><tbody>';
+  let h='<table class="phtab"><thead><tr><th>Source</th><th>Item</th><th>REF / Model</th><th>Qty</th><th>Price</th><th>Last bought</th></tr></thead><tbody>';
   (exact||[]).forEach(x=>{ const src = x.source==='SurgaMed' ? '<span style="color:#9a5b14">SurgaMed · expired</span>' : (x.source==='Medstock' ? '<span style="color:#1d7a3f">Medstock · in-date</span>' : '<span style="color:#1d7a3f">'+esc(x.source)+' · in-date</span>');
-    h+='<tr><td style="font-size:11px;white-space:nowrap">'+src+'</td><td>'+esc(x.name||'')+'</td><td>'+esc(x.ref||'')+'</td><td>'+(x.price!=null&&x.price!==''?money(x.price):'')+'</td><td class="nowrap">'+(x.lastBought?esc(x.lastBought):'—')+'</td></tr>'; });
+    h+='<tr><td style="font-size:11px;white-space:nowrap">'+src+'</td><td>'+esc(x.name||'')+'</td><td>'+esc(x.ref||'')+'</td><td class="nowrap"><b>'+(x.qty!=null?esc(String(x.qty)):'-')+'</b></td><td>'+(x.price!=null&&x.price!==''?money(x.price):'')+'</td><td class="nowrap">'+(x.lastBought?esc(x.lastBought):'—')+'</td></tr>'; });
   return h+'</tbody></table>';
 }
 function renderExactMatches(exact){
