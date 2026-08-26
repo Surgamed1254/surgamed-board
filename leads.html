@@ -602,7 +602,14 @@ function extractLead(email,catKey){
   else title = isAuto(email.sender) ? ("Inquiry"+(listing?" · #"+listing:"")) : normSubject(subj);
   const who=custEmail||custName||company||"";
   let gkey;
-  if(listing) gkey=catKey+":L"+listing+"|"+who.toLowerCase();
+  // Orders are confirmed sales — each email is its own lead so repeat sales of the
+  // same listing never collapse. Prefer the DotMed Transaction # (stable across the
+  // duplicate emails DotMed sometimes sends), else the unique message id.
+  if(catKey==="orders"){
+    const mT=/Transaction\s*#\s*(\d+)/i.exec(blob);
+    gkey = mT ? ("orders:T"+mT[1]) : ("orders:m:"+(email.id||Math.random()));
+  }
+  else if(listing) gkey=catKey+":L"+listing+"|"+who.toLowerCase();
   else if(who) gkey=catKey+":"+normSubject(subj).toLowerCase()+"|"+who.toLowerCase();
   else gkey=catKey+":id:"+(email.id||Math.random());
   return {listing,custName,company,custEmail,phone,deal,item,display,title,gkey};
