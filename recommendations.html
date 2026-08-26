@@ -1,6 +1,7 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SurgaMed — AI Recommendations</title>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--b:#1f4e78;--bg:#f4f6f9;--line:#e2e8f0}
 *{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
@@ -43,8 +44,14 @@ tr:hover td{background:#fafcff}
  <div class="main" id="main"><div class="empty">Pick a customer on the left to see their recommended in-stock items.</div></div>
 </div>
 <script>
-const KEY=new URLSearchParams(location.search).get("k")||"sm-recs-7bf39a2c";
-const api=(a,p={})=>{const u=new URL("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/recs-dashboard");u.searchParams.set("k",KEY);u.searchParams.set("action",a);for(const k in p)u.searchParams.set(k,p[k]);return fetch(u).then(r=>r.json());};
+const SB_URL="https://ecjemcrpbzeocoiwslcu.supabase.co";
+const SB_KEY="sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
+const sb=supabase.createClient(SB_URL,SB_KEY);
+// SurgaMed staff (any @surgamed.com address) plus explicitly approved external partners.
+const EXTERNAL_ALLOW=["davids@medstocksupply.com","rafael@getmaelstrom.com"];
+function isAllowed(e){e=(e||"").toLowerCase().trim();if(!e)return false;if(e.endsWith("@surgamed.com"))return true;return EXTERNAL_ALLOW.includes(e);}
+async function freshToken(){try{const{data:{session}}=await sb.auth.getSession();return session?session.access_token:"";}catch(e){return "";}}
+const api=async(a,p={})=>{const u=new URL(SB_URL+"/functions/v1/recs-dashboard");u.searchParams.set("action",a);for(const k in p)u.searchParams.set(k,p[k]);const t=await freshToken();const r=await fetch(u,{headers:{Authorization:"Bearer "+t,apikey:SB_KEY}});if(r.status===401){showGate("Your session has expired. Please sign in again.");throw new Error("Session expired");}return r.json();};
 let cur=null,curRecs=[];
 async function boot(){
   const reps=await api("reps");
@@ -139,5 +146,31 @@ async function markSent(via){window.smTrack&&smTrack("mark_sent_"+via,cur&&cur.e
 document.getElementById("hideSent").onchange=loadCusts;
 document.getElementById("rep").onchange=()=>{const v=document.getElementById("rep").value;window.__SMREP=(v&&v!=="(all)")?v:"(unknown)";loadCusts();};
 let qt;document.getElementById("q").oninput=()=>{clearTimeout(qt);qt=setTimeout(loadCusts,300);};
-boot();
+// ---- Access control: Microsoft sign-in, same rule as the Leads desk ----
+function showGate(msg){
+  const w=document.querySelector(".wrap");
+  if(!w)return;
+  w.innerHTML='<div style="margin:auto;max-width:430px;text-align:center;padding:44px 22px">'
+    +'<h2 style="margin:0 0 10px;font-size:19px;color:#1a2330">AI Recommendations</h2>'
+    +'<p style="color:#5a6a7d;margin:0 0 20px;font-size:14px;line-height:1.5">'+(msg||"Sign in with your SurgaMed Microsoft account to continue.")+'</p>'
+    +'<button id="msBtn" style="background:#1f4e78;color:#fff;border:0;border-radius:6px;padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer">Sign in with Microsoft</button>'
+    +'<p id="gateErr" style="color:#c0392b;font-size:13px;margin:14px 0 0"></p></div>';
+  document.getElementById("msBtn").onclick=async()=>{
+    const {error}=await sb.auth.signInWithOAuth({
+      provider:"azure",
+      options:{scopes:"openid profile email",redirectTo:window.location.origin+window.location.pathname}
+    });
+    if(error)document.getElementById("gateErr").textContent=error.message;
+  };
+}
+async function start(){
+  let session=null;
+  try{ const r=await sb.auth.getSession(); session=r.data.session; }catch(e){}
+  if(!session){ showGate(); return; }
+  const em=((session.user&&session.user.email)||"").toLowerCase();
+  if(!isAllowed(em)){ await sb.auth.signOut(); showGate("The account "+em+" is not authorised for this dashboard."); return; }
+  window.__SMREP=em;
+  boot();
+}
+start();
 </script><script>window.__SMFEAT="ai_recommendations"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script></body></html>
