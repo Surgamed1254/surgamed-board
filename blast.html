@@ -42,7 +42,7 @@ th{background:#f0f4f1;font-size:11.5px;text-transform:uppercase;letter-spacing:.
   <div class="card"><h2>2 · Find matched past buyers</h2>
     <button id="btnFind" data-usage="find_buyers">🔎 Deep-dive buyers</button> <span class="hint" id="findNote"></span>
     <div style="max-height:400px;overflow:auto;margin-top:8px"><table id="tbl" style="display:none">
-      <thead><tr><th><input type="checkbox" id="ckAll" checked></th><th>Tier</th><th>Customer</th><th>Why (what they bought)</th><th>Last</th><th>WA</th><th>Email</th></tr></thead>
+      <thead><tr><th><input type="checkbox" id="ckAll" checked></th><th>Tier</th><th>Customer</th><th>Greet as ✏</th><th>Why (what they bought)</th><th>Last</th><th>WA</th><th>Email</th></tr></thead>
       <tbody id="tb"></tbody></table></div>
   </div>
   <div class="card"><h2>3 · Message templates</h2>
@@ -84,23 +84,32 @@ document.getElementById('me')&&(document.getElementById('me').textContent=EMAIL)
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 async function call(p){let r=await fetch(FN,{method:"POST",headers:{apikey:PK,"x-user-jwt":TOKEN,"content-type":"application/json"},body:JSON.stringify(p)});if(r.status===401&&await refresh()){r=await fetch(FN,{method:"POST",headers:{apikey:PK,"x-user-jwt":TOKEN,"content-type":"application/json"},body:JSON.stringify(p)});}const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||r.status);return d;}
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
-let CAND=[];
+let CAND=[],GREET={};
 document.getElementById('btnSearch').onclick=async()=>{const q=document.getElementById('q').value.trim();if(!q)return;try{const d=await call({op:'item_search',q});document.getElementById('hits').innerHTML=(d.items||[]).map((i,ix)=>'<button class="itmbtn" data-ix="'+ix+'">'+esc(i.model)+' — '+esc((i.name||'').slice(0,70))+' · $'+esc(i.price)+' · qty '+esc(i.quantity)+' · '+esc(i.account)+(i.exp_date?' · exp '+esc(i.exp_date):'')+'</button>').join('')||'<div class="hint" style="margin-top:6px">No live listings matched — fill the fields manually.</div>';
   document.querySelectorAll('.itmbtn').forEach(b=>b.onclick=()=>{const i=d.items[+b.getAttribute('data-ix')];document.getElementById('iRef').value=i.model||'';document.getElementById('iDesc').value=i.name||'';document.getElementById('iPrice').value=i.price||'';document.getElementById('iExp').value=i.exp_date||'';document.getElementById('iUom').value=i.uom||'';document.getElementById('iAcct').value=i.account;toast('Item loaded');});}catch(e){toast('Search failed: '+e.message);}};
 document.getElementById('btnFind').onclick=async()=>{const ref=document.getElementById('iRef').value.trim(),desc=document.getElementById('iDesc').value.trim();if(!ref&&!desc){toast('Enter REF or description first');return;}
   document.getElementById('findNote').textContent='Digging through purchase history…';
-  try{const d=await call({op:'candidates',ref,desc});CAND=d.candidates||[];
+  try{const d=await call({op:'candidates',ref,desc});CAND=d.candidates||[];GREET={};
     document.getElementById('findNote').textContent=CAND.length+' candidates — Tier1 bought THIS item · Tier2 similar · Tier3 related';
-    const tb=document.getElementById('tb');tb.innerHTML=CAND.map((c,ix)=>{const t=c.tier;const contact=(c.wa&&c.customer_id)||c.email;const ck=(t<3&&contact)?'checked':'';
-      return '<tr class="t'+t+'"><td><input type="checkbox" class="ck" data-ix="'+ix+'" '+ck+'></td><td><span class="pill p'+t+'">T'+t+'</span></td><td><b>'+esc(c.name)+'</b><div class="hint">'+esc(c.email||'')+'</div></td><td>'+esc(c.reason)+'</td><td>'+esc(c.last_ord||'')+'</td><td>'+(c.wa?(c.customer_id?'✅ '+esc(c.wa):'⚠️ '+esc(c.wa)+' <span class="hint">(not linked)</span>'):'—')+'</td><td>'+(c.email&&c.email.indexOf('members.ebay')<0?'✅':'—')+'</td></tr>';}).join('');
-    document.getElementById('tbl').style.display='';}
+    paintRows();document.getElementById('tbl').style.display='';}
   catch(e){document.getElementById('findNote').textContent='';toast('Failed: '+e.message);}};
+function greetOf(c,ix){if(GREET[ix]!=null)return{g:GREET[ix],generic:false,edited:true};if(c.greet_generic)return{g:'there',generic:true,edited:false};return{g:c.greet,generic:false,edited:false};}
+function paintRows(){const keep={};document.querySelectorAll('.ck').forEach(x=>keep[x.getAttribute('data-ix')]=x.checked);
+  const tb=document.getElementById('tb');tb.innerHTML=CAND.map((c,ix)=>{const t=c.tier;const contact=(c.wa&&c.customer_id)||c.email;
+    const ck=(keep[ix]!=null)?(keep[ix]?'checked':''):((t<3&&contact)?'checked':'');
+    const gr=greetOf(c,ix);
+    const chip=gr.generic?'<span class="hint">👋 generic ("Hi there")</span>':'<b>'+esc(gr.g)+'</b>'+(gr.edited?' <span class="hint">(edited)</span>':'');
+    return '<tr class="t'+t+'"><td><input type="checkbox" class="ck" data-ix="'+ix+'" '+ck+'></td><td><span class="pill p'+t+'">T'+t+'</span></td><td><b>'+esc(c.name)+'</b><div class="hint">'+esc(c.email||'')+'</div></td><td><span class="greet" data-ix="'+ix+'" style="cursor:pointer" title="Click to change the greeting name">'+chip+' ✏</span></td><td>'+esc(c.reason)+'</td><td>'+esc(c.last_ord||'')+'</td><td>'+(c.wa?(c.customer_id?'✅ '+esc(c.wa):'⚠️ '+esc(c.wa)+' <span class="hint">(not linked)</span>'):'—')+'</td><td>'+(c.email&&c.email.indexOf('members.ebay')<0?'✅':'—')+'</td></tr>';}).join('');
+  document.querySelectorAll('.greet').forEach(el=>el.onclick=()=>{const ix=+el.getAttribute('data-ix');const cur=greetOf(CAND[ix],ix).g;
+    const v=prompt('Greeting name for this customer (blank = generic "there"):',cur==='there'?'':cur);
+    if(v===null)return;GREET[ix]=v.trim()===''?'there':v.trim();paintRows();});}
+
 document.getElementById('ckAll').onclick=e=>document.querySelectorAll('.ck').forEach(c=>c.checked=e.target.checked);
 function picked(){return[...document.querySelectorAll('.ck')].filter(c=>c.checked).map(c=>CAND[+c.getAttribute('data-ix')]);}
 function payload(test){return{op:'send',test,channels:{wa:document.getElementById('chWA').checked,email:document.getElementById('chEM').checked},
  item:{ref:document.getElementById('iRef').value.trim(),desc:document.getElementById('iDesc').value.trim(),price:document.getElementById('iPrice').value.trim(),exp:document.getElementById('iExp').value.trim(),uom:document.getElementById('iUom').value.trim(),account:document.getElementById('iAcct').value},
  wa_template:document.getElementById('tWA').value,email_subject:document.getElementById('tSubj').value,email_template:document.getElementById('tEM').value,
- rows:picked().map(c=>({name:c.name,ce:c.ce,customer_id:c.customer_id,wa:c.wa,email:c.email,reason:c.reason}))};}
+ rows:[...document.querySelectorAll('.ck')].filter(x=>x.checked).map(x=>{const ix=+x.getAttribute('data-ix');const c=CAND[ix];return{name:c.name,names:c.names,ce:c.ce,customer_id:c.customer_id,wa:c.wa,email:c.email,reason:c.reason,greet:(GREET[ix]!=null?GREET[ix]:(c.greet_generic?null:c.greet))};})};}
 document.getElementById('btnPrev').onclick=async()=>{const rows=picked();if(!rows.length){toast('Select at least one buyer');return;}
   try{const d=await call(payload(true));const o=document.getElementById('out');o.style.display='';
     o.textContent=d.samples.map(s=>'▶ '+s.to+'\nWA: '+(s.wa||'(off)')+'\n✉ '+(s.email_subject||'(off)')+'\n'+(s.email_body||'')).join('\n\n──────────\n\n');}
