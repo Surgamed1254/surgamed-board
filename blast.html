@@ -40,9 +40,7 @@ th{background:#f0f4f1;font-size:11.5px;text-transform:uppercase;letter-spacing:.
     </div>
   </div>
   <div class="card"><h2>2 · Find matched past buyers</h2>
-    <button id="btnFind" data-usage="find_buyers">🔎 Deep-dive buyers</button>
-    <button id="btnXlsx" class="sec" data-usage="download_xlsx" style="display:none">⬇ Download Excel</button>
-    <span class="hint" id="findNote"></span>
+    <button id="btnFind" data-usage="find_buyers">🔎 Deep-dive buyers</button> <span class="hint" id="findNote"></span>
     <div style="max-height:400px;overflow:auto;margin-top:8px"><table id="tbl" style="display:none">
       <thead><tr><th><input type="checkbox" id="ckAll" checked></th><th>Tier</th><th>Customer</th><th>Greet as ✏</th><th>Why (what they bought)</th><th>Last</th><th>WA</th><th>Email</th></tr></thead>
       <tbody id="tb"></tbody></table></div>
@@ -93,38 +91,8 @@ document.getElementById('btnFind').onclick=async()=>{const ref=document.getEleme
   document.getElementById('findNote').textContent='Digging through purchase history…';
   try{const d=await call({op:'candidates',ref,desc});CAND=d.candidates||[];GREET={};
     document.getElementById('findNote').textContent=CAND.length+' candidates — Tier1 bought THIS item · Tier2 similar · Tier3 related';
-    paintRows();document.getElementById('tbl').style.display='';document.getElementById('btnXlsx').style.display='';}
+    paintRows();document.getElementById('tbl').style.display='';}
   catch(e){document.getElementById('findNote').textContent='';toast('Failed: '+e.message);}};
-document.getElementById('btnXlsx').onclick=async()=>{
-  if(!CAND.length){toast('Run Deep-dive buyers first');return;}
-  if(typeof ExcelJS==='undefined'){toast('Excel library still loading — try again in a second');return;}
-  const ref=document.getElementById('iRef').value.trim()||'item';
-  const desc=document.getElementById('iDesc').value.trim();
-  const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Top Candidates');
-  const H=['Tier','Customer','Greet as','Why they’re a candidate (bought)','Last order','Orders','Exact qty','Similar qty','Related qty','WhatsApp','Phone','Email'];
-  ws.addRow(H);
-  const hr=ws.getRow(1);hr.height=26;
-  hr.eachCell(c=>{c.font={name:'Arial',bold:true,color:{argb:'FFFFFFFF'},size:10};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF196B24'}};c.alignment={vertical:'middle',horizontal:'center',wrapText:true};});
-  const fills={1:'FFFCE4D6',2:'FFFFF2CC',3:'FFE2EFDA'};
-  CAND.forEach((c,ix)=>{const g=greetOf(c,ix);
-    const r=ws.addRow([c.tier,c.name,(g.generic?'(generic — Hi there)':g.g),c.reason,c.last_ord||'',c.orders||0,+c.exact_qty||0,+c.sim_qty||0,+c.tok_qty||0,c.wa||'',c.phone||'',(c.email&&c.email.indexOf('members.ebay')<0)?c.email:'']);
-    r.eachCell(cell=>{cell.font={name:'Arial',size:9};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:fills[c.tier]||'FFFFFFFF'}};cell.alignment={vertical:'top',wrapText:true};});});
-  [5,26,16,52,11,7,9,9,9,16,20,28].forEach((w,i)=>ws.getColumn(i+1).width=w);
-  ws.views=[{state:'frozen',ySplit:1}];
-  const ws2=wb.addWorksheet('About');
-  [['Matched past buyers for: '+ref+(desc?(' — '+desc):'')],[''],
-   ['Tier 1 = bought THIS exact item before (warmest reorders).'],
-   ['Tier 2 = bought a similar item (product-embedding match).'],
-   ['Tier 3 = bought related category items.'],
-   ['Greet as = the personalized first name the blast will use (generic when no person name exists, e.g. "Customer Service").'],
-   ['Generated from the New Arrival Blast page — '+new Date().toLocaleString()]
-  ].forEach(x=>ws2.addRow(x));
-  ws2.getColumn(1).width=110;
-  const buf=await wb.xlsx.writeBuffer();
-  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='Blast-Leads-'+ref.replace(/[^A-Za-z0-9\-]/g,'_')+'-'+new Date().toISOString().slice(0,10)+'.xlsx';
-  a.click();URL.revokeObjectURL(a.href);toast('Excel downloaded');};
 function greetOf(c,ix){if(GREET[ix]!=null)return{g:GREET[ix],generic:false,edited:true};if(c.greet_generic)return{g:'there',generic:true,edited:false};return{g:c.greet,generic:false,edited:false};}
 function paintRows(){const keep={};document.querySelectorAll('.ck').forEach(x=>keep[x.getAttribute('data-ix')]=x.checked);
   const tb=document.getElementById('tb');tb.innerHTML=CAND.map((c,ix)=>{const t=c.tier;const contact=(c.wa&&c.customer_id)||c.email;
@@ -155,6 +123,5 @@ document.getElementById('btnSend').onclick=async()=>{const rows=picked();if(!row
     toast('Blast sent!');}
   catch(e){toast('Send failed: '+e.message);}finally{b.disabled=false;}};
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script>
 </body></html>
