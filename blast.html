@@ -1,0 +1,118 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>New Arrival Blast — SurgaMed</title>
+<style>
+:root{--g:#196B24;--line:#e3e7ea;--bg:#f5f7f8;--red:#c00000}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 'Segoe UI',Arial,sans-serif;background:var(--bg);color:#1c2b33}
+header{background:var(--g);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px}
+header h1{font-size:17px;margin:0}header .me{margin-left:auto;font-size:12.5px;opacity:.9}
+.wrap{max-width:1080px;margin:14px auto;padding:0 12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.card h2{font-size:14.5px;margin:0 0 10px;color:var(--g)}
+input,textarea,select{font:inherit;border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{min-height:84px;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}
+button{font:inherit;border:0;border-radius:8px;padding:9px 16px;cursor:pointer;background:var(--g);color:#fff;font-weight:600}
+button.sec{background:#eef2f0;color:#1c2b33}button:disabled{opacity:.5;cursor:default}
+table{width:100%;border-collapse:collapse;font-size:12.8px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:#f0f4f1;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em}
+.t1{background:#fde9d9}.t2{background:#fff6d9}.t3{background:#eaf4e4}
+.pill{display:inline-block;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700;color:#fff}
+.p1{background:#c55a11}.p2{background:#bf9000}.p3{background:#548235}
+.hint{color:#667781;font-size:12px}
+.res{white-space:pre-wrap;background:#f7faf7;border:1px dashed var(--line);border-radius:8px;padding:10px;margin-top:8px;font-size:12.6px}
+.itmbtn{display:block;width:100%;text-align:left;background:#f7faf7;color:#1c2b33;border:1px solid var(--line);margin-top:6px;font-weight:400}
+.gate{display:flex;align-items:center;justify-content:center;height:100vh}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1c2b33;color:#fff;padding:9px 16px;border-radius:9px;opacity:0;transition:.25s;font-size:13px}
+#toast.show{opacity:1}
+</style></head><body>
+<header><h1>📣 New Arrival Blast</h1><span class="hint" style="color:#dfeee2">item → matched past buyers → personalized WhatsApp + Email</span><span class="me" id="me"></span></header>
+<div class="wrap">
+  <div class="card"><h2>1 · Pick the item</h2>
+    <div class="row"><input id="q" placeholder="Search live listings by REF / name (e.g. 176630)…"><button id="btnSearch" class="sec" data-usage="item_search">Search</button></div>
+    <div id="hits"></div>
+    <div class="row" style="margin-top:10px">
+      <input id="iRef" placeholder="REF *"><input id="iDesc" placeholder="Item description *" style="flex:3">
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input id="iPrice" placeholder="Price $"><input id="iExp" placeholder="Exp (e.g. 10/31/2026)"><input id="iUom" placeholder="UOM (EA, BX/5…)">
+      <select id="iAcct"><option>ShortDated Surgical</option><option>SurgaMed</option></select>
+    </div>
+  </div>
+  <div class="card"><h2>2 · Find matched past buyers</h2>
+    <button id="btnFind" data-usage="find_buyers">🔎 Deep-dive buyers</button> <span class="hint" id="findNote"></span>
+    <div style="max-height:400px;overflow:auto;margin-top:8px"><table id="tbl" style="display:none">
+      <thead><tr><th><input type="checkbox" id="ckAll" checked></th><th>Tier</th><th>Customer</th><th>Why (what they bought)</th><th>Last</th><th>WA</th><th>Email</th></tr></thead>
+      <tbody id="tb"></tbody></table></div>
+  </div>
+  <div class="card"><h2>3 · Message templates</h2>
+    <div class="hint" style="margin-bottom:6px">Placeholders: <b>{{name}}</b> {{full_name}} <b>{{item}}</b> {{ref}} {{price}} {{exp}} {{uom}} <b>{{reason}}</b> {{rep}}</div>
+    <label><input type="checkbox" id="chWA" checked> <b>WhatsApp</b> <span class="hint">(queued 45s apart from each customer's rep line — needs linked CRM customer)</span></label><br>
+    <textarea id="tWA">Hi {{name}}! {{rep}} from SurgaMed here. We just received a bulk arrival of the {{item}} (REF {{ref}}) — exp {{exp}}, ${{price}}/ea. {{reason}}. Want me to reserve quantity for you before we list them broadly?</textarea>
+    <label style="display:block;margin-top:10px"><input type="checkbox" id="chEM" checked> <b>Email</b> <span class="hint">(sent from orders@surgamed.com)</span></label>
+    <input id="tSubj" value="New arrival: {{item}} (REF {{ref}})" style="margin:6px 0">
+    <textarea id="tEM">Hi {{name}},
+
+We just received a bulk shipment of the {{item}} (REF {{ref}}) — expiration {{exp}}, ${{price}} each.
+
+{{reason}} — so I wanted to give you first dibs before we list them broadly.
+
+Reply to this email or WhatsApp us to reserve quantity.
+
+Best,
+{{rep}} — SurgaMed</textarea>
+  </div>
+  <div class="card"><h2>4 · Preview & send</h2>
+    <button id="btnPrev" class="sec" data-usage="preview">👁 Preview (no send)</button>
+    <button id="btnSend" data-usage="send_blast">🚀 Send blast</button>
+    <div class="res" id="out" style="display:none"></div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+const U="https://ecjemcrpbzeocoiwslcu.supabase.co";
+const PK="sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
+const FN=U+"/functions/v1/arrival-blast";
+function getTokenEntry(){try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/auth-token/.test(k)){const v=JSON.parse(localStorage.getItem(k));const t=v&&(v.access_token||(v.currentSession&&v.currentSession.access_token));if(t)return{k,v,t};}}}catch(e){}return null;}
+let TOKEN=(getTokenEntry()||{}).t||null;
+function emailOf(t){try{return String(JSON.parse(decodeURIComponent(escape(atob(t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))))).email||"").toLowerCase();}catch(e){return"";}}
+async function refresh(){try{const e=getTokenEntry();if(!e)return false;const rt=e.v&&(e.v.refresh_token||(e.v.currentSession&&e.v.currentSession.refresh_token));if(!rt)return false;const r=await fetch(U+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:PK,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:rt})});if(!r.ok)return false;const d=await r.json();if(!d.access_token)return false;TOKEN=d.access_token;try{const nv=e.v;nv.access_token=d.access_token;if(d.refresh_token)nv.refresh_token=d.refresh_token;localStorage.setItem(e.k,JSON.stringify(nv));}catch(_){}return true;}catch(e){return false;}}
+if(!TOKEN){document.body.innerHTML='<div class="gate"><div class="card"><h2>Sign in required</h2><p class="hint">Open the SurgaMed CRM, sign in, then come back.</p><p><a href="whatsapp-crm.html" style="color:var(--g);font-weight:700">Open the CRM →</a></p></div></div>';}
+const EMAIL=TOKEN?emailOf(TOKEN):"";
+window.__SMFEAT='arrival_blast';window.__SMREP=EMAIL||'(unknown)';
+document.getElementById('me')&&(document.getElementById('me').textContent=EMAIL);
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+async function call(p){let r=await fetch(FN,{method:"POST",headers:{apikey:PK,"x-user-jwt":TOKEN,"content-type":"application/json"},body:JSON.stringify(p)});if(r.status===401&&await refresh()){r=await fetch(FN,{method:"POST",headers:{apikey:PK,"x-user-jwt":TOKEN,"content-type":"application/json"},body:JSON.stringify(p)});}const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||r.status);return d;}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+let CAND=[];
+document.getElementById('btnSearch').onclick=async()=>{const q=document.getElementById('q').value.trim();if(!q)return;try{const d=await call({op:'item_search',q});document.getElementById('hits').innerHTML=(d.items||[]).map((i,ix)=>'<button class="itmbtn" data-ix="'+ix+'">'+esc(i.model)+' — '+esc((i.name||'').slice(0,70))+' · $'+esc(i.price)+' · qty '+esc(i.quantity)+' · '+esc(i.account)+(i.exp_date?' · exp '+esc(i.exp_date):'')+'</button>').join('')||'<div class="hint" style="margin-top:6px">No live listings matched — fill the fields manually.</div>';
+  document.querySelectorAll('.itmbtn').forEach(b=>b.onclick=()=>{const i=d.items[+b.getAttribute('data-ix')];document.getElementById('iRef').value=i.model||'';document.getElementById('iDesc').value=i.name||'';document.getElementById('iPrice').value=i.price||'';document.getElementById('iExp').value=i.exp_date||'';document.getElementById('iUom').value=i.uom||'';document.getElementById('iAcct').value=i.account;toast('Item loaded');});}catch(e){toast('Search failed: '+e.message);}};
+document.getElementById('btnFind').onclick=async()=>{const ref=document.getElementById('iRef').value.trim(),desc=document.getElementById('iDesc').value.trim();if(!ref&&!desc){toast('Enter REF or description first');return;}
+  document.getElementById('findNote').textContent='Digging through purchase history…';
+  try{const d=await call({op:'candidates',ref,desc});CAND=d.candidates||[];
+    document.getElementById('findNote').textContent=CAND.length+' candidates — Tier1 bought THIS item · Tier2 similar · Tier3 related';
+    const tb=document.getElementById('tb');tb.innerHTML=CAND.map((c,ix)=>{const t=c.tier;const contact=(c.wa&&c.customer_id)||c.email;const ck=(t<3&&contact)?'checked':'';
+      return '<tr class="t'+t+'"><td><input type="checkbox" class="ck" data-ix="'+ix+'" '+ck+'></td><td><span class="pill p'+t+'">T'+t+'</span></td><td><b>'+esc(c.name)+'</b><div class="hint">'+esc(c.email||'')+'</div></td><td>'+esc(c.reason)+'</td><td>'+esc(c.last_ord||'')+'</td><td>'+(c.wa?(c.customer_id?'✅ '+esc(c.wa):'⚠️ '+esc(c.wa)+' <span class="hint">(not linked)</span>'):'—')+'</td><td>'+(c.email&&c.email.indexOf('members.ebay')<0?'✅':'—')+'</td></tr>';}).join('');
+    document.getElementById('tbl').style.display='';}
+  catch(e){document.getElementById('findNote').textContent='';toast('Failed: '+e.message);}};
+document.getElementById('ckAll').onclick=e=>document.querySelectorAll('.ck').forEach(c=>c.checked=e.target.checked);
+function picked(){return[...document.querySelectorAll('.ck')].filter(c=>c.checked).map(c=>CAND[+c.getAttribute('data-ix')]);}
+function payload(test){return{op:'send',test,channels:{wa:document.getElementById('chWA').checked,email:document.getElementById('chEM').checked},
+ item:{ref:document.getElementById('iRef').value.trim(),desc:document.getElementById('iDesc').value.trim(),price:document.getElementById('iPrice').value.trim(),exp:document.getElementById('iExp').value.trim(),uom:document.getElementById('iUom').value.trim(),account:document.getElementById('iAcct').value},
+ wa_template:document.getElementById('tWA').value,email_subject:document.getElementById('tSubj').value,email_template:document.getElementById('tEM').value,
+ rows:picked().map(c=>({name:c.name,ce:c.ce,customer_id:c.customer_id,wa:c.wa,email:c.email,reason:c.reason}))};}
+document.getElementById('btnPrev').onclick=async()=>{const rows=picked();if(!rows.length){toast('Select at least one buyer');return;}
+  try{const d=await call(payload(true));const o=document.getElementById('out');o.style.display='';
+    o.textContent=d.samples.map(s=>'▶ '+s.to+'\nWA: '+(s.wa||'(off)')+'\n✉ '+(s.email_subject||'(off)')+'\n'+(s.email_body||'')).join('\n\n──────────\n\n');}
+  catch(e){toast('Preview failed: '+e.message);}};
+document.getElementById('btnSend').onclick=async()=>{const rows=picked();if(!rows.length){toast('Select at least one buyer');return;}
+  const wa=document.getElementById('chWA').checked,em=document.getElementById('chEM').checked;
+  if(!confirm('Send to '+rows.length+' customers?\n'+(wa?'• WhatsApp queued 45s apart\n':'')+(em?'• Emails from orders@surgamed.com\n':'')+'\nThis sends real messages.'))return;
+  const b=document.getElementById('btnSend');b.disabled=true;
+  try{const d=await call(payload(false));const o=document.getElementById('out');o.style.display='';
+    o.textContent='✅ Blast #'+d.blast_id+'\nWhatsApp queued: '+d.queued_whatsapp+'\nEmails sent: '+d.sent_email+'\nSkipped (no linked customer): '+d.skipped_no_customer+'\n\n'+d.results.map(r=>r.name+' — '+(r.wa?('WA:'+r.wa+' '):'')+(r.email?('EM:'+r.email):'')).join('\n');
+    toast('Blast sent!');}
+  catch(e){toast('Send failed: '+e.message);}finally{b.disabled=false;}};
+</script>
+<script src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script>
+</body></html>
