@@ -51,7 +51,7 @@ th{background:#f0f4f1;font-size:11.5px;text-transform:uppercase;letter-spacing:.
     <div class="hint" style="margin-bottom:6px">Placeholders: <b>{{name}}</b> {{full_name}} <b>{{item}}</b> {{ref}} {{price}} {{exp}} {{uom}} <b>{{reason}}</b> {{rep}}</div>
     <label><input type="checkbox" id="chWA" checked> <b>WhatsApp</b> <span class="hint">(queued 45s apart from each customer's rep line — needs linked CRM customer)</span></label><br>
     <textarea id="tWA">Hi {{name}}! {{rep}} from SurgaMed here. We just received a bulk arrival of the {{item}} (REF {{ref}}) — exp {{exp}}, ${{price}}/ea. {{reason}}. Want me to reserve quantity for you before we list them broadly?</textarea>
-    <label style="display:block;margin-top:10px"><input type="checkbox" id="chEM" checked> <b>Email</b> <span class="hint">(sent from orders@surgamed.com)</span></label>
+    <label style="display:block;margin-top:10px"><input type="checkbox" id="chEM" checked> <b>Email</b> <span class="hint" id="mailFromHint">(sent from orders@surgamed.com)</span></label>
     <input id="tSubj" value="New arrival: {{item}} (REF {{ref}})" style="margin:6px 0">
     <textarea id="tEM">Hi {{name}},
 
@@ -81,6 +81,7 @@ function emailOf(t){try{return String(JSON.parse(decodeURIComponent(escape(atob(
 async function refresh(){try{const e=getTokenEntry();if(!e)return false;const rt=e.v&&(e.v.refresh_token||(e.v.currentSession&&e.v.currentSession.refresh_token));if(!rt)return false;const r=await fetch(U+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:PK,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:rt})});if(!r.ok)return false;const d=await r.json();if(!d.access_token)return false;TOKEN=d.access_token;try{const nv=e.v;nv.access_token=d.access_token;if(d.refresh_token)nv.refresh_token=d.refresh_token;localStorage.setItem(e.k,JSON.stringify(nv));}catch(_){}return true;}catch(e){return false;}}
 if(!TOKEN){document.body.innerHTML='<div class="gate"><div class="card"><h2>Sign in required</h2><p class="hint">Open the SurgaMed CRM, sign in, then come back.</p><p><a href="whatsapp-crm.html" style="color:var(--g);font-weight:700">Open the CRM →</a></p></div></div>';}
 const EMAIL=TOKEN?emailOf(TOKEN):"";
+const REP_MBX=["jlugo@surgamed.com","dcalvo@surgamed.com","malejo@surgamed.com","tcohen@surgamed.com"];const MAILFROM=REP_MBX.indexOf(EMAIL)>=0?EMAIL:"orders@surgamed.com";try{var _mfh=document.getElementById("mailFromHint");if(_mfh)_mfh.textContent="(sent from "+MAILFROM+(REP_MBX.indexOf(EMAIL)>=0?" \u2014 your own mailbox":"")+")";}catch(_e){}
 window.__SMFEAT='arrival_blast';window.__SMREP=EMAIL||'(unknown)';
 document.getElementById('me')&&(document.getElementById('me').textContent=EMAIL);
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
@@ -151,7 +152,7 @@ document.getElementById('btnSend').onclick=async()=>{const rows=picked();if(!row
   if(!confirm('Send to '+rows.length+' customers?\n'+(wa?'• WhatsApp queued 45s apart\n':'')+(em?'• Emails from orders@surgamed.com\n':'')+'\nThis sends real messages.'))return;
   const b=document.getElementById('btnSend');b.disabled=true;
   try{const d=await call(payload(false));const o=document.getElementById('out');o.style.display='';
-    o.textContent='✅ Blast #'+d.blast_id+'\nWhatsApp queued: '+d.queued_whatsapp+'\nEmails sent: '+d.sent_email+'\nSkipped (no linked customer): '+d.skipped_no_customer+'\n\n'+d.results.map(r=>r.name+' — '+(r.wa?('WA:'+r.wa+' '):'')+(r.email?('EM:'+r.email):'')).join('\n');
+    o.textContent='✅ Blast #'+d.blast_id+'\nWhatsApp queued: '+d.queued_whatsapp+'\nEmails sent: '+d.sent_email+(d.mail_from?' (from '+d.mail_from+')':'')+'\nSkipped (no linked customer): '+d.skipped_no_customer+'\n\n'+d.results.map(r=>r.name+' — '+(r.wa?('WA:'+r.wa+' '):'')+(r.email?('EM:'+r.email):'')).join('\n');
     toast('Blast sent!');}
   catch(e){toast('Send failed: '+e.message);}finally{b.disabled=false;}};
 </script>
