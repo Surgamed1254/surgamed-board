@@ -1,0 +1,104 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SurgaMed — Win-Backs (Dormant Accounts)</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--b:#1f4e78;--bg:#f4f6f9;--line:#e2e8f0}
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+body{margin:0;background:var(--bg);color:#1a2330}
+header{background:var(--b);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:14px}
+header h1{font-size:17px;margin:0;font-weight:700}header .sub{font-size:12px;opacity:.85}
+header a{background:rgba(255,255,255,.16);color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600}
+.wrap{display:flex;height:calc(100vh - 46px)}
+.side{width:380px;border-right:1px solid var(--line);background:#fff;display:flex;flex-direction:column}
+.side .ctl{padding:8px 10px;border-bottom:1px solid var(--line);display:flex;gap:6px}
+select,input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px}
+.clist{overflow:auto;flex:1}
+.cust{padding:9px 12px;border-bottom:1px solid #eef2f6;cursor:pointer}
+.cust:hover{background:#f0f6ff}.cust.sel{background:#e3f0ff}
+.cust .nm{font-weight:600;font-size:13px}.cust .mt{font-size:11px;color:#64748b;margin-top:2px}
+.pill{display:inline-block;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;background:#eaf1fb;color:var(--b)}
+.seg-A{background:#dcfce7;color:#166534}.seg-B{background:#e0f2fe;color:#075985}.seg-C{background:#fef3c7;color:#92400e}.seg-D{background:#f1f5f9;color:#475569}
+.st{font-size:10px;padding:1px 6px;border-radius:8px;background:#f1f5f9;color:#475569}
+.st-active{background:#dbeafe;color:#1e40af}.st-replied{background:#dcfce7;color:#166534}.st-reactivated{background:#bbf7d0;color:#14532d}.st-not_now{background:#fef9c3;color:#854d0e}.st-parked{background:#f1f5f9;color:#64748b}.st-stopped,.st-opted_out{background:#fee2e2;color:#991b1b}
+.main{flex:1;overflow:auto;padding:16px}
+.chdr h2{margin:0 0 3px;font-size:18px;color:var(--b)}.meta{font-size:12px;color:#475569}
+.btns button{background:var(--b);color:#fff;border:0;border-radius:6px;padding:8px 13px;font-size:13px;cursor:pointer;margin:0 6px 6px 0}
+.btns button.ghost{background:#fff;color:var(--b);border:1px solid var(--b)}.btns button.warn{background:#b91c1c}
+.card{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:14px;margin-bottom:14px}
+.draft{white-space:pre-wrap;font-size:14px;line-height:1.45;border:1px solid #cbd5e1;border-radius:8px;padding:12px;background:#fafcff}
+textarea{width:100%;min-height:96px;font-size:14px;line-height:1.45;border:1px solid #cbd5e1;border-radius:8px;padding:10px}
+.kpi{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}.kpi div{background:#fff;border-radius:8px;padding:10px 14px;box-shadow:0 1px 3px rgba(0,0,0,.06);font-size:12px;color:#475569}.kpi b{display:block;font-size:20px;color:var(--b)}
+.touch{border-left:3px solid #cbd5e1;padding:6px 10px;margin:6px 0;font-size:12px;color:#334155}.empty{padding:40px;text-align:center;color:#94a3b8}
+.rules{font-size:12px;color:#475569;line-height:1.5}
+</style></head><body>
+<header><h1>SurgaMed — Win-Backs</h1><span class="sub" id="sub">loading…</span><span style="margin-left:auto;display:flex;gap:6px"><a href="index.html">📊 Board</a><a href="leads.html">📋 Leads</a><a href="whatsapp-crm.html">💬 CRM</a><a href="recommendations.html">🤖 Recs</a></span></header>
+<div class="wrap">
+ <div class="side">
+   <div class="ctl"><select id="rep"><option value="(all)">All reps</option></select><select id="seg" style="width:90px"><option value="">A–D</option><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
+   <div class="ctl"><input id="q" placeholder="Search name / company…"><select id="flt" style="width:150px"><option value="all">All dormant</option><option value="none">Not started</option><option value="active">In sequence</option><option value="replied">Replied</option><option value="not_now">Not now</option><option value="parked">Parked</option></select></div>
+   <div class="clist" id="clist"></div>
+ </div>
+ <div class="main" id="main"><div class="empty">Pick a quiet account on the left.</div></div>
+</div>
+<script>
+const SB_URL="https://ecjemcrpbzeocoiwslcu.supabase.co";
+const SB_KEY="sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
+const sb=supabase.createClient(SB_URL,SB_KEY);
+function isAllowed(e){e=(e||"").toLowerCase().trim();return !!e&&e.endsWith("@surgamed.com");}
+async function freshToken(){try{const{data:{session}}=await sb.auth.getSession();return session?session.access_token:"";}catch(e){return "";}}
+const api=async(op,p={})=>{const t=await freshToken();const r=await fetch(SB_URL+"/functions/v1/winback",{method:"POST",headers:{Authorization:"Bearer "+t,apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify({op,...p})});if(r.status===401){showGate("Your session has expired. Please sign in again.");throw new Error("Session expired");}return r.json();};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money=v=>"$"+Math.round(Number(v||0)).toLocaleString();
+const dt=s=>s?new Date(s).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"";
+let rows=[],cur=null,metrics=null;
+async function load(){
+  const rep=document.getElementById("rep").value, seg=document.getElementById("seg").value;
+  const p={limit:500}; if(rep!=="(all)")p.rep=rep; if(seg)p.segment=seg;
+  rows=await api("list",p); metrics=await api("metrics");
+  document.getElementById("sub").textContent=rows.length+" quiet accounts · "+money(rows.reduce((s,r)=>s+Number(r.spend||0),0))+" lifetime · reply rate "+metrics.reply_rate+"% ("+metrics.replied+"/"+metrics.touched+") · "+metrics.reactivated+" reactivated";
+  render();
+}
+function render(){
+  const q=document.getElementById("q").value.toLowerCase(), f=document.getElementById("flt").value;
+  const el=document.getElementById("clist"); el.innerHTML="";
+  const list=rows.filter(r=>{ if(q&&!((r.name||"")+" "+(r.company||"")).toLowerCase().includes(q))return false; const st=r.seq?r.seq.status:"none"; if(f==="all")return true; if(f==="none")return st==="none"||st==="stopped"; return st===f; });
+  if(!list.length){el.innerHTML='<div class="empty">Nothing here.</div>';return;}
+  for(const r of list){ const d=document.createElement("div"); d.className="cust"+(cur&&cur.id===r.id?" sel":""); const st=r.seq?r.seq.status:null;
+    d.innerHTML='<div class="nm">'+esc(r.name||r.company||"?")+' <span class="pill seg-'+r.segment+'">'+r.segment+'</span>'+(st?' <span class="st st-'+st+'">'+st.replace("_"," ")+(st==="active"?" · touch "+r.seq.touch+"/"+r.seq.max_touches:"")+'</span>':'')+'</div><div class="mt">'+money(r.spend)+' · '+r.orders_count+' orders · quiet '+r.days_quiet+'d (limit '+r.dormant_after_days+'d) · '+esc(r.assigned_rep||"unassigned")+'</div>';
+    d.onclick=()=>{cur=r;render();show();}; el.appendChild(d); }
+}
+async function show(){
+  const r=cur, m=document.getElementById("main"); const s=r.seq;
+  let h='<div class="chdr"><h2>'+esc(r.name||"")+(r.company?' · '+esc(r.company):'')+' <span class="pill seg-'+r.segment+'">'+r.segment+'</span></h2><div class="meta">'+money(r.spend)+' lifetime · '+r.orders_count+' orders · last order '+esc(r.last_purchase_at||"")+' ('+r.days_quiet+' days) · their normal gap ⇒ dormant after '+r.dormant_after_days+'d · 📱 '+esc(r.phone||"")+(r.email?' · '+esc(r.email):'')+'<br>Usual items: '+esc(r.usual_items||"(unknown)")+(r.last_outbound?' · last rep message '+dt(r.last_outbound):'')+(r.last_inbound?' · last customer message '+dt(r.last_inbound):'')+'</div></div>';
+  h+='<div class="card"><div class="btns">';
+  if(!s||["stopped","parked","reactivated","replied","opted_out"].includes(s.status)) h+='<button onclick="act(\'start\')">▶ Start sequence (draft touch 1)</button>';
+  if(s&&s.status==="active"){ h+='<button onclick="act(\'mark_sent\')">✅ I sent it (log touch '+(s.touch+1)+')</button><button class="ghost" onclick="redraft()">✍️ Re-draft</button><button class="ghost" onclick="act(\'not_now\')">⏰ Not now (check back 60d)</button><button class="ghost" onclick="act(\'mark_replied\')">💬 They replied</button><button class="warn" onclick="act(\'stop\',{opted_out:true})">✖ Stop / opted out</button>'; }
+  if(s&&s.status==="not_now") h+='<button class="ghost" onclick="act(\'stop\')">✖ Stop</button>';
+  h+='<button class="ghost" onclick="draftOnly()">👀 Just draft a message</button></div>';
+  if(s&&s.status==="active"&&s.pending_draft){ h+='<div class="meta" style="margin:6px 0">Touch '+(s.pending_touch||s.touch+1)+' — copy, send from <b>your</b> WhatsApp, then click "I sent it" (or just send it: the system usually detects it).</div><textarea id="draft">'+esc(s.pending_draft)+'</textarea><div class="btns" style="margin-top:6px"><button class="ghost" onclick="copyDraft()">📋 Copy</button><a class="ghost" style="display:inline-block;padding:8px 13px;border:1px solid var(--b);border-radius:6px;color:var(--b);text-decoration:none;font-size:13px" target="_blank" href="https://wa.me/'+esc((r.phone||"").replace(/\\D/g,""))+'?text='+encodeURIComponent(s.pending_draft)+'">💬 Open in WhatsApp</a></div>'; }
+  if(s&&s.status==="active"&&!s.pending_draft) h+='<div class="meta">Next touch due '+(s.next_touch_at?new Date(s.next_touch_at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric"}):"—")+' — it will appear in the rep\'s morning batch, or click Re-draft now.</div>';
+  h+='<div id="draftbox"></div></div>';
+  if(s){ h+='<div class="card"><b style="font-size:13px">Sequence #'+s.id+' · '+s.status.replace("_"," ")+' · started '+dt(s.created_at)+(s.replied_at?' · replied '+dt(s.replied_at):'')+(s.check_back_at?' · check back '+dt(s.check_back_at):'')+(s.parked_until?' · parked until '+dt(s.parked_until):'')+'</b>'+((s.touches||[]).map(t=>'<div class="touch"><b>Touch '+t.n+'</b> · '+dt(t.sent_at)+(t.manual?' (logged manually)':' (detected)')+'<br>'+esc(t.text||t.draft||"")+'</div>').join("")||'<div class="meta" style="margin-top:6px">No touches sent yet.</div>')+'</div>'; }
+  h+='<div class="card rules"><b>The rules</b> · one person writing to another · first names · one true specific from their history · one easy question · no pitch or discount in touch 1 · max 4 touches in 7 days then park 90 days · the moment they reply, the sequence stops and <b>you</b> take over within minutes · "not now" gets a real check-back in 2 months · "stop" means stop.</div>';
+  m.innerHTML=h;
+}
+async function act(op,extra={}){
+  const r=cur; let p={...extra};
+  if(op==="start"){ p.customer_id=r.id; } else { p.id=r.seq.id; }
+  const res=await api(op,p); if(res.error){alert(res.error);return;}
+  await load(); cur=rows.find(x=>x.id===r.id)||r; render(); show();
+}
+async function redraft(){ const r=cur; const t=(r.seq.pending_touch||r.seq.touch+1); const res=await api("draft",{customer_id:r.id,touch:t,save:true,seq_id:r.seq.id}); await load(); cur=rows.find(x=>x.id===r.id)||r; render(); show(); }
+async function draftOnly(){ const r=cur; const t=prompt("Which touch? 1 = check-in, 2 = concrete reason, 3 = easy exit, 4 = final","1"); if(!t)return; const res=await api("draft",{customer_id:r.id,touch:Number(t)}); document.getElementById("draftbox").innerHTML='<div class="meta" style="margin:8px 0 4px">Draft (touch '+t+', not tracked):</div><div class="draft">'+esc(res.text||res.error||"")+'</div>'; }
+function copyDraft(){ const ta=document.getElementById("draft"); ta.select(); document.execCommand("copy"); }
+async function boot(){
+  const sel=document.getElementById("rep"); for(const n of ["Jennifer Lugo","Mirian Alejo","Tehila Cohen","Deysi Calvo","Meir Weinreb","Steven Gluck","Ari Teitelbaum"]){const o=document.createElement("option");o.value=n;o.textContent=n;sel.appendChild(o);}
+  const em=window.__SMREP||""; const mine=[...sel.options].find(o=>o.value.toLowerCase().startsWith(em.split("@")[0].replace(/^[a-z]/,"").slice(0,4)));
+  sel.onchange=load; document.getElementById("seg").onchange=load; document.getElementById("q").oninput=render; document.getElementById("flt").onchange=render;
+  await load();
+}
+function showGate(msg){ const w=document.querySelector(".wrap"); if(!w)return; w.innerHTML='<div style="margin:auto;max-width:430px;text-align:center;padding:44px 22px"><h2 style="margin:0 0 10px;font-size:19px;color:#1a2330">Win-Backs</h2><p style="color:#5a6a7d;margin:0 0 20px;font-size:14px;line-height:1.5">'+(msg||"Sign in with your SurgaMed Microsoft account to continue.")+'</p><button id="msBtn" style="background:#1f4e78;color:#fff;border:0;border-radius:6px;padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer">Sign in with Microsoft</button><p id="gateErr" style="color:#c0392b;font-size:13px;margin:14px 0 0"></p></div>';
+  document.getElementById("msBtn").onclick=async()=>{const {error}=await sb.auth.signInWithOAuth({provider:"azure",options:{scopes:"openid profile email",redirectTo:window.location.origin+window.location.pathname}});if(error)document.getElementById("gateErr").textContent=error.message;}; }
+async function start(){ let session=null; try{const r=await sb.auth.getSession();session=r.data.session;}catch(e){} if(!session){showGate();return;} const em=((session.user&&session.user.email)||"").toLowerCase(); if(!isAllowed(em)){await sb.auth.signOut();showGate("The account "+em+" is not authorised for this page.");return;} window.__SMREP=em; boot(); }
+start();
+</script><script>window.__SMFEAT="winback"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script></body></html>
