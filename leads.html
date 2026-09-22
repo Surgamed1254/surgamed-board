@@ -765,30 +765,62 @@ async function applyContactOwnership(){
 
 // ---- Shipping status from the CRM shipments table (real-time, webhook-fed) ----
 const SHIP_STATUS_RANK = { delivered:4, shipped:3, label_created:2, voided:1 };
+const SHIP_SEL='status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number,ss_order_id,recipient_email,customer_id,dotmed_listings';
+// One shipments row -> summary + the two keys we match on: the dotMed listing#s it carries (ShipStation SKU DOTMED<id>) and the customer e-mails it went to.
+function shipRec(s, idEmail){
+  const emails=[]; if(s.recipient_email) emails.push(String(s.recipient_email).toLowerCase()); if(s.customer_id!=null && idEmail && idEmail[s.customer_id]) emails.push(idEmail[s.customer_id]);
+  return { status:s.status, carrier:s.carrier, service:s.service, tracking:s.tracking_number, trackingUrl:s.tracking_url, shipDate:s.ship_date, delivery:s.delivery_status, orderNumber:s.order_number, ssOrderId:s.ss_order_id,
+           listings:(s.dotmed_listings||[]).map(String), emails:[...new Set(emails)] };
+}
+async function customerEmailsById(ids){
+  const idEmail={}; const uniq=[...new Set((ids||[]).filter(v=>v!=null))];
+  for(let i=0;i<uniq.length;i+=200){ const { data:cs }=await sb.from('customers').select('id,email').in('id',uniq.slice(i,i+200)); (cs||[]).forEach(c=>{ if(c.email) idEmail[c.id]=String(c.email).toLowerCase(); }); }
+  return idEmail;
+}
 async function prefetchShipments(){
   SHIP_BY_EMAIL={}; SHIP_BY_LISTING={};
   const emails=new Set(LEADS.map(l=>(l.custEmail||'').toLowerCase()).filter(Boolean));
-  const listings=new Set(LEADS.map(l=>String(l.listing||'')).filter(Boolean));
+  const listings=new Set(); LEADS.forEach(l=>leadListings(l).forEach(k=>listings.add(k)));
   if(!emails.size && !listings.size) return;
   try{
-    const { data:ships } = await sb.from('shipments').select('status,carrier,tracking_number,tracking_url,ship_date,delivery_status,recipient_email,customer_id,dotmed_listings').order('ship_date',{ascending:false}).limit(5000);
+    const { data:ships } = await sb.from('shipments').select(SHIP_SEL).order('ship_date',{ascending:false}).limit(5000);
     if(!ships||!ships.length) return;
-    const ids=[...new Set(ships.map(s=>s.customer_id).filter(v=>v!=null))];
-    const idEmail={};
-    for(let i=0;i<ids.length;i+=200){ const { data:cs }=await sb.from('customers').select('id,email').in('id',ids.slice(i,i+200)); (cs||[]).forEach(c=>{ if(c.email) idEmail[c.id]=String(c.email).toLowerCase(); }); }
+    const idEmail=await customerEmailsById(ships.map(s=>s.customer_id));
     ships.forEach(s=>{
-      const rec={status:s.status,carrier:s.carrier,tracking:s.tracking_number,trackingUrl:s.tracking_url,shipDate:s.ship_date,delivery:s.delivery_status};
-      (s.dotmed_listings||[]).forEach(ln=>{ const k=String(ln); if(listings.has(k) && !SHIP_BY_LISTING[k]) SHIP_BY_LISTING[k]=rec; });
-      const keys=[];
-      if(s.recipient_email) keys.push(String(s.recipient_email).toLowerCase());
-      if(s.customer_id!=null && idEmail[s.customer_id]) keys.push(idEmail[s.customer_id]);
-      [...new Set(keys)].forEach(e=>{ if(!emails.has(e)) return; (SHIP_BY_EMAIL[e]=SHIP_BY_EMAIL[e]||[]).push(rec); });
+      const rec=shipRec(s, idEmail);
+      rec.listings.forEach(k=>{ if(listings.has(k)) (SHIP_BY_LISTING[k]=SHIP_BY_LISTING[k]||[]).push(rec); });   // keep EVERY sale of a listing#, not just the newest
+      rec.emails.forEach(e=>{ if(emails.has(e)) (SHIP_BY_EMAIL[e]=SHIP_BY_EMAIL[e]||[]).push(rec); });
     });
   }catch(e){}
 }
-// Scope to this order: exact match on dotMed listing# (from item SKU) when available; else shipments shipped on/after the order date.
+// A shipment is shown on an order card only when it is THAT order's shipment:
+//  1. it carries this order's dotMed listing# AND shipped on/after the order date. The listing# alone is not enough - the same listing#
+//     sells again and again (5617962 shipped to GGCR on 8/3 and was bought again by Karthick on 9/11), so the date cut-off applies, and when
+//     another order for the same listing# belongs to the customer the parcel went to, it is theirs. A matching customer e-mail wins, but is
+//     not required: the ship-to e-mail differs from the dotMed buyer e-mail on about 1 in 5 orders.
+//  2. otherwise only a shipment that carries NO listing info (older/manual ShipStation orders), for the same customer, shipped on/after the
+//     order date. A shipment tagged with OTHER listing#s is a different order of that customer - never attach it (Christina's 9/22 order was
+//     wearing her 9/21 order's shipment that way).
 function shipCutoff(l){ const d=new Date(l&&l.date); if(isNaN(d.getTime())) return null; return new Date(d.getTime()-86400000).toISOString().slice(0,10); }
-function shipsForLead(l){ const ln=String((l&&l.listing)||''); if(ln && SHIP_BY_LISTING[ln]) return [SHIP_BY_LISTING[ln]]; const e=(l&&l.custEmail||'').toLowerCase(); const arr=SHIP_BY_EMAIL[e]; if(!arr||!arr.length) return []; const cut=shipCutoff(l); return cut? arr.filter(s=>!s.shipDate || String(s.shipDate).slice(0,10)>=cut) : arr.slice(); }
+// every dotMed listing# in this order (all lines of the transaction, from purchases), or just the one parsed from the e-mail
+function leadListings(l){ const a=(l&&Array.isArray(l.listings)&&l.listings.length)?l.listings:((l&&l.listing)?[String(l.listing)]:[]); return a.map(String).filter(Boolean); }
+function pickShipsForLead(l, byListing, byEmail){
+  const lns=leadListings(l); const e=(l&&l.custEmail||'').toLowerCase(); const cut=shipCutoff(l);
+  const afterCut=s=>!cut || !s.shipDate || String(s.shipDate).slice(0,10)>=cut;
+  const sameCust=s=>!!e && s.emails.indexOf(e)>-1;
+  const othersOrder=s=>LEADS.some(o=>o!==l && o.cat==='orders' && leadListings(o).some(k=>s.listings.indexOf(k)>-1) && !!(o.custEmail) && String(o.custEmail).toLowerCase()!==e && s.emails.indexOf(String(o.custEmail).toLowerCase())>-1);
+  if(lns.length && byListing && byListing.length){
+    const cand=byListing.filter(afterCut);
+    const mine=cand.filter(sameCust); if(mine.length) return mine;
+    const rest=cand.filter(s=>!othersOrder(s)); if(rest.length) return rest;
+  }
+  return (byEmail||[]).filter(s=>afterCut(s) && (!lns.length || !s.listings.length));
+}
+function shipsForLead(l){
+  const lns=leadListings(l); const e=(l&&l.custEmail||'').toLowerCase();
+  const seen=new Set(); const byL=[]; lns.forEach(k=>(SHIP_BY_LISTING[k]||[]).forEach(r=>{ if(!seen.has(r)){ seen.add(r); byL.push(r); } }));
+  return pickShipsForLead(l, byL, e?SHIP_BY_EMAIL[e]:null);
+}
 function shipBadge(l){
   const list=shipsForLead(l); if(!list.length) return '';
   const rankOf=s=> (String(s.delivery||'').toLowerCase()==='delivered')?5:(SHIP_STATUS_RANK[s.status]||0);
@@ -905,7 +937,7 @@ async function toggleEmail(i, id, mbx){
 // ---- ShipStation tracking for order/congrats leads ----
 function trkUrl(c,t){if(!t)return '#';c=(''+c).toLowerCase();var e=encodeURIComponent(t);if(c.indexOf('fedex')>-1)return 'https://www.fedex.com/fedextrack/?trknbr='+e;if(c.indexOf('usps')>-1||c.indexOf('stamps')>-1)return 'https://tools.usps.com/tracking/'+e;if(c.indexOf('ups')>-1)return 'https://www.ups.com/track?tracknum='+e;return 'https://tools.usps.com/tracking/'+e;}
 function renderShipping(list){
-  if(!list||!list.length) return '<div style="color:#9aa7b4;font-size:12px">No matching ShipStation shipment found for this customer/order yet.</div>';
+  if(!list||!list.length) return '<div style="color:#9aa7b4;font-size:12px">No ShipStation shipment for THIS order yet (not shipped, or the ShipStation order has no DOTMED&lt;listing#&gt; SKU).</div>';
   const COL={shipped:'#1d7a3f', delivered:'#1d7a3f', awaiting_shipment:'#9a5b14', on_hold:'#9a5b14', cancelled:'#c0392b'};
   let h='<table class="phtab"><thead><tr><th>Status</th><th>Carrier</th><th>Tracking</th><th>Ship date</th></tr></thead><tbody>';
   list.forEach(s=>{
@@ -920,22 +952,24 @@ function renderShipping(list){
 async function loadShipping(l){
   const box=document.getElementById("shipBox"); if(!box) return;
   const email=(l.custEmail||'').toLowerCase();
-  const ln=String((l&&l.listing)||'');
+  const lns=leadListings(l);
   try{
-    let rows=[];
-    if(ln){ const ex=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number,ss_order_id').contains('dotmed_listings',[ln]); rows=(ex.data||[]).slice(); }
-    if(!rows.length && email){
-      const a=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number,ss_order_id').ilike('recipient_email',email);
-      rows=(a.data||[]).slice();
+    let raw=[];
+    if(lns.length){ const ex=await sb.from('shipments').select(SHIP_SEL).overlaps('dotmed_listings',lns); raw=raw.concat(ex.data||[]); }
+    if(email){
+      const a=await sb.from('shipments').select(SHIP_SEL).ilike('recipient_email',email); raw=raw.concat(a.data||[]);
       const c=await sb.from('customers').select('id').ilike('email',email).maybeSingle();
-      if(c&&c.data&&c.data.id){ const b=await sb.from('shipments').select('status,carrier,service,tracking_number,tracking_url,ship_date,delivery_status,order_number,ss_order_id').eq('customer_id',c.data.id); (b.data||[]).forEach(x=>rows.push(x)); }
-      const seen=new Set(); rows=rows.filter(x=>{ const k=(x.order_number||'')+'|'+(x.tracking_number||''); if(seen.has(k))return false; seen.add(k); return true; });
-      const cut=shipCutoff(l); if(cut) rows=rows.filter(x=>!x.ship_date || String(x.ship_date).slice(0,10)>=cut);
+      if(c&&c.data&&c.data.id){ const b=await sb.from('shipments').select(SHIP_SEL).eq('customer_id',c.data.id); raw=raw.concat(b.data||[]); }
     }
-    const mapped=rows.map(x=>({status:(String(x.delivery_status||'').toLowerCase()==='delivered'?'delivered':x.status), carrier:x.carrier, tracking:x.tracking_number, trackingUrl:x.tracking_url, shipDate:x.ship_date}));
+    const seen=new Set(); raw=raw.filter(x=>{ const k=(x.ss_order_id||x.order_number||'')+'|'+(x.tracking_number||''); if(seen.has(k))return false; seen.add(k); return true; });
+    const idEmail=await customerEmailsById(raw.map(x=>x.customer_id));
+    const recs=raw.map(x=>shipRec(x, idEmail));
+    // same rule as the card badge: this order's listing# first, then untagged shipments of this customer - never another order's parcel
+    const rows=pickShipsForLead(l, recs.filter(r=>lns.some(k=>r.listings.indexOf(k)>-1)), recs.filter(r=>email && r.emails.indexOf(email)>-1));
+    const mapped=rows.map(x=>({status:(String(x.delivery||'').toLowerCase()==='delivered'?'delivered':x.status), carrier:x.carrier, tracking:x.tracking, trackingUrl:x.trackingUrl, shipDate:x.shipDate}));
     box.innerHTML=renderShipping(mapped);
-    const wo=rows.find(x=>x.ss_order_id)||rows.find(x=>x.order_number)||rows[0];
-    if(wo&&(wo.ss_order_id||wo.order_number)){ box.insertAdjacentHTML('beforeend','<div id="ssNoteBox" style="margin-top:10px;border-top:1px solid #eef2f6;padding-top:8px"></div>'); loadShipNote(wo.ss_order_id, wo.order_number, document.getElementById('ssNoteBox')); }
+    const wo=rows.find(x=>x.ssOrderId)||rows.find(x=>x.orderNumber)||rows[0];
+    if(wo&&(wo.ssOrderId||wo.orderNumber)){ box.insertAdjacentHTML('beforeend','<div id="ssNoteBox" style="margin-top:10px;border-top:1px solid #eef2f6;padding-top:8px"></div>'); loadShipNote(wo.ssOrderId, wo.orderNumber, document.getElementById('ssNoteBox')); }
   }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load shipping: '+esc(String(e.message||e))+'</div>'; }
 }
 // Read + edit the ShipStation ORDER internal note (live via edge function) from the congrats view.
@@ -1044,7 +1078,7 @@ async function enrichOrders(){
   const ids=[...new Set(LEADS.filter(l=>l.cat==='orders'&&l.listing).map(l=>l.listing))];
   if(!ids.length) return;
   try{
-    const { data } = await sb.from('purchases').select('listing,customer_name,customer_email,item,order_date').in('listing',ids).limit(1000);
+    const { data } = await sb.from('purchases').select('tid,listing,customer_name,customer_email,item,order_date').in('listing',ids).limit(1000);
     const by={}; (data||[]).forEach(r=>{ (by[r.listing]=by[r.listing]||[]).push(r); });
     LEADS.forEach(l=>{
       if(l.cat!=='orders'||!l.listing) return;
@@ -1054,7 +1088,13 @@ async function enrichOrders(){
       if(m.customer_name) l.display=m.customer_name;
       if(m.customer_email && !l.custEmail) l.custEmail=m.customer_email;
       if(m.item) l.item=m.item;
+      if(m.tid) l.tid=String(m.tid);
     });
+    // A dotMed transaction can hold several listings; the shipment may be tagged with any of them. Carry the whole set on the lead.
+    const tids=[...new Set(LEADS.filter(l=>l.cat==='orders'&&l.tid).map(l=>l.tid))];
+    const byTid={};
+    for(let i=0;i<tids.length;i+=200){ const { data:tl }=await sb.from('purchases').select('tid,listing').in('tid',tids.slice(i,i+200)).limit(2000); (tl||[]).forEach(r=>{ if(r.listing) (byTid[String(r.tid)]=byTid[String(r.tid)]||new Set()).add(String(r.listing)); }); }
+    LEADS.forEach(l=>{ if(l.cat!=='orders') return; const set=new Set(l.tid&&byTid[l.tid]?[...byTid[l.tid]]:[]); if(l.listing) set.add(String(l.listing)); l.listings=[...set]; });
   }catch(e){}
   // Fallback: some order emails don't expose a listing # / name in the preview, so they
   // stay generic ("DotMed Lead"). Pull the real customer + item from the full email.
