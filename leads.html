@@ -36,6 +36,7 @@ h1{ font-size:20px; margin:0 0 2px; }
 .card .from{ font-weight:600; font-size:13.5px; }
 .card .ttl{ color:#42505e; font-size:12.5px; margin:3px 0 2px; }
 .card .item{ color:#6b7886; font-size:11.5px; margin:0 0 7px; max-height:34px; overflow:hidden; }
+.card .item.msg{ color:#3d4f61; font-style:italic; }
 .card .meta{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:8px; }
 .tag{ font-size:11px; border-radius:20px; padding:2px 8px; font-weight:600; }
 .tag.rep{ background:#ede7ff; color:#5b3fc4; }
@@ -588,6 +589,10 @@ function extractLead(email,catKey){
       else { const m2=/^\s*([A-Za-z][\w .'\-]+?)\s+sent you this email/i.exec(s); if(m2) custName=m2[1].trim(); }
       // Cart questions etc. carry the buyer's name in the relay sender's display name ("Sepehr Lalezari <auto@dotmed.com>").
       if(!custName){ const sn=senderName(email.sender); if(sn && !/dot\s*med/i.test(sn)) custName=sn; }
+      // dotMed's relay signs as "An Unregistered User of DOTmed.Com" - that is nobody. The real contact is in the body (Name:/Company:).
+      if(/unregistered user/i.test(custName)) custName=""; if(/dot\s*med/i.test(company)) company="";
+      const pn=/Name:\s*(.+?)\s*(?:Company:|Email:|Phone:|Message:|$)/i.exec(s), pc=/Company:\s*(.+?)\s*(?:Email:|Phone:|Message:|$)/i.exec(s);
+      if(!custName && pn && !/unregistered/i.test(pn[1])) custName=pn[1].trim(); if(!company && pc && !/dot\s*med/i.test(pc[1])) company=pc[1].trim();
       custEmail=firstCustomerEmail(s); phone=firstPhone(s);
       const ii=/regarding Listing\s*#?\d+,\s*(.+?)\.(?:\s|$|\r|\n)/i.exec(s); if(ii) item=ii[1].trim();
     } else item=normSubject(subj);
@@ -1124,6 +1129,45 @@ async function enrichOrders(){
     }catch(e){}
   }
 }
+// Inquiry relays from dotMed arrive as "An Unregistered User <auto@dotmed.com>" and the preview rarely carries the contact.
+// Pull the real name / company / e-mail / phone and the customer's own message from the full e-mail (cached per message id).
+const INQ_CACHE_KEY='sg_inq_cache_v1';
+function inqCache(){ try{ return JSON.parse(sessionStorage.getItem(INQ_CACHE_KEY)||'{}'); }catch(e){ return {}; } }
+function applyInq(l, d){
+  if(d.name && !/unregistered/i.test(d.name)) l.custName=d.name;
+  if(d.company && !/dot\s*med/i.test(d.company)) l.company=d.company;
+  if(d.email && (!l.custEmail || /dotmed\.com$/i.test(l.custEmail))) l.custEmail=d.email;
+  if(d.phone) l.hasPhone=true;
+  if(d.item && !l.item) l.item=d.item;
+  if(d.msg) l.msg=d.msg;
+  if(l.custName) l.display = (l.company && l.company.toLowerCase()!==l.custName.toLowerCase()) ? (l.custName+' · '+l.company) : l.custName;
+  else if(l.company) l.display=l.company;
+  else if(l.custEmail && !/dotmed\.com$/i.test(l.custEmail)) l.display=l.custEmail.split('@')[0];
+  else if(/unregistered user|dot\s*med/i.test(l.display||'')) l.display='';   // nothing usable: let dispName fall back, never show dotMed's placeholder
+}
+async function enrichInquiries(){
+  const generic=l=>l.cat==='inquiries' && (!l.display || /unregistered user|dot\s*med(\.com)?\s*$|^dotmed lead$|^listing #/i.test(l.display));
+  const need=LEADS.filter(generic); if(!need.length) return;
+  const cache=inqCache(); let dirty=false;
+  const todo=[];
+  need.forEach(l=>{ const key=l.uri||l.id; if(cache[key]) applyInq(l, cache[key]); else todo.push(l); });
+  await Promise.all(todo.slice(0,40).map(async (l)=>{
+    try{
+      const mm=await fetchMessage(l.uri);
+      const text=htmlToText((mm&&mm.body&&mm.body.content)||(mm&&mm.summary)||"");
+      const d={};
+      d.name=pick(/Name:\s*(.+)/i,text)||pick(/([^\n]{2,60}?)\s+of\s+(?!DOTmed)[^\n]{1,60}?\s+sent you this email/i,text);
+      d.company=pick(/Company:\s*(.+)/i,text);
+      const all=(text.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/ig)||[]);
+      d.email=(all.find(e=>!/(dotmed\.com|surgamed\.com|shortdatedsurgical\.com|no-?reply|^auto@|mailer-daemon|example\.com)/i.test(e))||"").toLowerCase();
+      d.phone=pick(/Phone:\s*([+\d][\d\s().\-]{5,})/i,text);
+      d.item=pick(/regarding Listing\s*#?\d+,\s*(.+?)\.(?:\s|$)/i,text);
+      const msg=pick(/Message:\s*([\s\S]+?)(?:\n\s*\n|$)/i,text); if(msg) d.msg=msg.replace(/\s+/g,' ').trim().slice(0,160);
+      cache[l.uri||l.id]=d; dirty=true; applyInq(l,d);
+    }catch(e){}
+  }));
+  if(dirty){ try{ sessionStorage.setItem(INQ_CACHE_KEY, JSON.stringify(cache)); }catch(e){} }
+}
 async function load(silent){
   // Silent refresh: don't disturb a rep who has a lead open, and don't flash the "Loading…" placeholder.
   if(silent){ const ov=document.getElementById('detailOverlay'); if(ov && ov.style.display!=='none') return; }
@@ -1137,6 +1181,7 @@ async function load(silent){
     LEADS=all;
     LEADS.forEach(l=>(l.cats||[]).forEach(c=>KNOWN_CATS.add(c)));
     await enrichOrders();
+    await enrichInquiries();
     await loadSalesOwnership();
     await applyContactOwnership();
     await prefetchShipments();
@@ -1219,7 +1264,7 @@ function leadRowHtml(l){
     '<td class="nowrap">'+fmtDate(l.date)+'</td>'+
     '<td><span class="tag" style="background:#eef1f5;color:#5a6b7b">'+esc(catLabel)+'</span></td>'+
     '<td class="lcust" data-detail="'+l.id+'"><b>'+esc(dispName(l))+'</b>'+(l.hasPhone?' ☎':'')+'<div class="lsub">'+esc(l.title)+'</div></td>'+
-    '<td class="litem">'+esc(l.item||'')+(l.deal?'<div class="lsub">'+esc(l.deal)+'</div>':'')+'</td>'+
+    '<td class="litem">'+esc(l.item||'')+(l.deal?'<div class="lsub">'+esc(l.deal)+'</div>':'')+(l.msg?'<div class="lsub">“'+esc(l.msg)+'”</div>':'')+'</td>'+
     '<td><span class="tag acct'+(l.acct.sd?' sd':'')+'">'+l.acct.t+'</span></td>'+
     '<td>'+repSel+relBadge(l)+shipBadge(l)+'</td>'+
     '<td><span class="statusbadge" style="background:'+so.color+'"></span>'+statSel+'</td>'+
@@ -1322,6 +1367,7 @@ function cardHtml(l){
   return '<div class="card">'+
     '<div class="cardhead" data-detail="'+l.id+'"><div class="from">'+esc(dispName(l))+'</div>'+
     '<div class="ttl">'+esc(l.title)+'</div>'+(l.item?'<div class="item">'+esc(l.item)+'</div>':'')+
+    (l.msg?'<div class="item msg" title="'+esc(l.msg)+'">“'+esc(l.msg)+'”</div>':'')+
     '<div class="cardhint">▸ tap for full email</div></div>'+
     '<div class="meta"><span class="tag rep" title="Owner">'+rep+'</span>'+relBadge(l)+shipBadge(l)+
       (l.deal?'<span class="tag deal">'+esc(l.deal)+'</span>':'')+
