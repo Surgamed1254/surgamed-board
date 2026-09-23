@@ -7,83 +7,140 @@ header{background:#1f4e78;color:#fff;padding:12px 18px;display:flex;align-items:
 header h1{font-size:17px;margin:0}
 header .nav{margin-left:auto;display:flex;gap:6px}
 header .nav a{background:rgba(255,255,255,.16);color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600}
-.wrap{padding:16px;max-width:1200px;margin:0 auto}
+.wrap{padding:16px;max-width:1400px;margin:0 auto}
 .ctl{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
-select{padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff}
+select,input{padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff}
 .note{font-size:12px;color:#64748b}
-table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-th{background:#1f4e78;color:#fff;font-size:11px;text-align:right;padding:7px 8px;position:sticky;top:0}
-th:first-child{text-align:left}
-td{padding:6px 8px;border-bottom:1px solid #eef2f6;font-size:12px;text-align:right}
-td:first-child{text-align:left}
-tr.feat td{background:#eaf1fb;font-weight:700;cursor:pointer}
-tr.ev td:first-child{padding-left:26px;color:#475569}
+.tabs{display:flex;gap:6px;margin:6px 0 14px}
+.tab{padding:7px 14px;border-radius:999px;background:#e2e8f0;font-size:13px;font-weight:600;cursor:pointer;border:0}
+.tab.on{background:#1f4e78;color:#fff}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:18px}
+th{background:#1f4e78;color:#fff;font-size:11px;text-align:right;padding:7px 8px;position:sticky;top:0;cursor:pointer;white-space:nowrap}
+th:first-child,th.l{text-align:left}
+td{padding:6px 8px;border-bottom:1px solid #eef2f6;font-size:12px;text-align:right;white-space:nowrap}
+td:first-child,td.l{text-align:left;white-space:normal}
 td.z{color:#cbd5e1}
-td.tot{font-weight:700;background:#fafcff}
+tr.feat td{background:#eaf1fb;font-weight:700;cursor:pointer}
+tr.ev td:first-child{padding-left:26px;color:#475569;font-weight:400}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700}
+.p-page{background:#dbeafe;color:#1e40af}.p-bot{background:#dcfce7;color:#166534}.p-assistant_tool{background:#dcfce7;color:#166534}.p-job{background:#fef3c7;color:#92400e}
+.dead{background:#fee2e2!important;color:#991b1b}
+.warn{background:#fef3c7!important}
+.ok{color:#166534}
+h2{font-size:15px;margin:18px 0 8px}
 .empty{padding:40px;text-align:center;color:#94a3b8}
+.small{font-size:11px;color:#64748b}
+.bar{display:inline-block;height:9px;background:#1f4e78;border-radius:3px;vertical-align:middle;margin-right:4px}
 </style></head><body>
-<header><h1>📈 Feature Usage — per rep, per day</h1>
-<span class="nav"><a href="index.html">📊 Wallboard</a><a href="leads.html">📋 Leads</a><a href="whatsapp-crm.html">💬 CRM</a><a href="recommendations.html">🤖 AI Recs</a></span></header>
+<header><h1>📈 Feature Usage — who, what, when, how often</h1>
+<span class="nav"><a href="index.html">📊 Wallboard</a><a href="leads.html">📋 Leads</a><a href="whatsapp-crm.html">💬 CRM</a><a href="recommendations.html">🤖 AI Recs</a><a href="winback.html">🔁 Win-Backs</a></span></header>
 <div class="wrap">
 <div class="ctl">
- <select id="rep"><option value="">All reps</option></select>
- <select id="days"><option value="7">Last 7 days</option><option value="14" selected>Last 14 days</option><option value="30">Last 30 days</option></select>
- <span class="note">Click a feature row to expand its actions. Counts = clicks/opens/messages that day.</span>
+ <select id="days"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="60">Last 60 days</option><option value="90">Last 90 days</option></select>
+ <select id="rep"><option value="">All people</option></select>
+ <label class="note"><input type="checkbox" id="noclicks"> hide raw clicks/selects (show only named actions)</label>
+ <span class="note" id="gen"></span>
 </div>
+<div class="tabs"><button class="tab on" data-t="features">Features</button><button class="tab" data-t="matrix">People × Features</button><button class="tab" data-t="daily">Daily detail</button><button class="tab" data-t="recent">Recent activity</button><button class="tab" data-t="delete">🗑 Delete candidates</button></div>
 <div id="out" class="empty">Loading…</div>
 </div>
 <script>
 const KEY=new URLSearchParams(location.search).get("k")||"";
-const NAMES={wallboard:"📊 Wallboard (TV)",lead_board:"📋 DotMed Lead Board",whatsapp_crm:"💬 WhatsApp CRM",ai_recommendations:"🤖 AI Recommendations",whatsapp_bot:"🤖 WhatsApp Assistant (bot)",usage_report:"📈 Usage report"};
-const EVN={page_view:"page opened",message:"messages to bot",customer_open:"customer opened",excel_download:"Excel download",excel_download_nonotes:"Excel download (no notes)",copy_whatsapp:"Copy for WhatsApp",mark_sent_whatsapp:"marked sent (WA)",mark_sent_email:"marked sent (email)"};
-let DATA=[],open={};
+const KIND={page:"Page",bot:"Assistant",assistant_tool:"Assistant tool",job:"Automated job"};
+const EVN={page_view:"page opened",page_return:"page re-opened (same session)",heartbeat:"still open (5 min)",click:"button/link click",select:"dropdown change",message:"messages to Assistant",customer_open:"customer opened",excel_download:"Excel download",excel_download_nonotes:"Excel download (no notes)",copy_whatsapp:"Copy for WhatsApp",mark_sent_email:"marked sent (email)",mark_sent_whatsapp:"marked sent (WhatsApp)",item_search:"item search",find_buyers:"find buyers",preview:"preview",send_blast:"send blast",blast_sent:"blast sent",download_xlsx:"Excel download",rep_reply:"rep replied",posted:"posted to reps",sent:"sent"};
+let D=null,TAB="features",open={};
+const $=id=>document.getElementById(id);
 async function load(){
-  if(!KEY){document.getElementById("out").innerHTML='<div class="empty">🔒 This report is owner-only. Open it with your private link.</div>';return;}
-  const days=document.getElementById("days").value;
-  const r=await fetch("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?action=summary&days="+days+"&k="+KEY);
-  if(r.status===401){document.getElementById("out").innerHTML='<div class="empty">🔒 Wrong key — this report is owner-only.</div>';return;}DATA=await r.json();
-  const reps=[...new Set(DATA.map(x=>x.rep))].filter(x=>x&&x!=="(unknown)").sort();
-  const sel=document.getElementById("rep"),cur=sel.value;sel.innerHTML='<option value="">All reps</option>';
-  reps.forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;sel.appendChild(o);});
-  sel.value=cur||"";
+  if(!KEY){$("out").innerHTML='<div class="empty">🔒 This report is owner-only. Open it with your private link.</div>';return;}
+  $("out").innerHTML='<div class="empty">Loading…</div>';
+  const r=await fetch("https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?action=summary&days="+$("days").value+"&k="+KEY);
+  if(r.status===401){$("out").innerHTML='<div class="empty">🔒 Wrong key — this report is owner-only.</div>';return;}
+  D=await r.json();
+  const reps=[...new Set(D.rows.map(x=>x.rep))].filter(x=>x&&x!=="(unknown)"&&x!=="system").sort();
+  const sel=$("rep"),cur=sel.value;sel.innerHTML='<option value="">All people</option>';reps.forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;sel.appendChild(o);});sel.value=cur||"";
+  $("gen").textContent="generated "+new Date(D.generated_at).toLocaleString()+" · "+D.rows.reduce((a,x)=>a+x.n,0)+" events";
   render();
 }
+function label(f){if(f.startsWith("assistant:"))return "🤖 Assistant · "+f.slice(10);const r=D.registry.find(x=>x.feature===f);return r?r.label:f;}
+function kind(f){if(f.startsWith("assistant:"))return "assistant_tool";const r=D.registry.find(x=>x.feature===f);return r?r.kind:"page";}
+function splitBot(x){if(x.feature!=="assistant"||x.event==="message")return x;const p=x.event.split(":");return Object.assign({},x,{feature:"assistant:"+p[0],event:p[1]||"use"});}
+function rowsF(){const rep=$("rep").value,nc=$("noclicks").checked;return D.rows.map(splitBot).filter(x=>(!rep||x.rep===rep)&&x.event!=="heartbeat"&&(!nc||(x.event!=="click"&&x.event!=="select")));}
+function fmtD(ts){if(!ts)return"—";const d=new Date(ts);const ago=Math.floor((Date.now()-d)/864e5);return d.toISOString().slice(0,10)+" <span class=small>("+(ago===0?"today":ago+"d ago")+")</span>";}
 function render(){
-  const rep=document.getElementById("rep").value;
-  const rows=rep?DATA.filter(x=>x.rep===rep):DATA;
-  if(!rows.length){document.getElementById("out").innerHTML='<div class="empty">No usage recorded yet for this view. Counts start today — give it a day.</div>';return;}
-  const daysN=Number(document.getElementById("days").value);
-  const ds=[];for(let i=daysN-1;i>=0;i--){ds.push(new Date(Date.now()-i*864e5).toISOString().slice(0,10));}
-  const agg={};
-  rows.forEach(x=>{
-    const f=x.feature;agg[f]=agg[f]||{__tot:{},__ev:{}};
-    agg[f].__tot[x.d]=(agg[f].__tot[x.d]||0)+x.n;
-    agg[f].__ev[x.event]=agg[f].__ev[x.event]||{};
-    agg[f].__ev[x.event][x.d]=(agg[f].__ev[x.event][x.d]||0)+x.n;
-  });
-  let h='<table><thead><tr><th>Feature</th>'+ds.map(d=>'<th>'+d.slice(5).replace("-","/")+'</th>').join("")+'<th>Total</th></tr></thead><tbody>';
-  const feats=Object.keys(agg).sort((a,b)=>sum(agg[b].__tot)-sum(agg[a].__tot));
-  feats.forEach(f=>{
-    const t=agg[f].__tot,tt=sum(t);
-    h+='<tr class="feat" onclick="tog(\''+f+'\')"><td>'+(open[f]?"▾ ":"▸ ")+(NAMES[f]||f)+'</td>'+ds.map(d=>cell(t[d])).join("")+'<td class="tot">'+tt.toLocaleString()+'</td></tr>';
-    if(open[f]){
-      Object.keys(agg[f].__ev).sort((a,b)=>sum(agg[f].__ev[b])-sum(agg[f].__ev[a])).forEach(ev=>{
-        const e=agg[f].__ev[ev];
-        h+='<tr class="ev"><td>'+(EVN[ev]||ev)+'</td>'+ds.map(d=>cell(e[d])).join("")+'<td class="tot">'+sum(e).toLocaleString()+'</td></tr>';
-      });
-    }
-  });
-  // grand total row
-  const g={};rows.forEach(x=>{g[x.d]=(g[x.d]||0)+x.n;});
-  h+='<tr class="feat"><td>All features</td>'+ds.map(d=>cell(g[d])).join("")+'<td class="tot">'+sum(g).toLocaleString()+'</td></tr>';
-  h+='</tbody></table>';
-  document.getElementById("out").innerHTML=h;
+  if(!D)return;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.t===TAB));
+  const rows=rowsF();
+  if(TAB==="features")return renderFeatures(rows);
+  if(TAB==="matrix")return renderMatrix(rows);
+  if(TAB==="daily")return renderDaily(rows);
+  if(TAB==="recent")return renderRecent();
+  if(TAB==="delete")return renderDelete(rows);
 }
-function sum(o){return Object.values(o).reduce((s,n)=>s+n,0);}
-function cell(v){return v?'<td>'+v.toLocaleString()+'</td>':'<td class="z">·</td>';}
-function tog(f){open[f]=!open[f];render();}
-document.getElementById("rep").onchange=render;
-document.getElementById("days").onchange=load;
+function statsByFeature(rows){
+  const s={};
+  rows.forEach(x=>{const f=s[x.feature]=s[x.feature]||{n:0,reps:{},days:{},ev:{}};f.n+=x.n;if(x.rep&&x.rep!=="(unknown)"&&x.rep!=="system")f.reps[x.rep]=(f.reps[x.rep]||0)+x.n;f.days[x.d]=1;f.ev[x.event]=(f.ev[x.event]||0)+x.n;});
+  return s;
+}
+function renderFeatures(rows){
+  const s=statsByFeature(rows);const feats=new Set([...D.registry.filter(r=>!r.retired_at).map(r=>r.feature),...Object.keys(s)]);
+  const lt={};D.lifetime.forEach(l=>lt[l.feature]=l);
+  const list=[...feats].map(f=>({f,k:kind(f),n:s[f]?s[f].n:0,reps:s[f]?Object.keys(s[f].reps).length:0,days:s[f]?Object.keys(s[f].days).length:0,last:D.last[f]||(lt[f]?lt[f].last_ts:null),first:lt[f]?lt[f].first_ts:null,total:lt[f]?Number(lt[f].total):0}));
+  list.sort((a,b)=>b.n-a.n||String(b.last||"").localeCompare(String(a.last||"")));
+  const max=Math.max(1,...list.map(x=>x.n));
+  let h='<table><tr><th class=l>Feature</th><th>Type</th><th>Uses ('+D.days+'d)</th><th>People</th><th>Active days</th><th>Last used</th><th>First ever</th><th>Lifetime uses</th><th class=l>Top users</th></tr>';
+  list.forEach(x=>{
+    const dead=x.n===0;const stale=!dead&&x.last&&(Date.now()-new Date(x.last))>14*864e5;
+    const top=s[x.f]?Object.entries(s[x.f].reps).sort((a,b)=>b[1]-a[1]).slice(0,4).map(e=>e[0].split(" ")[0]+" "+e[1]).join(", "):"";
+    h+='<tr class="feat'+(dead?" dead":stale?" warn":"")+'" data-f="'+x.f+'"><td class=l>'+(open[x.f]?"▾ ":"▸ ")+label(x.f)+' <span class=small>'+x.f+'</span></td><td><span class="pill p-'+x.k+'">'+(KIND[x.k]||x.k)+'</span></td><td><span class=bar style="width:'+Math.round(90*x.n/max)+'px"></span>'+x.n+'</td><td>'+x.reps+'</td><td>'+x.days+'</td><td>'+fmtD(x.last)+'</td><td>'+(x.first?String(x.first).slice(0,10):"—")+'</td><td>'+x.total+'</td><td class=l>'+top+'</td></tr>';
+    if(open[x.f]&&s[x.f]){Object.entries(s[x.f].ev).sort((a,b)=>b[1]-a[1]).forEach(e=>{h+='<tr class=ev><td>'+(EVN[e[0]]||e[0])+'</td><td></td><td>'+e[1]+'</td><td colspan=6></td></tr>';});}
+  });
+  h+='</table><div class=note>Red = no use in this window. Yellow = nothing in the last 14 days. Click a feature to see its actions. "Lifetime" is since tracking began (Aug 26 for pages, Sep 23 for Assistant tools).</div>';
+  $("out").innerHTML=h;
+  document.querySelectorAll("tr.feat").forEach(tr=>tr.onclick=()=>{open[tr.dataset.f]=!open[tr.dataset.f];render();});
+}
+function renderMatrix(rows){
+  const reps=[...new Set(rows.map(x=>x.rep))].filter(x=>x&&x!=="(unknown)"&&x!=="system").sort();
+  const feats=[...new Set(rows.map(x=>x.feature))].sort((a,b)=>label(a).localeCompare(label(b)));
+  const m={};rows.forEach(x=>{m[x.rep+"|"+x.feature]=(m[x.rep+"|"+x.feature]||0)+x.n;});
+  const lastRF={};D.recent.forEach(r=>{const k=r.rep+"|"+r.feature;if(!lastRF[k])lastRF[k]=r.ts;});
+  let h='<table><tr><th class=l>Person</th>'+feats.map(f=>'<th>'+label(f)+'</th>').join("")+'<th>Total</th></tr>';
+  reps.forEach(r=>{let tot=0;h+='<tr><td class=l>'+r+'</td>'+feats.map(f=>{const n=m[r+"|"+f]||0;tot+=n;return n?'<td title="last '+(lastRF[r+"|"+f]||"").slice(0,16)+'">'+n+'</td>':'<td class=z>·</td>';}).join("")+'<td><b>'+tot+'</b></td></tr>';});
+  h+='<tr><td class=l><b>Everyone</b></td>'+feats.map(f=>'<td><b>'+rows.filter(x=>x.feature===f).reduce((a,x)=>a+x.n,0)+'</b></td>').join("")+'<td></td></tr></table>';
+  h+='<h2>Never touched (per person, this window)</h2><table><tr><th class=l>Person</th><th class=l>Has never used</th></tr>';
+  reps.forEach(r=>{const never=D.registry.filter(x=>!x.retired_at&&x.kind==="page"&&!m[r+"|"+x.feature]).map(x=>x.label);h+='<tr><td class=l>'+r+'</td><td class=l>'+(never.join(", ")||'<span class=ok>uses everything</span>')+'</td></tr>';});
+  $("out").innerHTML=h+'</table>';
+}
+function renderDaily(rows){
+  const daysN=Number($("days").value);const ds=[];for(let i=daysN-1;i>=0;i--)ds.push(new Date(Date.now()-i*864e5).toISOString().slice(0,10));
+  const agg={};rows.forEach(x=>{const f=x.feature;agg[f]=agg[f]||{__tot:{},__ev:{}};agg[f].__tot[x.d]=(agg[f].__tot[x.d]||0)+x.n;const e=agg[f].__ev[x.event]=agg[f].__ev[x.event]||{};e[x.d]=(e[x.d]||0)+x.n;});
+  const show=daysN>30?ds.filter((d,i)=>i%Math.ceil(daysN/30)===0||i===ds.length-1):ds;
+  let h='<table><tr><th class=l>Feature / action</th>'+show.map(d=>'<th>'+d.slice(5)+'</th>').join("")+'<th>Total</th></tr>';
+  Object.keys(agg).sort((a,b)=>label(a).localeCompare(label(b))).forEach(f=>{const t=agg[f].__tot;const tot=Object.values(t).reduce((a,b)=>a+b,0);
+    h+='<tr class=feat data-f="'+f+'"><td class=l>'+(open[f]?"▾ ":"▸ ")+label(f)+'</td>'+show.map(d=>t[d]?'<td>'+t[d]+'</td>':'<td class=z>·</td>').join("")+'<td>'+tot+'</td></tr>';
+    if(open[f])Object.keys(agg[f].__ev).sort().forEach(e=>{const v=agg[f].__ev[e];h+='<tr class=ev><td>'+(EVN[e]||e)+'</td>'+show.map(d=>v[d]?'<td>'+v[d]+'</td>':'<td class=z>·</td>').join("")+'<td>'+Object.values(v).reduce((a,b)=>a+b,0)+'</td></tr>';});});
+  $("out").innerHTML=h+'</table>'+(daysN>30?'<div class=note>Showing every '+Math.ceil(daysN/30)+' days; totals cover the full window.</div>':'');
+  document.querySelectorAll("tr.feat").forEach(tr=>tr.onclick=()=>{open[tr.dataset.f]=!open[tr.dataset.f];render();});
+}
+function renderRecent(){
+  const rep=$("rep").value,nc=$("noclicks").checked;
+  const rs=D.recent.map(splitBot).filter(r=>(!rep||r.rep===rep)&&(!nc||(r.event!=="click"&&r.event!=="select")));
+  let h='<table><tr><th class=l>When</th><th class=l>Who</th><th class=l>Feature</th><th class=l>Action</th><th class=l>Detail</th></tr>';
+  rs.slice(0,300).forEach(r=>{h+='<tr><td class=l>'+new Date(r.ts).toLocaleString()+'</td><td class=l>'+r.rep+'</td><td class=l>'+label(r.feature)+'</td><td class=l>'+(EVN[r.event]||r.event)+'</td><td class=l><span class=small>'+(r.detail||"").replace(/</g,"&lt;")+'</span></td></tr>';});
+  $("out").innerHTML=h+'</table><div class=note>Most recent 300 events (heartbeats hidden).</div>';
+}
+function renderDelete(rows){
+  const s=statsByFeature(rows);const lt={};D.lifetime.forEach(l=>lt[l.feature]=l);
+  const reg=D.registry.filter(x=>!x.retired_at);
+  const dead=reg.filter(x=>!s[x.feature]);const low=reg.filter(x=>s[x.feature]&&Object.keys(s[x.feature].reps).length<=1&&s[x.feature].n<10);
+  let h='<h2>🗑 Not used at all in the last '+D.days+' days</h2>';
+  h+=dead.length?'<table><tr><th class=l>Feature</th><th>Type</th><th>Last ever used</th><th>Lifetime uses</th><th class=l>Note</th></tr>'+dead.map(x=>'<tr class=dead><td class=l>'+x.label+' <span class=small>'+x.feature+'</span></td><td>'+(KIND[x.kind]||x.kind)+'</td><td>'+(lt[x.feature]?fmtD(lt[x.feature].last_ts):"never")+'</td><td>'+(lt[x.feature]?lt[x.feature].total:0)+'</td><td class=l>'+(x.note||"")+'</td></tr>').join("")+'</table>':'<div class=note>Everything in the registry was used at least once.</div>';
+  h+='<h2>⚠️ Barely used (one person, under 10 uses)</h2>';
+  h+=low.length?'<table><tr><th class=l>Feature</th><th>Uses</th><th class=l>Only user</th><th>Last used</th></tr>'+low.map(x=>'<tr class=warn><td class=l>'+x.label+'</td><td>'+s[x.feature].n+'</td><td class=l>'+Object.keys(s[x.feature].reps).join(", ")+'</td><td>'+fmtD(D.last[x.feature])+'</td></tr>').join("")+'</table>':'<div class=note>None.</div>';
+  h+='<div class=note>Widen the window to 90 days before deleting anything seasonal. Assistant tools are counted individually under "Recent activity" and the Features tab (feature = assistant, action = tool name).</div>';
+  $("out").innerHTML=h;
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{TAB=t.dataset.t;render();});
+$("days").onchange=load;$("rep").onchange=render;$("noclicks").onchange=render;
 load();
 </script>
 <script>window.__SMFEAT="usage_report"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script>
