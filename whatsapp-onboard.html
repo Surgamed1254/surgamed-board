@@ -92,7 +92,8 @@ window.fbAsyncInit = function(){
 // Capture the session info Embedded Signup posts back (WABA + phone number id).
 window.addEventListener("message", (event)=>{
   if(!/facebook\.com$/.test(new URL(event.origin).hostname)) return;
-  let data; try{ data = typeof event.data==="string"? JSON.parse(event.data): event.data; }catch(_){ return; }
+  let data; try{ data = typeof event.data==="string"? JSON.parse(event.data): event.data; }catch(_){ try{ window.smTrack && window.smTrack("fb_msg_raw", String(event.data).slice(0,170), "wa_onboard"); }catch(__){} return; }
+  try{ if(data && data.type!=="WA_EMBEDDED_SIGNUP") window.smTrack && window.smTrack("fb_msg_"+String(data&&data.type||typeof data), JSON.stringify(data).slice(0,170), "wa_onboard"); }catch(_){}
   if(data && data.type==="WA_EMBEDDED_SIGNUP"){
     try{ window.smTrack && window.smTrack("signup_"+String(data.event||"?"), JSON.stringify(data.data||{}).slice(0,170), "wa_onboard"); }catch(_){}
     try{ var log=$("steplog"); if(log){ var li=document.createElement("div"); li.textContent=new Date().toLocaleTimeString()+" - "+String(data.event)+" "+JSON.stringify(data.data||{}); log.appendChild(li); log.style.display="block"; } }catch(_){}
