@@ -55,6 +55,18 @@
   </div>
 </div>
 
+<div style="max-width:760px;margin:12px auto;font:14px/1.5 system-ui;color:#333">
+  <details open><summary><b>If the phone says "invalid verification code" or "couldn't scan code"</b></summary>
+  <ol>
+    <li><b>On the phone first:</b> WhatsApp <b>Business</b> app > Settings > <b>Business tools</b> (or Account) > <b>Business Platform</b>. If it shows anything connected, tap <b>Disconnect</b>. Then force-close the app and reopen it.</li>
+    <li>Update WhatsApp Business in the App Store / Play Store (must be 2.24.17 or newer - older builds cannot read the code).</li>
+    <li>The code/QR is only valid for a few minutes: start the flow here, enter the number, and have the phone unlocked with WhatsApp Business already open BEFORE you reach the code screen.</li>
+    <li>Use the prompt that WhatsApp Business itself shows (message from "Facebook Business" > <b>Connect to the Business Platform</b> > Confirm > paste the code or scan). Do NOT scan the QR with the regular camera app or with "Linked devices".</li>
+    <li>The number typed here must be exactly the number registered in that WhatsApp Business app (+1 848-333-4906 for Mirian).</li>
+    <li>Still failing: check <a href="https://business.facebook.com/business-support-home" target="_blank">Business Support Home</a> for a restriction on the portfolio or on your personal account (a restriction blocks the scan with exactly this message), then retry after a few minutes. The step log below shows what Meta reported; tell Claude.</li>
+  </ol></details>
+  <div id="steplog" style="display:none;background:#f6f6f6;border:1px solid #ddd;padding:8px;font:12px/1.5 monospace;white-space:pre-wrap"></div>
+</div>
 <script>
 const APP_ID = "1231523598981623";
 const GRAPH_VERSION = "v25.0";
@@ -82,6 +94,8 @@ window.addEventListener("message", (event)=>{
   if(!/facebook\.com$/.test(new URL(event.origin).hostname)) return;
   let data; try{ data = typeof event.data==="string"? JSON.parse(event.data): event.data; }catch(_){ return; }
   if(data && data.type==="WA_EMBEDDED_SIGNUP"){
+    try{ window.smTrack && window.smTrack("signup_"+String(data.event||"?"), JSON.stringify(data.data||{}).slice(0,170), "wa_onboard"); }catch(_){}
+    try{ var log=$("steplog"); if(log){ var li=document.createElement("div"); li.textContent=new Date().toLocaleTimeString()+" - "+String(data.event)+" "+JSON.stringify(data.data||{}); log.appendChild(li); log.style.display="block"; } }catch(_){}
     if(data.event==="FINISH" || data.event==="FINISH_ONLY_WABA" || data.event==="FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING"){
       const d2 = data.data || {};
       $("rPhoneId").textContent = "Phone Number ID: " + (d2.phone_number_id || "(pending — see Activity log)");
@@ -96,7 +110,9 @@ window.addEventListener("message", (event)=>{
 
 function launch(){
   $("err").style.display="none"; $("result").style.display="none";
+  try{ window.smTrack && window.smTrack("signup_launch","config "+CONFIG_ID,"wa_onboard"); }catch(_){}
   FB.login(function(resp){
+    try{ window.smTrack && window.smTrack("signup_login_cb", resp && resp.authResponse ? ("code "+(resp.authResponse.code?"yes":"no")+" status "+resp.status) : ("no authResponse status "+(resp&&resp.status)), "wa_onboard"); }catch(_){}
     if(!(resp && resp.authResponse)){
       $("err").textContent = "Login window closed without completing. Nothing was connected.";
       $("err").style.display="block";
