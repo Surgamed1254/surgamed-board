@@ -126,6 +126,16 @@ function launch(){
   });
 }
 $("go").addEventListener("click", launch);
+// v2 (10/9/26): share an EXISTING WhatsApp Business account with the CRM app without re-pairing the phone.
+// Standard Embedded Signup lets you pick an existing WABA in the portfolio; on FINISH Meta assigns our app as partner.
+function launchShare(){
+  $("err").style.display="none"; $("result").style.display="none";
+  try{ window.smTrack && window.smTrack("signup_launch_share","config "+CONFIG_ID,"wa_onboard"); }catch(_){}
+  FB.login(function(resp){
+    if(!(resp && resp.authResponse)){ $("err").textContent = "Login window closed without completing. Nothing was connected."; $("err").style.display="block"; }
+  }, { config_id: CONFIG_ID, response_type: "code", override_default_response_type: true, extras: { setup: {}, sessionInfoVersion: "3" } });
+}
+(function(){ var b=document.createElement("button"); b.id="goShare"; b.textContent="Share an EXISTING WhatsApp Business account with the CRM (no phone needed)"; b.style.marginTop="10px"; b.onclick=launchShare; var g=$("go"); g.parentNode.insertBefore(b,g.nextSibling); var n=document.createElement("div"); n.style.cssText="font:13px/1.4 sans-serif;color:#555;margin:6px 0 12px"; n.textContent="Use this when the number is already paired in WhatsApp Manager (e.g. via Meta's own \"Link a WhatsApp Business account\"): pick portfolio Surgamed Reps, choose the existing account (do NOT create a new one), skip adding a phone number, Finish."; g.parentNode.insertBefore(n,b.nextSibling); })();
 </script>
 <script>window.__SMFEAT="wa_onboard"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script></body>
 </html>
