@@ -71,7 +71,7 @@
 <script>
 const APP_ID = "1231523598981623";
 const GRAPH_VERSION = "v25.0";
-const CONFIG_ID = "1331373832515324";
+const CONFIG_ID = "1435576072053641"; // v4 config (Cloud API product selected) created 10/12/26 - old v2 config 1331373832515324 retires 10/15/26
 
 const $=id=>document.getElementById(id);
 function setCfgNote(){
@@ -123,7 +123,7 @@ function launch(){
     config_id: CONFIG_ID,
     response_type: "code",
     override_default_response_type: true,
-    extras: { setup: {}, featureType: "whatsapp_business_app_onboarding" }
+    extras: { setup: {}, featureType: "whatsapp_business_app_onboarding", sessionInfoVersion: "3" }
   });
 }
 $("go").addEventListener("click", launch);
