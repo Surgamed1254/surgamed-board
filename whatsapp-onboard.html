@@ -63,6 +63,7 @@
     <li>The code/QR is only valid for a few minutes: start the flow here, enter the number, and have the phone unlocked with WhatsApp Business already open BEFORE you reach the code screen.</li>
     <li>Use the prompt that WhatsApp Business itself shows (message from "Facebook Business" > <b>Connect to the Business Platform</b> > Confirm > paste the code or scan). Do NOT scan the QR with the regular camera app or with "Linked devices".</li>
     <li>The number typed here must be exactly the number registered in that WhatsApp Business app (+1 848-333-4906 for Mirian).</li>
+    <li><b>Eligibility (Meta rule):</b> the number needs 7+ consecutive days of real use in the WhatsApp Business app on ONE phone before it can pair. Reinstalling, re-verifying by SMS, changing phones, tablet logins or tapping Disconnect reset that clock. If the code is rejected, stop and wait - do not reinstall.</li>
     <li>Still failing: check <a href="https://business.facebook.com/business-support-home" target="_blank">Business Support Home</a> for a restriction on the portfolio or on your personal account (a restriction blocks the scan with exactly this message), then retry after a few minutes. The step log below shows what Meta reported; tell Claude.</li>
   </ol></details>
   <div id="steplog" style="display:none;background:#f6f6f6;border:1px solid #ddd;padding:8px;font:12px/1.5 monospace;white-space:pre-wrap"></div>
@@ -126,16 +127,8 @@ function launch(){
   });
 }
 $("go").addEventListener("click", launch);
-// v2 (10/9/26): share an EXISTING WhatsApp Business account with the CRM app without re-pairing the phone.
-// Standard Embedded Signup lets you pick an existing WABA in the portfolio; on FINISH Meta assigns our app as partner.
-function launchShare(){
-  $("err").style.display="none"; $("result").style.display="none";
-  try{ window.smTrack && window.smTrack("signup_launch_share","config "+CONFIG_ID,"wa_onboard"); }catch(_){}
-  FB.login(function(resp){
-    if(!(resp && resp.authResponse)){ $("err").textContent = "Login window closed without completing. Nothing was connected."; $("err").style.display="block"; }
-  }, { config_id: CONFIG_ID, response_type: "code", override_default_response_type: true, extras: { setup: {}, sessionInfoVersion: "3" } });
-}
-(function(){ var b=document.createElement("button"); b.id="goShare"; b.textContent="Share an EXISTING WhatsApp Business account with the CRM (no phone needed)"; b.style.marginTop="10px"; b.onclick=launchShare; var g=$("go"); g.parentNode.insertBefore(b,g.nextSibling); var n=document.createElement("div"); n.style.cssText="font:13px/1.4 sans-serif;color:#555;margin:6px 0 12px"; n.textContent="Use this when the number is already paired in WhatsApp Manager (e.g. via Meta's own \"Link a WhatsApp Business account\"): pick portfolio Surgamed Reps, choose the existing account (do NOT create a new one), skip adding a phone number, Finish."; g.parentNode.insertBefore(n,b.nextSibling); })();
+// (share-existing button removed 10/12/26 - standard ES migrates the number off the phone; coexistence only)
+
 </script>
 <script>window.__SMFEAT="wa_onboard"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script></body>
 </html>
