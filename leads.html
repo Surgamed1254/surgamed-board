@@ -1114,8 +1114,11 @@ async function enrichOrders(){
       const im=/Listing #\d+\s*[-–]\s*([^\n]+?)\s*\n?\s*Price:\s*[\d.,]/i.exec(text); if(im && !l.item) l.item=im[1].trim();
       const nm=(/Buyer(?:'s)? Name:\s*([^\n]+)/i.exec(text)||/\bName:\s*([^\n]+)/i.exec(text)||[])[1];
       if(nm && isGeneric(l)) l.display=nm.trim();
-      const em=(text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[])[0];
-      if(em && !l.custEmail && !/dotmed\.com$/i.test(em)) l.custEmail=em.toLowerCase();
+      // customer email = first address in the body that is not ours (surgamed/shortdated) and not DotMed's relay;
+      // prefer the explicit "Email:" line when present (DotMed order + CRM backup notices both have it)
+      const emL=/Email:\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i.exec(text);
+      const em=(emL&&!ourAddr(emL[1]))?emL[1]:firstCustomerEmail(text);
+      if(em && !l.custEmail) l.custEmail=em.toLowerCase();
       if(!l.item && l.listing) needDbItem.push(l);
     }catch(e){}
   }));
