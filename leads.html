@@ -985,7 +985,7 @@ async function loadShipNote(orderId, orderNumber, box, email){
     const r=await fetch(SB_URL+'/functions/v1/shipstation-note',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({action:'get',order_id:orderId,order_number:orderNumber,customer_email:(email||'')})});
     const d=await r.json(); if(!r.ok) throw new Error(d.error||('HTTP '+r.status));
     const lbl=String(d.order_number||orderNumber||orderId||'');
-    box.innerHTML='<div style="font-size:12px;font-weight:600;color:#5a6b7b;margin:2px 0 4px">📝 ShipStation internal note'+(lbl?(' <span style="font-weight:400;color:#9aa7b4">— order #'+esc(lbl)+'</span>'):'')+'</div>'+
+    box.innerHTML='<div style="font-size:12px;font-weight:600;color:#5a6b7b;margin:2px 0 4px">📝 ShipStation internal note'+((lbl&&String(lbl).indexOf('LEAD-')!==0)?(' <span style="font-weight:400;color:#9aa7b4">— order #'+esc(lbl)+'</span>'):'')+'</div>'+
       '<textarea id="ssNoteText" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
       '<div style="margin-top:5px;display:flex;gap:8px;align-items:center"><button id="ssNoteSave" class="custbtn" style="padding:6px 12px">💾 Save note</button><span id="ssNoteMsg" style="font-size:12px;color:#5a6b7b"></span></div><div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center"><span style="font-size:12px;color:#5a6b7b">🏷️ ShipStation tags:</span><span id="ssTagChips" style="color:#9aa7b4;font-size:12px">…</span></div>';
     document.getElementById('ssNoteText').value=(d.board_note!==undefined&&d.board_note!=='')?d.board_note:(d.internalNotes||'');
