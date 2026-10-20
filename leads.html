@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SurgaMed — DotMed Lead Board</title>
+<title>SurgaMed â DotMed Lead Board</title>
 <style>
 :root{ color-scheme: light; }
 *{ box-sizing:border-box; }
@@ -133,7 +133,7 @@ h1{ font-size:20px; margin:0 0 2px; }
 @media(max-width:1100px){ .board,.rota-grid{ grid-template-columns:repeat(2,1fr);} }
 @media(max-width:620px){ .board,.rota-grid{ grid-template-columns:1fr;} .kv{ grid-template-columns:1fr; } }
 
-/* ============ Modern preview theme (toggle — Meir only) ============ */
+/* ============ Modern preview theme (toggle â Meir only) ============ */
 body.modern{ background:#f6f7f9; color:#1a2230; -webkit-font-smoothing:antialiased; }
 body.modern .wrap{ max-width:1560px; padding:22px 26px 72px; }
 body.modern h1{ font-size:23px; font-weight:700; letter-spacing:-.015em; }
@@ -293,7 +293,7 @@ body{ background: radial-gradient(1100px 300px at 12% -90px, rgba(21,101,216,.10
 <body>
 <div id="signin">
   <div class="card-signin">
-    <h1>SurgaMed — DotMed Lead Board</h1>
+    <h1>SurgaMed â DotMed Lead Board</h1>
     <p>Sign in with your SurgaMed Microsoft account to view the team's leads.</p>
     <button class="msbtn" id="msBtn">
       <svg width="18" height="18" viewBox="0 0 23 23"><rect width="10" height="10" x="1" y="1" fill="#f25022"/><rect width="10" height="10" x="12" y="1" fill="#7fba00"/><rect width="10" height="10" x="1" y="12" fill="#00a4ef"/><rect width="10" height="10" x="12" y="12" fill="#ffb900"/></svg>
@@ -304,8 +304,8 @@ body{ background: radial-gradient(1100px 300px at 12% -90px, rgba(21,101,216,.10
 </div>
 
 <div class="wrap" id="app" style="display:none">
-  <h1>SurgaMed — DotMed Lead Board</h1>
-  <p class="sub">Live from <b>orders@surgamed.com</b> (SurgaMed + ShortDated). Shared across the team — status, ownership &amp; history sync for everyone.</p>
+  <h1>SurgaMed â DotMed Lead Board</h1>
+  <p class="sub">Live from <b>orders@surgamed.com</b> (SurgaMed + ShortDated). Shared across the team â status, ownership &amp; history sync for everyone.</p>
   <div id="rotabar" class="rotabar"></div>
   <div class="controls">
     <label>Rep:
@@ -341,19 +341,19 @@ body{ background: radial-gradient(1100px 300px at 12% -90px, rgba(21,101,216,.10
       </select>
     </label>
     <label><input type="checkbox" id="hideClosed"> Hide closed</label>
-    <button class="custbtn" id="custLookup">🔎 Lookup</button>
-    <button class="custbtn" id="oppBtn" style="background:#0f766e;border-color:#0f766e">🎯 Opportunities</button>
-    <button class="custbtn" id="radarBtn" style="background:#b45309;border-color:#b45309">📡 Reorder Radar</button>
-    <button class="custbtn" id="itemLookup" style="display:none">📦 Item lookup</button>
-    <button class="custbtn" id="mySig" style="background:#5a6b7b;border-color:#5a6b7b">✍️ My signature</button>
-    <button class="custbtn" id="teamActivity" style="display:none;background:#5b3fc4;border-color:#5b3fc4">👥 Team activity</button>
-    <button class="custbtn" id="refreshBtn" style="background:#0f7a4d;border-color:#0f7a4d" title="Refresh now — auto-refreshes every 90s">↻ Refresh</button>
+    <button class="custbtn" id="custLookup">ð Lookup</button>
+    <button class="custbtn" id="oppBtn" style="background:#0f766e;border-color:#0f766e">ð¯ Opportunities</button>
+    <button class="custbtn" id="radarBtn" style="background:#b45309;border-color:#b45309">ð¡ Reorder Radar</button>
+    <button class="custbtn" id="itemLookup" style="display:none">ð¦ Item lookup</button>
+    <button class="custbtn" id="mySig" style="background:#5a6b7b;border-color:#5a6b7b">âï¸ My signature</button>
+    <button class="custbtn" id="teamActivity" style="display:none;background:#5b3fc4;border-color:#5b3fc4">ð¥ Team activity</button>
+    <button class="custbtn" id="refreshBtn" style="background:#0f7a4d;border-color:#0f7a4d" title="Refresh now â auto-refreshes every 90s">â» Refresh</button>
     <span class="whoami" id="whoami"></span>
     <button class="signout" id="signout">Sign out</button>
     <span class="counts" id="counts"></span>
   </div>
   <div id="errbox"></div>
-  <div id="board" class="board"><div class="loading">Loading leads…</div></div>
+  <div id="board" class="board"><div class="loading">Loading leadsâ¦</div></div>
   <p class="note" id="footnote"></p>
 </div>
 
@@ -450,7 +450,7 @@ async function showApp(session){
   document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ markPresence(u); load(true); } });
   // Team-activity view is visible only to the admin (Meir).
   if(ADMINS.includes((u.email||"").toLowerCase())){ const ta=document.getElementById("teamActivity"); ta.style.display=""; ta.onclick=openTeamActivity; }
-  // Dense "Workspace" view — manager dashboard, available only to admins (Meir + Shaya).
+  // Dense "Workspace" view â manager dashboard, available only to admins (Meir + Shaya).
   // Admins land in the Workspace by default; they can still switch to Cards/List via the View menu.
   {
     const vs=document.getElementById('viewSel');
@@ -533,12 +533,12 @@ function renderTags(l){
   const box=document.getElementById("tagsBox"); if(!box) return;
   const cur=l.cats||[];
   let h='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">';
-  if(cur.length){ cur.forEach(c=>{ h+='<span class="tag" style="background:#e2efff;color:#0b66c3;cursor:pointer" data-rm="'+esc(c)+'" title="Remove">'+esc(c)+' ✕</span>'; }); }
+  if(cur.length){ cur.forEach(c=>{ h+='<span class="tag" style="background:#e2efff;color:#0b66c3;cursor:pointer" data-rm="'+esc(c)+'" title="Remove">'+esc(c)+' â</span>'; }); }
   else h+='<span style="color:#9aa7b4;font-size:12px">No tags on this email</span>';
   h+='</div>';
   const sugg=[...new Set([...KNOWN_CATS, ...REPS, ...STATUS_LABELS])].filter(c=>!cur.includes(c));
   if(sugg.length){ h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'; sugg.forEach(c=>{ h+='<span class="tag" style="background:#f0f3f6;color:#42505e;cursor:pointer" data-add="'+esc(c)+'">+ '+esc(c)+'</span>'; }); h+='</div>'; }
-  h+='<div style="display:flex;gap:6px"><input id="tagIn" placeholder="New tag…" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="tagAdd" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>';
+  h+='<div style="display:flex;gap:6px"><input id="tagIn" placeholder="New tagâ¦" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="tagAdd" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>';
   box.innerHTML=h;
   box.querySelectorAll("[data-rm]").forEach(el=>{ el.onclick=async()=>{ el.style.opacity=.5; await writeCats(l,(l.cats||[]).filter(x=>x!==el.getAttribute("data-rm"))); renderTags(l); renderBoard(); }; });
   box.querySelectorAll("[data-add]").forEach(el=>{ el.onclick=async()=>{ el.style.opacity=.5; await writeCats(l,[...(l.cats||[]),el.getAttribute("data-add")]); renderTags(l); renderBoard(); }; });
@@ -558,7 +558,7 @@ function isInquiry(email){
   if(isNoise(email)) return false;
   const snd=(email.sender||"").toLowerCase();
   // dotMed relays real buyer emails (listing questions, shopping-cart questions, etc.) via auto@dotmed.
-  // System notices (uploads, reminders, digests…) are already removed by isNoise above, so accept the rest.
+  // System notices (uploads, reminders, digestsâ¦) are already removed by isNoise above, so accept the rest.
   if(isAuto(snd)) return true;
   if(ourAddr(snd)) return false;
   return true;
@@ -567,7 +567,7 @@ function firstCustomerEmail(s){ const re=/([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[
 function firstPhone(s){ let m=/(\+\d[\d\s().\-]{6,}\d)/.exec(s); if(m) return m[1].replace(/[^\d+]/g,""); m=/\b(\d{3}[\s.\-]\d{3}[\s.\-]\d{4})\b/.exec(s); if(m) return m[1].replace(/[^\d]/g,""); return ""; }
 
 function extractLead(email,catKey){
-  const s=email.summary||"", subj=email.subject||"", blob=subj+" — "+s;
+  const s=email.summary||"", subj=email.subject||"", blob=subj+" â "+s;
   let listing=""; const mL=/Listing\s*#?\s*(\d{4,})/i.exec(blob); if(mL) listing=mL[1];
   const real=!isAuto(email.sender);
   let custName="",company="",custEmail="",phone="",deal="",extra="",item="";
@@ -576,12 +576,12 @@ function extractLead(email,catKey){
   if(catKey==="offers"){
     const mo=/made by\s+(.+?)\s+of\s+(.+?)\s+in\s+/i.exec(s); if(mo){ if(!custName)custName=mo[1].trim(); company=mo[2].trim(); }
     const lp=/Listing Price:\s*\$?([\d.,]+)/i.exec(s), op=/Offer Price:\s*\$?([\d.,]+)/i.exec(s);
-    if(lp&&op) deal="List $"+lp[1]+" → Offer $"+op[1];
+    if(lp&&op) deal="List $"+lp[1]+" â Offer $"+op[1];
     const io=/for Listing\s*#?\d+,\s*(.+?),\s*was made by/i.exec(s); if(io) item=io[1].trim();
   } else if(catKey==="quotes"){
     const mc=/Ship To Country:\s*(.+)/i.exec(s); if(mc) extra="Ship to "+mc[1].trim();
     if(!custEmail) custEmail=firstCustomerEmail(s);
-    const qi=/Listing\s*#?\d+\s*[-–]\s*(.+?)[\r\n]/i.exec(s); if(qi) item=qi[1].trim();
+    const qi=/Listing\s*#?\d+\s*[-â]\s*(.+?)[\r\n]/i.exec(s); if(qi) item=qi[1].trim();
   } else if(catKey==="inquiries"){
     if(isAuto(email.sender)){
       const mi=/([A-Za-z][\w .'\-]+?)\s+of\s+(.+?)\s+sent you this email/i.exec(s);
@@ -599,15 +599,15 @@ function extractLead(email,catKey){
   }
   let display=custName||company;
   if(!display) display = custEmail ? custEmail.split("@")[0] : (listing?("Listing #"+listing):"dotMed lead");
-  if(company && custName && company.toLowerCase()!==custName.toLowerCase()) display=custName+" · "+company;
+  if(company && custName && company.toLowerCase()!==custName.toLowerCase()) display=custName+" Â· "+company;
   let title;
-  if(catKey==="orders") title="Order placed"+(listing?" · #"+listing:"");
-  else if(catKey==="offers") title="Offer"+(listing?" · #"+listing:"");
-  else if(catKey==="quotes") title="Shipping quote"+(listing?" · #"+listing:"")+(extra?" · "+extra:"");
-  else title = isAuto(email.sender) ? ("Inquiry"+(listing?" · #"+listing:"")) : normSubject(subj);
+  if(catKey==="orders") title="Order placed"+(listing?" Â· #"+listing:"");
+  else if(catKey==="offers") title="Offer"+(listing?" Â· #"+listing:"");
+  else if(catKey==="quotes") title="Shipping quote"+(listing?" Â· #"+listing:"")+(extra?" Â· "+extra:"");
+  else title = isAuto(email.sender) ? ("Inquiry"+(listing?" Â· #"+listing:"")) : normSubject(subj);
   const who=custEmail||custName||company||"";
   let gkey;
-  // Orders are confirmed sales — each email is its own lead so repeat sales of the
+  // Orders are confirmed sales â each email is its own lead so repeat sales of the
   // same listing never collapse. Prefer the DotMed Transaction # (stable across the
   // duplicate emails DotMed sometimes sends), else the unique message id.
   if(catKey==="orders"){
@@ -644,17 +644,17 @@ async function applyRep(l, val){
   const prev=st(l.id).assignee||st(l.id).owner||"";
   if(val===prev) return;
   await upsertState(l.id,{assignee:val});
-  await addHistory(l.id,"Passed from "+(prev||"?")+" → "+val);
+  await addHistory(l.id,"Passed from "+(prev||"?")+" â "+val);
 }
 async function applyStatus(l, val){
   const ps=st(l.id).status||"new";
   if(val===ps) return;
   await upsertState(l.id,{status:val});
-  await addHistory(l.id,"Status: "+statusObj(ps).label+" → "+statusObj(val).label);
+  await addHistory(l.id,"Status: "+statusObj(ps).label+" â "+statusObj(val).label);
 }
 
 // ---- Rep contact history (so the team knows who's already in touch with a customer) ----
-const CHAN_LABEL={ email:"✉️ Emailed", phone:"📞 Called", whatsapp:"💬 WhatsApp", note:"📝 Note" };
+const CHAN_LABEL={ email:"âï¸ Emailed", phone:"ð Called", whatsapp:"ð¬ WhatsApp", note:"ð Note" };
 async function getContacts(email){
   if(!email) return [];
   const { data } = await sb.from("contacts").select("*").eq("customer_email",String(email).toLowerCase()).order("created_at",{ascending:false}).limit(200);
@@ -686,19 +686,19 @@ function renderContacts(rows, l){
   if(!rows||!rows.length) return '<div style="color:#9aa7b4;font-size:12px">No rep has logged contact with this customer yet.</div>';
   const pr=primaryRep(rows);
   let h='';
-  if(pr){ h+='<div class="relbox">🤝 Relationship: <b>'+esc(pr)+'</b> already deals with this customer — keep it with '+esc(pr)+'. <span style="color:#5a6b7b">('+rows.length+' contact'+(rows.length===1?'':'s')+' on record)</span></div>'; }
+  if(pr){ h+='<div class="relbox">ð¤ Relationship: <b>'+esc(pr)+'</b> already deals with this customer â keep it with '+esc(pr)+'. <span style="color:#5a6b7b">('+rows.length+' contact'+(rows.length===1?'':'s')+' on record)</span></div>'; }
   h+='<table class="phtab"><thead><tr><th>When</th><th>Rep</th><th>Channel</th><th>Note</th></tr></thead><tbody>';
   rows.forEach(r=>{ const d=new Date(r.created_at), ds=isNaN(d.getTime())?(r.created_at||''):d.toLocaleString(undefined,{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"});
-    h+='<tr><td class="nowrap">'+esc(ds)+'</td><td><b>'+esc(r.rep||'—')+'</b></td><td>'+esc((CHAN_LABEL[r.channel]||r.channel||''))+'</td><td>'+esc(r.note||'')+'</td></tr>'; });
+    h+='<tr><td class="nowrap">'+esc(ds)+'</td><td><b>'+esc(r.rep||'â')+'</b></td><td>'+esc((CHAN_LABEL[r.channel]||r.channel||''))+'</td><td>'+esc(r.note||'')+'</td></tr>'; });
   h+='</tbody></table>';
   return h;
 }
 async function loadContacts(l){
   const box=document.getElementById("contactBox"); if(!box) return;
   try{ const rows=await getContacts(l.custEmail); box.innerHTML=renderContacts(rows,l); }
-  catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load contact history: '+esc(String(e.message||e))+'</div>'; }
+  catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldnât load contact history: '+esc(String(e.message||e))+'</div>'; }
 }
-// Build the customer→primary-rep map and auto-assign matching leads to that rep
+// Build the customerâprimary-rep map and auto-assign matching leads to that rep
 // (so repeat customers stay with the rep who already deals with them).
 // ---- Closed-sale ownership ----
 // A rep "owns" a customer for OWNERSHIP_MONTHS after their most recent closed (rep-attributed)
@@ -749,7 +749,7 @@ async function applyContactOwnership(){
     if(st(l.id).assignee) return;          // respect a manual reassignment
     const so=SALE_OWNER[e];
     if(so){
-      if(so.open) return;                                  // freed: no rep sold to them recently → open to all
+      if(so.open) return;                                  // freed: no rep sold to them recently â open to all
       if(!REPS.includes(so.repFirst)) return;              // owned by a non-rotation seller (admin/other): leave as-is
       if(effRep(l)===so.repFirst) return;                  // already with them
       assigns.push({id:l.id, rep:so.repFirst, why:'closed a sale with this customer'});
@@ -762,7 +762,7 @@ async function applyContactOwnership(){
   if(assigns.length){
     try{
       await sb.from('lead_state').upsert(assigns.map(a=>({id:a.id, assignee:a.rep, updated_by:'contact-history'})));
-      await sb.from('lead_history').insert(assigns.map(a=>({lead_id:a.id, actor:'system', action:'Auto-assigned to '+a.rep+' — '+a.rep+' '+a.why})));
+      await sb.from('lead_history').insert(assigns.map(a=>({lead_id:a.id, actor:'system', action:'Auto-assigned to '+a.rep+' â '+a.rep+' '+a.why})));
       assigns.forEach(a=>{ STATE[a.id]=Object.assign({id:a.id}, STATE[a.id]||{}, {assignee:a.rep, updated_by:'contact-history'}); });
     }catch(e){}
   }
@@ -832,11 +832,11 @@ function shipBadge(l){
   let best=list[0]; list.forEach(s=>{ if(rankOf(s)>rankOf(best)) best=s; });
   const delivered=String(best.delivery||'').toLowerCase()==='delivered';
   const eff=delivered?'delivered':(best.status||'');
-  const MAP={ delivered:['✅ Delivered','#1d7a3f'], shipped:['📦 Shipped','#1d7a3f'], label_created:['📦 Label','#9a5b14'], voided:['📦 Voided','#c0392b'] };
-  const m=MAP[eff]||['📦 Shipment','#5a6b7b'];
+  const MAP={ delivered:['â Delivered','#1d7a3f'], shipped:['ð¦ Shipped','#1d7a3f'], label_created:['ð¦ Label','#9a5b14'], voided:['ð¦ Voided','#c0392b'] };
+  const m=MAP[eff]||['ð¦ Shipment','#5a6b7b'];
   const n=list.length;
-  const tip=[best.carrier?('Carrier: '+best.carrier):'', best.tracking?('Tracking: '+best.tracking):'', best.shipDate?('Ship date: '+String(best.shipDate).slice(0,10)):''].filter(Boolean).join('  •  ');
-  return '<span class="tag shipbadge" title="'+esc(tip)+'" style="background:'+m[1]+'1a;color:'+m[1]+';border:1px solid '+m[1]+'55">'+m[0]+(n>1?(' ×'+n):'')+'</span>';
+  const tip=[best.carrier?('Carrier: '+best.carrier):'', best.tracking?('Tracking: '+best.tracking):'', best.shipDate?('Ship date: '+String(best.shipDate).slice(0,10)):''].filter(Boolean).join('  â¢  ');
+  return '<span class="tag shipbadge" title="'+esc(tip)+'" style="background:'+m[1]+'1a;color:'+m[1]+';border:1px solid '+m[1]+'55">'+m[0]+(n>1?(' Ã'+n):'')+'</span>';
 }
 
 // ---- Real email history: every message to/from this customer, live from orders@ ----
@@ -844,15 +844,15 @@ function renderEmailList(items){
   if(!items||!items.length) return '<div style="color:#9aa7b4;font-size:12px">No emails found with this customer yet.</div>';
   let h='<table class="phtab"><thead><tr><th>Subject</th><th>Date</th><th>Sent By</th><th></th></tr></thead><tbody>';
   items.forEach((m,i)=>{
-    const icon = m.dir==='out' ? '✉️' : '📨';
+    const icon = m.dir==='out' ? 'âï¸' : 'ð¨';
     const who = m.dir==='out' ? ('to '+esc((m.to&&m.to[0])||'')) : ('from '+esc(m.fromName||m.from||''));
     const sentBy = m.dir==='out' ? ('<b>'+esc(m.sentBy||'SurgaMed')+'</b>') : '<span style="color:#9aa7b4">customer</span>';
     const d=new Date(m.date), ds=isNaN(d.getTime())?String(m.date||'').slice(0,16):d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
     h+='<tr class="emrow">'+
-       '<td><a href="#" class="emlink" data-ei="'+i+'" data-id="'+esc(m.id)+'" data-mbx="'+esc(m.mailbox||'')+'">'+icon+' '+esc(m.subject||'(no subject)')+'</a>'+(m.hasAttachments?' 📎':'')+'<div class="lsub">'+who+'</div></td>'+
+       '<td><a href="#" class="emlink" data-ei="'+i+'" data-id="'+esc(m.id)+'" data-mbx="'+esc(m.mailbox||'')+'">'+icon+' '+esc(m.subject||'(no subject)')+'</a>'+(m.hasAttachments?' ð':'')+'<div class="lsub">'+who+'</div></td>'+
        '<td class="nowrap">'+esc(ds)+'</td>'+
        '<td>'+sentBy+'</td>'+
-       '<td>'+(m.webLink?'<a href="'+esc(m.webLink)+'" target="_blank" rel="noopener" title="Open in Outlook">↗</a>':'')+'</td></tr>';
+       '<td>'+(m.webLink?'<a href="'+esc(m.webLink)+'" target="_blank" rel="noopener" title="Open in Outlook">â</a>':'')+'</td></tr>';
     h+='<tr class="emdetail" id="emd'+i+'" style="display:none"><td colspan="4"><div class="emwrap" id="emw'+i+'"></div></td></tr>';
   });
   h+='</tbody></table>';
@@ -862,11 +862,11 @@ function renderEmailListNS(items, ns){
   if(!items||!items.length) return '<div style="color:#9aa7b4;font-size:12px">No emails found with this customer yet.</div>';
   let h='<table class="phtab"><thead><tr><th>Subject</th><th>Date</th><th>Sent By</th><th></th></tr></thead><tbody>';
   items.forEach((m,i)=>{
-    const icon = m.dir==='out' ? '✉️' : '\U0001F4E8';
+    const icon = m.dir==='out' ? 'âï¸' : '\U0001F4E8';
     const who = m.dir==='out' ? ('to '+esc((m.to&&m.to[0])||'')) : ('from '+esc(m.fromName||m.from||''));
     const sentBy = m.dir==='out' ? ('<b>'+esc(m.sentBy||'SurgaMed')+'</b>') : '<span style="color:#9aa7b4">customer</span>';
     const d=new Date(m.date), ds=isNaN(d.getTime())?String(m.date||'').slice(0,16):d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
-    h+='<tr class="emrow"><td><a href="#" class="emlink" data-ei="'+ns+'_'+i+'" data-id="'+esc(m.id)+'" data-mbx="'+esc(m.mailbox||'')+'">'+icon+' '+esc(m.subject||'(no subject)')+'</a>'+(m.hasAttachments?' \U0001F4CE':'')+'<div class="lsub">'+who+'</div></td><td class="nowrap">'+esc(ds)+'</td><td>'+sentBy+'</td><td>'+(m.webLink?'<a href="'+esc(m.webLink)+'" target="_blank" rel="noopener" title="Open in Outlook">↗</a>':'')+'</td></tr>';
+    h+='<tr class="emrow"><td><a href="#" class="emlink" data-ei="'+ns+'_'+i+'" data-id="'+esc(m.id)+'" data-mbx="'+esc(m.mailbox||'')+'">'+icon+' '+esc(m.subject||'(no subject)')+'</a>'+(m.hasAttachments?' \U0001F4CE':'')+'<div class="lsub">'+who+'</div></td><td class="nowrap">'+esc(ds)+'</td><td>'+sentBy+'</td><td>'+(m.webLink?'<a href="'+esc(m.webLink)+'" target="_blank" rel="noopener" title="Open in Outlook">â</a>':'')+'</td></tr>';
     h+='<tr class="emdetail" id="emd'+ns+'_'+i+'" style="display:none"><td colspan="4"><div class="emwrap" id="emw'+ns+'_'+i+'"></div></td></tr>';
   });
   h+='</tbody></table>';
@@ -878,9 +878,9 @@ async function toggleEmailNS(i, id, mbx){
   if(det.style.display!=="none"){ det.style.display="none"; return; }
   det.style.display="";
   if(wrap.dataset.loaded) return;
-  wrap.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading email…</div>';
+  wrap.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading emailâ¦</div>';
   try{ const m=await fetchMessage(id, mbx); const text=htmlToText((m&&m.body&&m.body.content)||(m&&m.summary)||""); wrap.innerHTML='<pre class="bodytext" style="margin:6px 0">'+linkify(text||"(no text content)")+'</pre>'; wrap.dataset.loaded="1"; }
-  catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t open this email: '+esc(String(e.message||e))+'</div>'; }
+  catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px">Couldnât open this email: '+esc(String(e.message||e))+'</div>'; }
 }
 function topEmail(rows){ const c={}; (rows||[]).forEach(r=>{ const e=(r.customer_email||"").toLowerCase(); if(e)c[e]=(c[e]||0)+1; }); let best="",n=0; for(const k in c){ if(c[k]>n){n=c[k];best=k;} } return best; }
 function distinctCustomers(rows){
@@ -908,14 +908,14 @@ async function emailHistoryInto(email, mountEl, ns){
   if(!mountEl) return;
   email=(email||"").trim();
   if(!email){ mountEl.innerHTML='<div style="color:#9aa7b4;font-size:12px">No email address on file to look up.</div>'; return; }
-  mountEl.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading email history…</div>';
+  mountEl.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading email historyâ¦</div>';
   try{
     const r=await fetch(FN_URL+"?thread="+encodeURIComponent(email),{headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY}});
     const d=await r.json();
     if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
     mountEl.innerHTML=renderEmailListNS(d.items, ns);
     mountEl.onclick=function(e){ const a=e.target.closest(".emlink"); if(!a)return; e.preventDefault(); toggleEmailNS(a.dataset.ei, a.dataset.id, a.dataset.mbx); };
-  }catch(e){ mountEl.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load emails: '+esc(String(e.message||e))+'</div>'; }
+  }catch(e){ mountEl.innerHTML='<div style="color:#c0392b;font-size:12px">Couldnât load emails: '+esc(String(e.message||e))+'</div>'; }
 }
 async function loadEmailThread(l){
   const box=document.getElementById("emailBox"); if(!box) return;
@@ -927,7 +927,7 @@ async function loadEmailThread(l){
     if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
     box.innerHTML=renderEmailList(d.items);
     box.onclick=function(e){ const a=e.target.closest(".emlink"); if(!a)return; e.preventDefault(); toggleEmail(a.dataset.ei, a.dataset.id, a.dataset.mbx); };
-  }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load emails: '+esc(String(e.message||e))+'</div>'; }
+  }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldnât load emails: '+esc(String(e.message||e))+'</div>'; }
 }
 async function toggleEmail(i, id, mbx){
   const det=document.getElementById("emd"+i), wrap=document.getElementById("emw"+i);
@@ -935,9 +935,9 @@ async function toggleEmail(i, id, mbx){
   if(det.style.display!=="none"){ det.style.display="none"; return; }
   det.style.display="";
   if(wrap.dataset.loaded) return;
-  wrap.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading email…</div>';
+  wrap.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading emailâ¦</div>';
   try{ const m=await fetchMessage(id, mbx); const text=htmlToText((m&&m.body&&m.body.content)||(m&&m.summary)||""); wrap.innerHTML='<pre class="bodytext" style="margin:6px 0">'+linkify(text||"(no text content)")+'</pre>'; wrap.dataset.loaded="1"; }
-  catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t open this email: '+esc(String(e.message||e))+'</div>'; }
+  catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px">Couldnât open this email: '+esc(String(e.message||e))+'</div>'; }
 }
 // ---- ShipStation tracking for order/congrats leads ----
 function trkUrl(c,t){if(!t)return '#';c=(''+c).toLowerCase();var e=encodeURIComponent(t);if(c.indexOf('fedex')>-1)return 'https://www.fedex.com/fedextrack/?trknbr='+e;if(c.indexOf('usps')>-1||c.indexOf('stamps')>-1)return 'https://tools.usps.com/tracking/'+e;if(c.indexOf('ups')>-1)return 'https://www.ups.com/track?tracknum='+e;return 'https://tools.usps.com/tracking/'+e;}
@@ -947,7 +947,7 @@ function renderShipping(list){
   let h='<table class="phtab"><thead><tr><th>Status</th><th>Carrier</th><th>Tracking</th><th>Ship date</th></tr></thead><tbody>';
   list.forEach(s=>{
     const stt=(s.status||'').replace(/_/g,' ');
-    const badge='<span class="statusbadge" style="background:'+(COL[s.status]||'#5a6b7b')+'"></span>'+esc(stt||'—');
+    const badge='<span class="statusbadge" style="background:'+(COL[s.status]||'#5a6b7b')+'"></span>'+esc(stt||'â');
     const trk=s.tracking? ('<a href="'+esc(s.trackingUrl||trkUrl(s.carrier,s.tracking))+'" target="_blank" rel="noopener">'+esc(s.tracking)+'</a>') : '<span style="color:#9aa7b4">not shipped yet</span>';
     h+='<tr><td>'+badge+'</td><td>'+esc(s.carrier||'')+'</td><td>'+trk+'</td><td class="nowrap">'+esc((s.shipDate||'').slice(0,10))+'</td></tr>';
   });
@@ -974,22 +974,22 @@ async function loadShipping(l){
     const mapped=rows.map(x=>({status:(String(x.delivery||'').toLowerCase()==='delivered'?'delivered':x.status), carrier:x.carrier, tracking:x.tracking, trackingUrl:x.trackingUrl, shipDate:x.shipDate}));
     box.innerHTML=renderShipping(mapped);
     const wo=rows.find(x=>x.ssOrderId)||rows.find(x=>x.orderNumber)||rows[0];
-    if(wo&&(wo.ssOrderId||wo.orderNumber)){ box.insertAdjacentHTML('beforeend','<div id="ssNoteBox" style="margin-top:10px;border-top:1px solid #eef2f6;padding-top:8px"></div>'); loadShipNote(wo.ssOrderId, wo.orderNumber, document.getElementById('ssNoteBox')); }
-  }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load shipping: '+esc(String(e.message||e))+'</div>'; }
+    if(wo||email){ box.insertAdjacentHTML('beforeend','<div id="ssNoteBox" style="margin-top:10px;border-top:1px solid #eef2f6;padding-top:8px"></div>'); loadShipNote((wo&&wo.ssOrderId)||null, (wo&&wo.orderNumber)||('LEAD-'+((typeof l!=='undefined'&&l&&l.id)||'')), document.getElementById('ssNoteBox'), email); }
+  }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldnât load shipping: '+esc(String(e.message||e))+'</div>'; }
 }
 // Read + edit the ShipStation ORDER internal note (live via edge function) from the congrats view.
-async function loadShipNote(orderId, orderNumber, box){
+async function loadShipNote(orderId, orderNumber, box, email){
   if(!box) return;
-  box.innerHTML='<div style="color:#9aa7b4;font-size:12px">Loading ShipStation internal note…</div>';
+  box.innerHTML='<div style="color:#9aa7b4;font-size:12px">Loading ShipStation internal noteâ¦</div>';
   try{
-    const r=await fetch(SB_URL+'/functions/v1/shipstation-note',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({action:'get',order_id:orderId,order_number:orderNumber})});
+    const r=await fetch(SB_URL+'/functions/v1/shipstation-note',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({action:'get',order_id:orderId,order_number:orderNumber,customer_email:(email||'')})});
     const d=await r.json(); if(!r.ok) throw new Error(d.error||('HTTP '+r.status));
     const lbl=String(d.order_number||orderNumber||orderId||'');
-    box.innerHTML='<div style="font-size:12px;font-weight:600;color:#5a6b7b;margin:2px 0 4px">📝 ShipStation internal note'+(lbl?(' <span style="font-weight:400;color:#9aa7b4">— order #'+esc(lbl)+'</span>'):'')+'</div>'+
+    box.innerHTML='<div style="font-size:12px;font-weight:600;color:#5a6b7b;margin:2px 0 4px">ð ShipStation internal note'+(lbl?(' <span style="font-weight:400;color:#9aa7b4">â order #'+esc(lbl)+'</span>'):'')+'</div>'+
       '<textarea id="ssNoteText" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
-      '<div style="margin-top:5px;display:flex;gap:8px;align-items:center"><button id="ssNoteSave" class="custbtn" style="padding:6px 12px">💾 Save note</button><span id="ssNoteMsg" style="font-size:12px;color:#5a6b7b"></span></div><div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center"><span style="font-size:12px;color:#5a6b7b">🏷️ ShipStation tags:</span><span id="ssTagChips" style="color:#9aa7b4;font-size:12px">…</span></div>';
+      '<div style="margin-top:5px;display:flex;gap:8px;align-items:center"><button id="ssNoteSave" class="custbtn" style="padding:6px 12px">ð¾ Save note</button><span id="ssNoteMsg" style="font-size:12px;color:#5a6b7b"></span></div><div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center"><span style="font-size:12px;color:#5a6b7b">ð·ï¸ ShipStation tags:</span><span id="ssTagChips" style="color:#9aa7b4;font-size:12px">â¦</span></div>';
     document.getElementById('ssNoteText').value=(d.board_note!==undefined&&d.board_note!=='')?d.board_note:(d.internalNotes||'');
-    const oid=d.order_id||orderId;
+    const oid=d.matched_order_id||d.order_id||orderId;
     try {
       const __ff=async(p)=>{const rr=await fetch('https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/shipstation-note',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify(p)});return rr.json();};
       const __wrap=document.getElementById('ssTagChips');
@@ -1006,9 +1006,9 @@ async function loadShipNote(orderId, orderNumber, box){
     } catch(_e){}
     document.getElementById('ssNoteSave').onclick=async()=>{
       const t=document.getElementById('ssNoteText'), msg=document.getElementById('ssNoteMsg'), b=document.getElementById('ssNoteSave');
-      b.disabled=true; msg.style.color='#5a6b7b'; msg.textContent='Saving…';
-      try{ const rr=await fetch(SB_URL+'/functions/v1/shipstation-note',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({action:'set',order_id:oid,order_number:orderNumber,note:t.value,updated_by:(typeof MY_REP!=='undefined'?(MY_REP||''):''),updated_by_email:(typeof MY_EMAIL!=='undefined'?(MY_EMAIL||''):'')})}); const dd=await rr.json(); if(!rr.ok||dd.error) throw new Error(dd.error||('HTTP '+rr.status)); if(dd.shipstation_pushed){msg.style.color='#1d7a3f';msg.textContent='Saved ✓ synced to ShipStation';}else{msg.style.color='#b5720a';msg.textContent='Saved to board ✓'+(dd.shipstation_reason?(' — ShipStation: '+dd.shipstation_reason):'');} }
-      catch(e){ msg.style.color='#c0392b'; msg.textContent='Couldn’t save: '+(e.message||e); }
+      b.disabled=true; msg.style.color='#5a6b7b'; msg.textContent='Savingâ¦';
+      try{ const rr=await fetch(SB_URL+'/functions/v1/shipstation-note',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({action:'set',order_id:oid,order_number:orderNumber,customer_email:(email||''),note:t.value,updated_by:(typeof MY_REP!=='undefined'?(MY_REP||''):''),updated_by_email:(typeof MY_EMAIL!=='undefined'?(MY_EMAIL||''):'')})}); const dd=await rr.json(); if(!rr.ok||dd.error) throw new Error(dd.error||('HTTP '+rr.status)); if(dd.shipstation_pushed){msg.style.color='#1d7a3f';msg.textContent='Saved â synced to ShipStation';}else{msg.style.color='#b5720a';msg.textContent='Saved to board â'+(dd.shipstation_reason?(' â ShipStation: '+dd.shipstation_reason):'');} }
+      catch(e){ msg.style.color='#c0392b'; msg.textContent='Couldnât save: '+(e.message||e); }
       b.disabled=false;
     };
   }catch(e){ box.innerHTML='<div style="color:#9aa7b4;font-size:12px">ShipStation internal note unavailable'+(String(e.message||e).indexOf('not found')>-1?' (order not found).':'.')+'</div>'; }
@@ -1021,7 +1021,7 @@ async function sendReply(l){
   if(!text){ ta.focus(); return; }
   const to=(l.custEmail||"").trim();
   if(!to && !l.uri){ msg.style.color="#c0392b"; msg.textContent="No customer email or thread to reply to."; return; }
-  btn.disabled=true; msg.style.color="#5a6b7b"; msg.textContent="Sending…";
+  btn.disabled=true; msg.style.color="#5a6b7b"; msg.textContent="Sendingâ¦";
   try{
     const rep=(REPS.includes(MY_REP)?MY_REP:effRep(l))||ME;
     const fromMbx = REPS.includes(MY_REP) ? MY_EMAIL : ""; // reps send from their own mailbox; others fall back to orders@
@@ -1033,10 +1033,10 @@ async function sendReply(l){
     const d=await r.json();
     if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
     try{ await sb.from("contacts").insert({ customer_email: to.toLowerCase()||null, customer_name: l.display||null, rep, rep_email: MY_EMAIL||null, channel:"email", direction:"out", lead_id:l.id, listing:l.listing||null, subject:payload.subject, message_id:"board-"+Date.now() }); }catch(e){}
-    await addHistory(l.id, "Replied by "+rep+" — sent from board");
-    ta.value=""; try{ localStorage.removeItem('sg_draft_'+l.id); }catch(e){} msg.style.color="#1d7a3f"; msg.textContent="Sent ✓";
+    await addHistory(l.id, "Replied by "+rep+" â sent from board");
+    ta.value=""; try{ localStorage.removeItem('sg_draft_'+l.id); }catch(e){} msg.style.color="#1d7a3f"; msg.textContent="Sent â";
     setTimeout(()=>loadEmailThread(l), 1200); renderHist(l.id);
-  }catch(e){ msg.style.color="#c0392b"; msg.textContent="Couldn’t send: "+String(e.message||e); }
+  }catch(e){ msg.style.color="#c0392b"; msg.textContent="Couldnât send: "+String(e.message||e); }
   btn.disabled=false;
 }
 
@@ -1077,7 +1077,7 @@ function buildCategory(emails, cat, cutoffMs){
   return { out, newOwners, reassigned };
 }
 
-// Orders ("congrats") emails only show the listing # in the preview — pull the buyer
+// Orders ("congrats") emails only show the listing # in the preview â pull the buyer
 // name + item (manufacturer/product) from the purchases DB so cards lead with real info.
 async function enrichOrders(){
   const ids=[...new Set(LEADS.filter(l=>l.cat==='orders'&&l.listing).map(l=>l.listing))];
@@ -1111,7 +1111,7 @@ async function enrichOrders(){
       const mm=await fetchMessage(l.uri);
       const text=htmlToText((mm&&mm.body&&mm.body.content)||(mm&&mm.summary)||"");
       const lm=/Listing #(\d+)/i.exec(text); if(lm && !l.listing) l.listing=lm[1];
-      const im=/Listing #\d+\s*[-–]\s*([^\n]+?)\s*\n?\s*Price:\s*[\d.,]/i.exec(text); if(im && !l.item) l.item=im[1].trim();
+      const im=/Listing #\d+\s*[-â]\s*([^\n]+?)\s*\n?\s*Price:\s*[\d.,]/i.exec(text); if(im && !l.item) l.item=im[1].trim();
       const nm=(/Buyer(?:'s)? Name:\s*([^\n]+)/i.exec(text)||/\bName:\s*([^\n]+)/i.exec(text)||[])[1];
       if(nm && isGeneric(l)) l.display=nm.trim();
       // customer email = first address in the body that is not ours (surgamed/shortdated) and not DotMed's relay;
@@ -1143,7 +1143,7 @@ function applyInq(l, d){
   if(d.phone) l.hasPhone=true;
   if(d.item && !l.item) l.item=d.item;
   if(d.msg) l.msg=d.msg;
-  if(l.custName) l.display = (l.company && l.company.toLowerCase()!==l.custName.toLowerCase()) ? (l.custName+' · '+l.company) : l.custName;
+  if(l.custName) l.display = (l.company && l.company.toLowerCase()!==l.custName.toLowerCase()) ? (l.custName+' Â· '+l.company) : l.custName;
   else if(l.company) l.display=l.company;
   else if(l.custEmail && !/dotmed\.com$/i.test(l.custEmail)) l.display=l.custEmail.split('@')[0];
   else if(/unregistered user|dot\s*med/i.test(l.display||'')) l.display='';   // nothing usable: let dispName fall back, never show dotMed's placeholder
@@ -1172,9 +1172,9 @@ async function enrichInquiries(){
   if(dirty){ try{ sessionStorage.setItem(INQ_CACHE_KEY, JSON.stringify(cache)); }catch(e){} }
 }
 async function load(silent){
-  // Silent refresh: don't disturb a rep who has a lead open, and don't flash the "Loading…" placeholder.
+  // Silent refresh: don't disturb a rep who has a lead open, and don't flash the "Loadingâ¦" placeholder.
   if(silent){ const ov=document.getElementById('detailOverlay'); if(ov && ov.style.display!=='none') return; }
-  if(!silent){ document.getElementById("errbox").innerHTML=""; document.getElementById("board").innerHTML='<div class="loading">Loading leads…</div>'; }
+  if(!silent){ document.getElementById("errbox").innerHTML=""; document.getElementById("board").innerHTML='<div class="loading">Loading leadsâ¦</div>'; }
   const wv=document.getElementById("window").value;
   const cutoff = wv==='rot' ? rotationStartMs() : (Date.now()-parseInt(wv,10)*86400000);
   try{
@@ -1191,7 +1191,7 @@ async function load(silent){
     if(owners.length){ await sb.from("lead_state").upsert(owners.map(o=>({id:o.id,owner:o.owner,category:o.category,updated_by:"rotation"}))); }
     if(reassigned.length){
       await sb.from("lead_state").upsert(reassigned.map(o=>({id:o.id,owner:o.owner,updated_by:"rotation (6 PM ET rule)"})));
-      await sb.from("lead_history").insert(reassigned.map(o=>({lead_id:o.id, actor:"system", action:"Owner set to "+o.owner+" — applied new 6 PM ET / weekend rotation rule"})));
+      await sb.from("lead_history").insert(reassigned.map(o=>({lead_id:o.id, actor:"system", action:"Owner set to "+o.owner+" â applied new 6 PM ET / weekend rotation rule"})));
     }
     renderBoard();
     LAST_REFRESH=Date.now(); stampRefresh();
@@ -1200,20 +1200,20 @@ async function load(silent){
       "Tap any lead for the full email. Status, ownership &amp; history are saved for the whole team. Changes are stamped with your name ("+esc(ME)+").";
   }catch(e){
     if(!silent){ document.getElementById("board").innerHTML="";
-      document.getElementById("errbox").innerHTML='<div class="err">Couldn’t load leads: '+esc(String(e.message||e))+'</div>'; }
+      document.getElementById("errbox").innerHTML='<div class="err">Couldnât load leads: '+esc(String(e.message||e))+'</div>'; }
   }
 }
 let LAST_REFRESH=0;
 function stampRefresh(){ const el=document.getElementById("refreshBtn"); if(el) el.title="Last updated "+new Date(LAST_REFRESH).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); }
-async function manualRefresh(){ const b=document.getElementById("refreshBtn"); if(b){ b.disabled=true; b.textContent="↻ Refreshing…"; } await load(true); if(b){ b.disabled=false; b.textContent="↻ Refresh"; } }
+async function manualRefresh(){ const b=document.getElementById("refreshBtn"); if(b){ b.disabled=true; b.textContent="â» Refreshingâ¦"; } await load(true); if(b){ b.disabled=false; b.textContent="â» Refresh"; } }
 
 function renderRota(){
   const ref=businessRef();
   const o={}; new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',hourCycle:'h23',weekday:'short'}).formatToParts(new Date()).forEach(p=>{ o[p.type]=p.value; });
   const wknd=(o.weekday==='Sat'||o.weekday==='Sun'); const after6=Number(o.hour)>=18;
-  const note = wknd ? ' (weekend — showing next business day)' : (after6 ? ' (after 6 PM ET — next rep is up)' : '');
+  const note = wknd ? ' (weekend â showing next business day)' : (after6 ? ' (after 6 PM ET â next rep is up)' : '');
   const dname=ref.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"});
-  let html='<div><span class="day">On rotation now · '+dname+'</span>'+note+'</div><div class="rota-grid">';
+  let html='<div><span class="day">On rotation now Â· '+dname+'</span>'+note+'</div><div class="rota-grid">';
   CATS.forEach(c=>{ html+='<div class="rota-card"><div class="cat">'+c.label+'</div><div class="rep">'+repForCat(c.key,ref)+'</div></div>'; });
   document.getElementById("rotabar").innerHTML=html+'</div>';
 }
@@ -1234,13 +1234,13 @@ function renderBoard(){
   let html="";
   CATS.forEach(c=>{
     html+='<div class="col"><h2>'+c.label+' <span class="pill">'+byCat[c.key].length+'</span> <span class="ontoday" title="On rotation today">'+repForCat(c.key,ref)+'</span></h2>';
-    html+='<div class="folder">📁 '+c.folder+'</div>';
+    html+='<div class="folder">ð '+c.folder+'</div>';
     if(byCat[c.key].length===0) html+='<div class="empty">No leads in window</div>';
     byCat[c.key].forEach(l=>html+=cardHtml(l));
     html+='</div>';
   });
   document.getElementById("board").innerHTML=html;
-  document.getElementById("counts").textContent=shown+" shown · "+LEADS.length+" in window";
+  document.getElementById("counts").textContent=shown+" shown Â· "+LEADS.length+" in window";
   wireCards();
 }
 function renderList(){
@@ -1254,7 +1254,7 @@ function renderList(){
   rows.forEach(l=>{ h+=leadRowHtml(l); });
   h+='</tbody></table>';
   document.getElementById("board").innerHTML=h;
-  document.getElementById("counts").textContent=rows.length+" shown · "+LEADS.length+" in window";
+  document.getElementById("counts").textContent=rows.length+" shown Â· "+LEADS.length+" in window";
   wireCards();
 }
 function leadRowHtml(l){
@@ -1266,8 +1266,8 @@ function leadRowHtml(l){
   return '<tr>'+
     '<td class="nowrap">'+fmtDate(l.date)+'</td>'+
     '<td><span class="tag" style="background:#eef1f5;color:#5a6b7b">'+esc(catLabel)+'</span></td>'+
-    '<td class="lcust" data-detail="'+l.id+'"><b>'+esc(dispName(l))+'</b>'+(l.hasPhone?' ☎':'')+'<div class="lsub">'+esc(l.title)+'</div></td>'+
-    '<td class="litem">'+esc(l.item||'')+(l.deal?'<div class="lsub">'+esc(l.deal)+'</div>':'')+(l.msg?'<div class="lsub">“'+esc(l.msg)+'”</div>':'')+'</td>'+
+    '<td class="lcust" data-detail="'+l.id+'"><b>'+esc(dispName(l))+'</b>'+(l.hasPhone?' â':'')+'<div class="lsub">'+esc(l.title)+'</div></td>'+
+    '<td class="litem">'+esc(l.item||'')+(l.deal?'<div class="lsub">'+esc(l.deal)+'</div>':'')+(l.msg?'<div class="lsub">â'+esc(l.msg)+'â</div>':'')+'</td>'+
     '<td><span class="tag acct'+(l.acct.sd?' sd':'')+'">'+l.acct.t+'</span></td>'+
     '<td>'+repSel+relBadge(l)+shipBadge(l)+'</td>'+
     '<td><span class="statusbadge" style="background:'+so.color+'"></span>'+statSel+'</td>'+
@@ -1298,7 +1298,7 @@ async function loadRadarWorkspace(){
     if(boardEl){
       const order=['Mirian Alejo','Jennifer Lugo','Deysi Calvo','Tehila Cohen','(unassigned)'];
       const reps=Object.keys(byRep).sort((a,b)=>{ var oa=order.indexOf(a); var ob=order.indexOf(b); oa=oa<0?99:oa; ob=ob<0?99:ob; return oa-ob || byRep[b].val-byRep[a].val; });
-      let h='<h3>📡 Reorder Radar — reach out today</h3><table class="ws-reptab"><thead><tr><th>Rep</th><th>To reach</th><th>In stock</th><th>Value at stake</th></tr></thead><tbody>';
+      let h='<h3>ð¡ Reorder Radar â reach out today</h3><table class="ws-reptab"><thead><tr><th>Rep</th><th>To reach</th><th>In stock</th><th>Value at stake</th></tr></thead><tbody>';
       reps.forEach(r=>{ const d=byRep[r]; h+='<tr class="wsradarrep" data-rep="'+esc(r)+'" title="Open Reorder Radar for '+esc(r)+'" style="cursor:pointer"><td><b>'+esc(String(r).split(" ")[0])+'</b></td><td>'+d.cust+'</td><td style="color:#1d7a3f;font-weight:700">'+d.instock+'</td><td style="color:#0f7a4d">'+money(Math.round(d.val))+'</td></tr>'; });
       h+='</tbody></table><div class="ws-cap">Click a rep to open their Reorder Radar. Value = est. lifetime value of the items they\'re due to reorder.</div>';
       boardEl.innerHTML=h;
@@ -1320,16 +1320,16 @@ function renderWorkspace(){
   const conv= total ? Math.round(won/total*100) : 0;
   const estOpen=base.filter(l=>effStatus(l)!=='closed').reduce((a,l)=>a+leadValue(l),0);
   const kpi=(lab,val,cls)=>'<div class="ws-kpi'+(cls?' '+cls:'')+'"><div class="lab">'+lab+'</div><div class="val">'+val+'</div></div>';
-  let html='<div class="ws-kpis" id="wsRadarKpis"><div style="color:#9aa7b4;font-size:12px;padding:6px 4px">Loading Reorder Radar…</div></div>';
+  let html='<div class="ws-kpis" id="wsRadarKpis"><div style="color:#9aa7b4;font-size:12px;padding:6px 4px">Loading Reorder Radarâ¦</div></div>';
   // Pipeline by stage + rep performance, side by side
   const maxStage=Math.max(1, ...STATUSES.map(s=>cnt[s.key]||0));
-  let pipe='<div class="ws-card"><h3>Pipeline by stage'+(repF!=='all'?' · '+esc(repF):'')+'</h3>';
+  let pipe='<div class="ws-card"><h3>Pipeline by stage'+(repF!=='all'?' Â· '+esc(repF):'')+'</h3>';
   STATUSES.forEach(s=>{ const c=cnt[s.key]||0; const w=Math.round((c/maxStage)*100);
     pipe+='<div class="ws-stage" data-wsstage="'+s.key+'" title="Filter to '+esc(s.label)+'"><span class="nm">'+esc(s.label)+'</span><span class="bar"><i style="width:'+w+'%;background:'+s.color+'"></i></span><span class="ct">'+c+'</span></div>'; });
   pipe+='<div class="ws-cap">Click a stage to filter the table below.</div></div>';
   const reps=REPS.map(r=>{ const ls=LEADS.filter(l=>effRep(l)===r); return { r, open: ls.filter(l=>effStatus(l)!=='closed').length, won: ls.filter(l=>effStatus(l)==='closed').length, val: ls.reduce((a,l)=>a+leadValue(l),0) }; });
   reps.sort((a,b)=>b.val-a.val);
-  let rept='<div class="ws-card" id="wsRadarBoard"><h3>📡 Reorder Radar — reach out today</h3><div style="color:#9aa7b4;font-size:12px">Loading who to reach today…</div></div>';
+  let rept='<div class="ws-card" id="wsRadarBoard"><h3>ð¡ Reorder Radar â reach out today</h3><div style="color:#9aa7b4;font-size:12px">Loading who to reach todayâ¦</div></div>';
   html+='<div class="ws-grid">'+pipe+rept+'</div>';
   // Dense active-leads table (respects all three filters)
   let rows=LEADS.filter(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&(stt==="closed"||stt==="upsell"))return false; if(statusF!=="all"&&stt!==statusF)return false; if(repF!=="all"&&rep!==repF)return false; return true; });
@@ -1343,25 +1343,25 @@ function renderWorkspace(){
   const fromN = totalRows ? startI+1 : 0, toN = Math.min(startI+sizeNum, totalRows);
   let pager='<div class="ws-pager"><span class="ws-psize">Rows:';
   ['5','10','20','all'].forEach(s=>{ pager+=' <button class="ws-szbtn'+(WS_SIZE===s?' on':'')+'" data-wssize="'+s+'">'+(s==='all'?'All':s)+'</button>'; });
-  pager+='</span><span class="ws-prange">'+fromN+'–'+toN+' of '+totalRows+'</span>'+
-    '<button class="ws-pbtn" data-wspage="prev"'+(WS_PAGE<=1?' disabled':'')+' aria-label="Previous page">‹</button>'+
+  pager+='</span><span class="ws-prange">'+fromN+'â'+toN+' of '+totalRows+'</span>'+
+    '<button class="ws-pbtn" data-wspage="prev"'+(WS_PAGE<=1?' disabled':'')+' aria-label="Previous page">â¹</button>'+
     '<span class="ws-ppage">'+WS_PAGE+' / '+pages+'</span>'+
-    '<button class="ws-pbtn" data-wspage="next"'+(WS_PAGE>=pages?' disabled':'')+' aria-label="Next page">›</button></div>';
-  html+='<div class="ws-leadbar"><div class="ws-secttl" style="margin:0">Active leads'+(statusF!=='all'?' · '+esc((STATUSES.find(s=>s.key===statusF)||{}).label||statusF):'')+(repF!=='all'?' · '+esc(repF):'')+'</div>'+pager+'</div>';
+    '<button class="ws-pbtn" data-wspage="next"'+(WS_PAGE>=pages?' disabled':'')+' aria-label="Next page">âº</button></div>';
+  html+='<div class="ws-leadbar"><div class="ws-secttl" style="margin:0">Active leads'+(statusF!=='all'?' Â· '+esc((STATUSES.find(s=>s.key===statusF)||{}).label||statusF):'')+(repF!=='all'?' Â· '+esc(repF):'')+'</div>'+pager+'</div>';
   html+='<table class="ltab wsleadtab"><thead><tr><th>Date</th><th>Type</th><th>Customer</th><th>Item / details</th><th>Acct</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
   if(!pageRows.length) html+='<tr><td colspan="8"><div class="empty">No leads match these filters</div></td></tr>';
   pageRows.forEach(l=>{ html+=leadRowHtml(l); });
   html+='</tbody></table>';
   document.getElementById("board").innerHTML=html;
   loadRadarWorkspace();
-  document.getElementById("counts").textContent=totalRows+" shown · "+LEADS.length+" in window";
+  document.getElementById("counts").textContent=totalRows+" shown Â· "+LEADS.length+" in window";
   document.querySelectorAll('#board [data-wsstage]').forEach(el=>{ el.onclick=function(){ WS_PAGE=1; document.getElementById("statusFilter").value=this.getAttribute('data-wsstage'); renderBoard(); }; });
   document.querySelectorAll('#board [data-wsrep]').forEach(el=>{ el.onclick=function(){ WS_PAGE=1; document.getElementById("repFilter").value=this.getAttribute('data-wsrep'); renderBoard(); }; });
   document.querySelectorAll('#board [data-wssize]').forEach(el=>{ el.onclick=function(){ WS_SIZE=this.getAttribute('data-wssize'); localStorage.setItem('sg_wssize',WS_SIZE); WS_PAGE=1; renderWorkspace(); }; });
   document.querySelectorAll('#board [data-wspage]').forEach(el=>{ el.onclick=function(){ if(this.disabled) return; WS_PAGE += (this.getAttribute('data-wspage')==='next'?1:-1); renderWorkspace(); }; });
   wireCards();
 }
-function relBadge(l){ const e=(l.custEmail||'').toLowerCase(); const info=CONTACTS_BY_EMAIL[e]; return (info&&info.rep)?('<span class="tag relbadge" title="Existing relationship — keep with this rep">🤝 '+esc(info.rep)+'</span>'):''; }
+function relBadge(l){ const e=(l.custEmail||'').toLowerCase(); const info=CONTACTS_BY_EMAIL[e]; return (info&&info.rep)?('<span class="tag relbadge" title="Existing relationship â keep with this rep">ð¤ '+esc(info.rep)+'</span>'):''; }
 function cardHtml(l){
   const stt=effStatus(l), so=statusObj(stt), rep=effRep(l);
   let repSel='<select data-id="'+l.id+'" data-k="rep">'; REPS.forEach(r=>{ repSel+='<option'+(r===rep?' selected':'')+'>'+r+'</option>'; }); repSel+='</select>';
@@ -1370,11 +1370,11 @@ function cardHtml(l){
   return '<div class="card">'+
     '<div class="cardhead" data-detail="'+l.id+'"><div class="from">'+esc(dispName(l))+'</div>'+
     '<div class="ttl">'+esc(l.title)+'</div>'+(l.item?'<div class="item">'+esc(l.item)+'</div>':'')+
-    (l.msg?'<div class="item msg" title="'+esc(l.msg)+'">“'+esc(l.msg)+'”</div>':'')+
-    '<div class="cardhint">▸ tap for full email</div></div>'+
+    (l.msg?'<div class="item msg" title="'+esc(l.msg)+'">â'+esc(l.msg)+'â</div>':'')+
+    '<div class="cardhint">â¸ tap for full email</div></div>'+
     '<div class="meta"><span class="tag rep" title="Owner">'+rep+'</span>'+relBadge(l)+shipBadge(l)+
       (l.deal?'<span class="tag deal">'+esc(l.deal)+'</span>':'')+
-      (l.hasPhone?'<span class="tag ph" title="Phone on file">☎</span>':'')+
+      (l.hasPhone?'<span class="tag ph" title="Phone on file">â</span>':'')+
       '<span class="tag date">'+fmtDate(l.date)+'</span>'+
       '<span class="tag acct'+(l.acct.sd?' sd':'')+'">'+l.acct.t+'</span>'+
       ((l.cats||[]).map(c=>'<span class="tag" style="background:#e2efff;color:#0b66c3">'+esc(c)+'</span>').join(""))+
@@ -1430,13 +1430,13 @@ function extractDetails(text){
     const all=(text.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/ig)||[]);
     email=all.find(e=>!/(dotmed\.com|surgamed\.com|no-?reply|^auto@|mailer-daemon|example\.com)/i.test(e))||"";
   }
-  // "<Name> of <Company> sent you this email" — used by dotMed relays (skip the boilerplate "… of DOTmed.com …" line).
+  // "<Name> of <Company> sent you this email" â used by dotMed relays (skip the boilerplate "â¦ of DOTmed.com â¦" line).
   if(!name){ const m=/([^\n]{2,60}?)\s+of\s+(?!DOTmed)([^\n]{1,60}?)\s+sent you this email/i.exec(text); if(m){ name=(m[1]||"").trim(); company=(m[2]||"").trim(); } }
   const addr=pick(/ADDRESS\s*=+\s*([\s\S]*?)\n\s*\n/i,text), country=pick(/Ship To Country:\s*(.+)/i,text), zip=pick(/Ship To Zip:\s*(.+)/i,text);
   const listP=pick(/Listing Price:\s*\$?([\d.,]+)/i,text), offP=pick(/Offer Price:\s*\$?([\d.,]+)/i,text);
   const total=pick(/Order Total[^\d]*([\d.,]+)\s*USD/i,text); const msg=pick(/Message:\s*([\s\S]+?)(?:\n\s*\n|$)/i,text);
   if(name) kv.push(["Customer",name]); if(company) kv.push(["Company",company]); if(email) kv.push(["Email",email]); if(phone) kv.push(["Phone",phone]);
-  if(listP&&offP) kv.push(["Offer","List $"+listP+"  →  Offer $"+offP]);
+  if(listP&&offP) kv.push(["Offer","List $"+listP+"  â  Offer $"+offP]);
   if(zip||country) kv.push(["Ship to",[zip,country].filter(Boolean).join(", ")]);
   if(addr) kv.push(["Address",addr.replace(/\n{2,}/g,"\n").trim()]);
   if(total) kv.push(["Order total","$"+total]); if(msg&&msg.length<400) kv.push(["Their message",msg.trim()]);
@@ -1456,7 +1456,7 @@ async function renderHist(id){
   const { data } = await sb.from("lead_history").select("*").eq("lead_id",id).order("ts",{ascending:false});
   if(!data||!data.length){ box.innerHTML='<div style="color:#9aa7b4;font-size:12px">No history yet.</div>'; return; }
   box.innerHTML=data.map(e=>{ const d=new Date(e.ts), ds=isNaN(d.getTime())?e.ts:d.toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
-    return '<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #f0f3f6"><span style="color:#7b8a99">'+esc(ds)+'</span> &middot; '+esc(e.action)+' <span style="color:#9aa7b4">('+esc(e.actor||"—")+')</span></div>'; }).join("");
+    return '<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #f0f3f6"><span style="color:#7b8a99">'+esc(ds)+'</span> &middot; '+esc(e.action)+' <span style="color:#9aa7b4">('+esc(e.actor||"â")+')</span></div>'; }).join("");
 }
 function rzTabify(mb){
   try{
@@ -1495,7 +1495,7 @@ function toggleSection(hdr){
   hdr.setAttribute('data-collapsed', collapsed?'1':'0');
   let el=hdr.nextElementSibling;
   while(el && !/^H[1-6]$/.test(el.tagName)){ el.style.display=collapsed?'none':''; el=el.nextElementSibling; }
-  const car=hdr.querySelector('.gcar'); if(car) car.textContent=collapsed?'▸':'▾';
+  const car=hdr.querySelector('.gcar'); if(car) car.textContent=collapsed?'â¸':'â¾';
 }
 function initCollapsibles(root, sel){
   if(!root) return;
@@ -1503,7 +1503,7 @@ function initCollapsibles(root, sel){
     if(hdr.id==='custHdr'||hdr.id==='suggHdr'||hdr.id==='tagHdr') return;   // these have their own toggles / stay open
     if(hdr.dataset.cinit) return; hdr.dataset.cinit='1';
     hdr.style.cursor='pointer'; hdr.style.userSelect='none';
-    const car=document.createElement('span'); car.className='gcar'; car.textContent='▾';
+    const car=document.createElement('span'); car.className='gcar'; car.textContent='â¾';
     car.style.cssText='margin-right:5px;font-size:11px;color:#9aa7b4;display:inline-block';
     hdr.insertBefore(car, hdr.firstChild);
     hdr.addEventListener('click', function(){ toggleSection(hdr); });
@@ -1511,7 +1511,7 @@ function initCollapsibles(root, sel){
 }
 async function openDetail(id){
   const l=findLead(id); if(!l)return; const o=ensureOverlay(); o.style.display="flex";
-  o.innerHTML='<div class="modal"><div class="mhead" style="position:relative"><button class="mnav" id="mPrev" title="Previous" style="position:absolute;left:6px;top:10px;width:28px;height:28px;border:1px solid #cdd6df;border-radius:50%;background:#fff;cursor:pointer;font-size:16px;line-height:1;color:#33414f">‹</button><button class="mnav" id="mNext" title="Next" style="position:absolute;right:46px;top:10px;width:28px;height:28px;border:1px solid #cdd6df;border-radius:50%;background:#fff;cursor:pointer;font-size:16px;line-height:1;color:#33414f">›</button><button class="mclose" id="mClose">×</button><h3>'+esc(dispName(l))+'</h3><div class="msub">'+esc((CATS.find(c=>c.key===l.cat)||{}).label)+' · '+fmtDate(l.date)+' · '+l.acct.t+'</div></div><div class="mbody"><div class="loading">Loading full email…</div></div></div>';
+  o.innerHTML='<div class="modal"><div class="mhead" style="position:relative"><button class="mnav" id="mPrev" title="Previous" style="position:absolute;left:6px;top:10px;width:28px;height:28px;border:1px solid #cdd6df;border-radius:50%;background:#fff;cursor:pointer;font-size:16px;line-height:1;color:#33414f">â¹</button><button class="mnav" id="mNext" title="Next" style="position:absolute;right:46px;top:10px;width:28px;height:28px;border:1px solid #cdd6df;border-radius:50%;background:#fff;cursor:pointer;font-size:16px;line-height:1;color:#33414f">âº</button><button class="mclose" id="mClose">Ã</button><h3>'+esc(dispName(l))+'</h3><div class="msub">'+esc((CATS.find(c=>c.key===l.cat)||{}).label)+' Â· '+fmtDate(l.date)+' Â· '+l.acct.t+'</div></div><div class="mbody"><div class="loading">Loading full emailâ¦</div></div></div>';
   document.getElementById("mClose").onclick=closeDetail;
   (function(){ try{ var ids=[].slice.call(document.querySelectorAll('#board [data-detail]')).map(function(e){return e.getAttribute('data-detail');}); var idx=ids.indexOf(l.id); var pv=idx>0?ids[idx-1]:null, nx=(idx>=0&&idx<ids.length-1)?ids[idx+1]:null; var pb=document.getElementById('mPrev'), nb=document.getElementById('mNext'); if(pb){ if(pv){ pb.onclick=function(){openDetail(pv);}; } else { pb.disabled=true; pb.style.opacity=.3; pb.style.cursor='default'; } } if(nb){ if(nx){ nb.onclick=function(){openDetail(nx);}; } else { nb.disabled=true; nb.style.opacity=.3; nb.style.cursor='default'; } } }catch(e){} })();
   let msg=null,err=null;
@@ -1523,18 +1523,18 @@ async function openDetail(id){
   if(det.phone && !st(l.id).phone){ await upsertState(l.id,{phone:det.phone.replace(/[^0-9+]/g,"")}); l.hasPhone=true; }
   l.cats=(msg&&msg.categories)||l.cats||[]; (l.cats||[]).forEach(c=>KNOWN_CATS.add(c));
   let kvHtml=""; if(det.kv.length){ kvHtml='<h4>Key details</h4><div class="kv">'; det.kv.forEach(p=>{ kvHtml+='<div class="k">'+esc(p[0])+'</div><div class="v">'+esc(p[1])+'</div>'; }); kvHtml+='</div>'; }
-  let custHtml = '<h4 id="custHdr" style="cursor:pointer;user-select:none"><span id="custCaret"></span> Customer purchase history <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="custBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up prior orders…</div></div>';
-  let suggHtml = '<h4 id="suggHdr" style="cursor:pointer;user-select:none"><span id="suggCaret"></span> 💡 Suggested items to pitch (live inventory) <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="suggBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Finding in-stock matches…</div></div>';
-  let catHtml = '<h4 id="tagHdr" style="margin-top:0">🏷️ Tags (Outlook categories) — click to add or remove</h4><div id="tagsBox" style="margin-bottom:14px"></div>';
-  let shipHtml = '<h4>📦 Shipping status (ShipStation)</h4><div id="shipBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up tracking…</div></div>';
-  let contactHtml = '<h4>📧 Email history with this customer <span style="color:#9aa7b4;font-weight:400;font-size:10px">(live — orders@ + every rep\'s mailbox, sent &amp; received)</span></h4>'+
-    '<div id="emailBox" style="margin-bottom:8px"><div style="color:#9aa7b4;font-size:12px">Loading emails…</div></div>'+
-    '<div id="composeWrap" style="margin:0 0 18px"><input id="composeSubject" placeholder="Subject" value="'+esc("Re: "+(l.title||"DOTmed"))+'" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;margin-bottom:6px"><textarea id="composeBody" placeholder="Write a reply — sends from your own email, signed by you, and shows up above" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
-    '<div style="margin-top:6px;display:flex;align-items:center;gap:8px"><button id="sendBtn" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send from board</button><span id="sendMsg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
+  let custHtml = '<h4 id="custHdr" style="cursor:pointer;user-select:none"><span id="custCaret"></span> Customer purchase history <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="custBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up prior ordersâ¦</div></div>';
+  let suggHtml = '<h4 id="suggHdr" style="cursor:pointer;user-select:none"><span id="suggCaret"></span> ð¡ Suggested items to pitch (live inventory) <span style="color:#9aa7b4;font-weight:400;font-size:10px">(click to minimize)</span></h4><div id="suggBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Finding in-stock matchesâ¦</div></div>';
+  let catHtml = '<h4 id="tagHdr" style="margin-top:0">ð·ï¸ Tags (Outlook categories) â click to add or remove</h4><div id="tagsBox" style="margin-bottom:14px"></div>';
+  let shipHtml = '<h4>ð¦ Shipping status (ShipStation)</h4><div id="shipBox" style="margin-bottom:14px"><div style="color:#9aa7b4;font-size:12px">Looking up trackingâ¦</div></div>';
+  let contactHtml = '<h4>ð§ Email history with this customer <span style="color:#9aa7b4;font-weight:400;font-size:10px">(live â orders@ + every rep\'s mailbox, sent &amp; received)</span></h4>'+
+    '<div id="emailBox" style="margin-bottom:8px"><div style="color:#9aa7b4;font-size:12px">Loading emailsâ¦</div></div>'+
+    '<div id="composeWrap" style="margin:0 0 18px"><input id="composeSubject" placeholder="Subject" value="'+esc("Re: "+(l.title||"DOTmed"))+'" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;margin-bottom:6px"><textarea id="composeBody" placeholder="Write a reply â sends from your own email, signed by you, and shows up above" style="width:100%;box-sizing:border-box;min-height:64px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
+    '<div style="margin-top:6px;display:flex;align-items:center;gap:8px"><button id="sendBtn" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">âï¸ Send from board</button><span id="sendMsg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
   const mb=o.querySelector(".mbody");
-  if(err){ mb.innerHTML='<div class="err">Couldn’t load the email: '+esc(err)+'</div>'; return; }
+  if(err){ mb.innerHTML='<div class="err">Couldnât load the email: '+esc(err)+'</div>'; return; }
   mb.innerHTML = catHtml + kvHtml + shipHtml + contactHtml + custHtml + suggHtml + '<h4>History</h4><div id="histBox"></div>'+
-    '<div style="margin:8px 0 16px;display:flex;gap:6px"><input id="noteIn" placeholder="Add a note…" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="noteBtn" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>'+
+    '<div style="margin:8px 0 16px;display:flex;gap:6px"><input id="noteIn" placeholder="Add a noteâ¦" style="flex:1;padding:6px 8px;border:1px solid #cdd6df;border-radius:7px;font-size:12.5px"><button id="noteBtn" style="padding:6px 12px;border:1px solid #d7dee6;border-radius:7px;background:#f7f9fb;font-weight:600;cursor:pointer">Add</button></div>'+
     '<h4>Full email</h4><pre class="bodytext">'+linkify(text||"(no text content)")+'</pre>';
   initCollapsibles(mb);
   try{rzTabify(mb);}catch(_e){}
@@ -1543,7 +1543,7 @@ async function openDetail(id){
   loadEmailThread(l);
   loadCustHistory(l);
   loadShipping(l);
-  { const sbtn=document.getElementById("sendBtn"); if(sbtn) sbtn.onclick=()=>sendReply(l); if(window.SmartList&&sbtn&&l.custEmail&&!document.getElementById('sbtn_smartlist')){var _slb2=document.createElement('button');_slb2.id='sbtn_smartlist';_slb2.type='button';_slb2.textContent='📥 Smart List (Excel)';_slb2.className=sbtn.className;_slb2.style.marginLeft='8px';_slb2.onclick=function(){window.SmartList.openCustomer(l.custEmail,l.custName||l.custEmail);};sbtn.parentNode.insertBefore(_slb2,sbtn.nextSibling);if(window.Holds){window.__MYREP=(typeof MY_REP!=='undefined'?MY_REP:'');window.__MYEMAIL=(typeof MY_EMAIL!=='undefined'?MY_EMAIL:'');var _lk2=window.Holds.makeButton(l.custEmail,l.custName||l.custEmail,sbtn.className);if(_lk2)_slb2.parentNode.insertBefore(_lk2,_slb2.nextSibling);}} }
+  { const sbtn=document.getElementById("sendBtn"); if(sbtn) sbtn.onclick=()=>sendReply(l); if(window.SmartList&&sbtn&&l.custEmail&&!document.getElementById('sbtn_smartlist')){var _slb2=document.createElement('button');_slb2.id='sbtn_smartlist';_slb2.type='button';_slb2.textContent='ð¥ Smart List (Excel)';_slb2.className=sbtn.className;_slb2.style.marginLeft='8px';_slb2.onclick=function(){window.SmartList.openCustomer(l.custEmail,l.custName||l.custEmail);};sbtn.parentNode.insertBefore(_slb2,sbtn.nextSibling);if(window.Holds){window.__MYREP=(typeof MY_REP!=='undefined'?MY_REP:'');window.__MYEMAIL=(typeof MY_EMAIL!=='undefined'?MY_EMAIL:'');var _lk2=window.Holds.makeButton(l.custEmail,l.custName||l.custEmail,sbtn.className);if(_lk2)_slb2.parentNode.insertBefore(_lk2,_slb2.nextSibling);}} }
   // Draft: keep whatever the rep typed (subject + body) per lead, so closing & reopening doesn't lose it.
   (function(){
     const sEl=document.getElementById('composeSubject'), bEl=document.getElementById('composeBody');
@@ -1556,7 +1556,7 @@ async function openDetail(id){
     const hdr=document.getElementById("custHdr"), cb=document.getElementById("custBox"), car=document.getElementById("custCaret");
     if(!hdr) return;
     histMin=false; // reset to open each time a lead is opened; only collapses on click
-    function apply(){ cb.style.display=histMin?"none":""; car.textContent=histMin?"▸":"▾"; }
+    function apply(){ cb.style.display=histMin?"none":""; car.textContent=histMin?"â¸":"â¾"; }
     apply();
     hdr.onclick=function(){ histMin=!histMin; apply(); };
   })();
@@ -1564,7 +1564,7 @@ async function openDetail(id){
     const hdr=document.getElementById("suggHdr"), cb=document.getElementById("suggBox"), car=document.getElementById("suggCaret");
     if(!hdr) return;
     suggMin=false; // reset to open each time a lead is opened; only collapses on click
-    function apply(){ cb.style.display=suggMin?"none":""; car.textContent=suggMin?"▸":"▾"; }
+    function apply(){ cb.style.display=suggMin?"none":""; car.textContent=suggMin?"â¸":"â¾"; }
     apply();
     hdr.onclick=function(){ suggMin=!suggMin; apply(); };
   })();
@@ -1594,7 +1594,7 @@ async function getPurchases(email,name){
     rows=data||[];
   }
   if(!rows.length && name){
-    const clean=String(name).split(" · ")[0].replace(/[%_]/g,"").trim();
+    const clean=String(name).split(" Â· ")[0].replace(/[%_]/g,"").trim();
     if(clean.length>=2){
       const { data } = await sb.from("purchases").select("*").ilike("customer_name","%"+clean+"%").order("order_date",{ascending:false}).limit(500);
       rows=data||[];
@@ -1625,7 +1625,7 @@ function inferField(rows){
     FIELD_RULES.forEach(rule=>{
       if(rule.kw.some(re=>re.test(txt))){
         scores[rule.field]=(scores[rule.field]||0)+w;
-        (signals[rule.field]=signals[rule.field]||[]).push((r.item||"").split(/[-–]/)[0].trim().slice(0,46));
+        (signals[rule.field]=signals[rule.field]||[]).push((r.item||"").split(/[-â]/)[0].trim().slice(0,46));
       }
     });
   });
@@ -1644,18 +1644,18 @@ function renderFieldBanner(rows){
   if(!f && !items.length) return '';
   const uid='fld'+Math.random().toString(36).slice(2,8);
   let inner;
-  if(f){ const sub=(f.second?"Also seen: "+esc(f.second)+" · ":"")+(f.sig.length?"signals: "+f.sig.map(esc).join(", "):"");
-    inner='🔬 Likely medical field: <b>'+esc(f.top)+'</b><span class="conf '+f.conf+'">'+f.conf+'</span>'+(sub?'<div class="fieldsub">'+sub+'</div>':'')+'<div class="fieldsub" style="opacity:.8">Best guess from purchase history — verify with the customer.</div>';
-  } else { inner='🔬 Likely medical field: <span style="color:#9aa7b4">analyzing…</span>'; }
+  if(f){ const sub=(f.second?"Also seen: "+esc(f.second)+" Â· ":"")+(f.sig.length?"signals: "+f.sig.map(esc).join(", "):"");
+    inner='ð¬ Likely medical field: <b>'+esc(f.top)+'</b><span class="conf '+f.conf+'">'+f.conf+'</span>'+(sub?'<div class="fieldsub">'+sub+'</div>':'')+'<div class="fieldsub" style="opacity:.8">Best guess from purchase history â verify with the customer.</div>';
+  } else { inner='ð¬ Likely medical field: <span style="color:#9aa7b4">analyzingâ¦</span>'; }
   if(items.length) setTimeout(()=>enhanceFieldAI(uid, items), 60);
   return '<div class="fieldbox" id="'+uid+'">'+inner+'</div>';
 }
 function applyFieldAI(uid, d){
   const el=document.getElementById(uid); if(!el||!d||!d.field) return;
   const conf = d.confidence==='strong'?'strong':(d.confidence==='moderate'?'likely':'mixed');
-  const also = (d.also_seen&&d.also_seen.length)?('Also seen: '+d.also_seen.map(esc).join(', ')+' · '):'';
+  const also = (d.also_seen&&d.also_seen.length)?('Also seen: '+d.also_seen.map(esc).join(', ')+' Â· '):'';
   const reason = d.reason?('signals: '+esc(d.reason)):'';
-  el.innerHTML='🔬 Likely medical field: <b>'+esc(d.field)+'</b><span class="conf '+conf+'">'+conf+'</span>'+((also||reason)?('<div class="fieldsub">'+also+reason+'</div>'):'')+'<div class="fieldsub" style="opacity:.8">AI estimate from purchase history — verify with the customer.</div>';
+  el.innerHTML='ð¬ Likely medical field: <b>'+esc(d.field)+'</b><span class="conf '+conf+'">'+conf+'</span>'+((also||reason)?('<div class="fieldsub">'+also+reason+'</div>'):'')+'<div class="fieldsub" style="opacity:.8">AI estimate from purchase history â verify with the customer.</div>';
 }
 async function enhanceFieldAI(uid, items){
   const key=items.slice(0,30).join('|'); if(!key) return;
@@ -1678,7 +1678,7 @@ function renderRepIntel(rows){
     const on=String(r.order_number||r.invoice||('d'+(r.order_date||'')));
     g.orders.add(on);
     const ok=rp+'|'+on; if(!seen[ok] && r.order_total!=null && r.order_total!==''){ seen[ok]=1; g.rev+=Number(r.order_total)||0; }
-    const it=(r.item||'').split(/[-–]/)[0].trim().slice(0,46); if(it) g.items[it]=(g.items[it]||0)+(Number(r.qty)||1);
+    const it=(r.item||'').split(/[-â]/)[0].trim().slice(0,46); if(it) g.items[it]=(g.items[it]||0)+(Number(r.qty)||1);
     const d=r.order_date||''; if(d>g.last) g.last=d;
   });
   const reps=Object.values(byRep).sort((a,b)=>(b.last||'').localeCompare(a.last||''));
@@ -1688,20 +1688,20 @@ function renderRepIntel(rows){
   let badge;
   var _hemail=((rows||[]).map(function(_r){return _r.customer_email||_r.email;}).filter(Boolean)[0])||'';
   var _hheld=(window.Holds&&_hemail&&window.Holds.isLocked(_hemail))?(window.Holds.state()[String(_hemail).trim().toLowerCase()]||{}):null;
-  if(_hheld){ badge='<span style="background:#fdeaea;color:#8a1c1c;border:1px solid #f2c4c4;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">🔒 LOCKED</span> <span style="color:#5a6b7b;font-size:11px">'+(String(_hheld.held_by||'a rep'))+'’s customer — permanent hold (overrides the '+OWNERSHIP_MONTHS+'-month rule)</span>'; }
+  if(_hheld){ badge='<span style="background:#fdeaea;color:#8a1c1c;border:1px solid #f2c4c4;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">ð LOCKED</span> <span style="color:#5a6b7b;font-size:11px">'+(String(_hheld.held_by||'a rep'))+'âs customer â permanent hold (overrides the '+OWNERSHIP_MONTHS+'-month rule)</span>'; }
   else if(open){
-    badge='<span style="background:#e8f5ec;color:#1d7a3f;border:1px solid #b7e0c4;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">🔓 OPEN to all reps</span> <span style="color:#5a6b7b;font-size:11px">no rep has closed a sale in over '+OWNERSHIP_MONTHS+' months — anyone can work this account</span>';
+    badge='<span style="background:#e8f5ec;color:#1d7a3f;border:1px solid #b7e0c4;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">ð OPEN to all reps</span> <span style="color:#5a6b7b;font-size:11px">no rep has closed a sale in over '+OWNERSHIP_MONTHS+' months â anyone can work this account</span>';
   }else{
     const exp=new Date(lastDate); exp.setMonth(exp.getMonth()+OWNERSHIP_MONTHS);
     const dl=Math.max(0,Math.ceil((exp-Date.now())/86400000));
-    badge='<span style="background:#eaf3fd;color:#0b66c3;border:1px solid #bcd8f5;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">🔒 '+esc(lastRep)+' owns this account</span> <span style="color:#5a6b7b;font-size:11px">'+dl+' day'+(dl===1?'':'s')+' left unless another closed sale resets it</span>';
+    badge='<span style="background:#eaf3fd;color:#0b66c3;border:1px solid #bcd8f5;border-radius:10px;padding:1px 8px;font-weight:700;font-size:11px">ð '+esc(lastRep)+' owns this account</span> <span style="color:#5a6b7b;font-size:11px">'+dl+' day'+(dl===1?'':'s')+' left unless another closed sale resets it</span>';
   }
   let h='<div style="border:1px solid #dbe6f0;background:#f7fbff;border-radius:10px;padding:10px 12px;margin:0 0 12px">';
-  h+='<div style="font-size:13px;margin-bottom:4px">🏅 Last sale: <b>'+esc(lastRep)+'</b> · '+esc(lastDate||'—')+'</div>';
+  h+='<div style="font-size:13px;margin-bottom:4px">ð Last sale: <b>'+esc(lastRep)+'</b> Â· '+esc(lastDate||'â')+'</div>';
   h+='<div style="margin-bottom:6px">'+badge+'</div>';
   h+='<table class="phtab"><thead><tr><th>Rep who closed sales</th><th>Orders</th><th>Last sale</th><th>Revenue</th><th>Top items bought</th></tr></thead><tbody>';
   reps.forEach(g=>{ const tops=Object.keys(g.items).sort((a,b)=>g.items[b]-g.items[a]).slice(0,3).map(esc).join(', ');
-    h+='<tr><td><b>'+esc(g.rep)+'</b></td><td>'+g.orders.size+'</td><td class="nowrap">'+esc(g.last||'')+'</td><td>'+(g.rev?money(g.rev):'—')+'</td><td>'+tops+'</td></tr>'; });
+    h+='<tr><td><b>'+esc(g.rep)+'</b></td><td>'+g.orders.size+'</td><td class="nowrap">'+esc(g.last||'')+'</td><td>'+(g.rev?money(g.rev):'â')+'</td><td>'+tops+'</td></tr>'; });
   h+='</tbody></table></div>';
   return h;
 }
@@ -1717,7 +1717,7 @@ function renderShipTo(rows){
   const uniq=[...new Set(withLoc.map(x=>[x.ship_city,x.ship_state].filter(Boolean).join(', ')).filter(Boolean))];
   const more=uniq.length>1?(' <span style="color:#9aa7b4;font-size:11px">(+'+(uniq.length-1)+' other ship-to location'+(uniq.length-1===1?'':'s')+')</span>'):'';
   return '<div style="border:1px solid #e3e9ef;background:#fbfdff;border-radius:8px;padding:8px 12px;margin:0 0 12px;font-size:12px">'+
-    '📍 <b>Ships to:</b> '+(who?esc(who)+' — ':'')+esc(loc||'—')+(line2?(' <span style="color:#5a6b7b">('+esc(line2)+')</span>'):'')+more+'</div>';
+    'ð <b>Ships to:</b> '+(who?esc(who)+' â ':'')+esc(loc||'â')+(line2?(' <span style="color:#5a6b7b">('+esc(line2)+')</span>'):'')+more+'</div>';
 }
 function renderPurchases(rows){
   if(!rows||!rows.length) return '<div style="color:#9aa7b4;font-size:12px">No prior orders found in the history.</div>';
@@ -1726,12 +1726,12 @@ function renderPurchases(rows){
   let h=renderRepIntel(rows)+renderShipTo(rows)+renderFieldBanner(rows);
   Object.keys(groups).sort().forEach(acct=>{
     const list=groups[acct]; let total=0,units=0;
-    // "price" from dotMed is already the line subtotal (unit price × qty), so sum it directly.
+    // "price" from dotMed is already the line subtotal (unit price Ã qty), so sum it directly.
     list.forEach(r=>{ total+=Number(r.price||0); units+=Number(r.qty||1); });
     const col=ACCT_COLOR[acct]||"#5a6b7b";
     const uid='ac'+Math.random().toString(36).slice(2,8);
-    h+='<div class="acctblock"><div class="acctttl sg-hdr" data-target="'+uid+'" style="cursor:pointer;user-select:none"><span class="sgcx" style="margin-right:4px;color:#9aa7b4;font-size:11px">▾</span><span class="dot" style="background:'+col+'"></span>'+esc(acct)+' <span class="pill">'+list.length+' line item'+(list.length===1?'':'s')+'</span></div>';
-    h+='<div id="'+uid+'"><div class="phsum">'+units+' unit'+(units===1?'':'s')+' · est. '+money(total)+' lifetime</div>';
+    h+='<div class="acctblock"><div class="acctttl sg-hdr" data-target="'+uid+'" style="cursor:pointer;user-select:none"><span class="sgcx" style="margin-right:4px;color:#9aa7b4;font-size:11px">â¾</span><span class="dot" style="background:'+col+'"></span>'+esc(acct)+' <span class="pill">'+list.length+' line item'+(list.length===1?'':'s')+'</span></div>';
+    h+='<div id="'+uid+'"><div class="phsum">'+units+' unit'+(units===1?'':'s')+' Â· est. '+money(total)+' lifetime</div>';
     h+='<table class="phtab"><thead><tr><th>Date</th><th>Item</th><th>Listing</th><th>Qty</th><th>Price</th></tr></thead><tbody>';
     list.forEach(r=>{ h+='<tr><td>'+esc(r.order_date||"")+'</td><td>'+esc(r.item||"")+'</td><td>'+(r.listing?("#"+esc(String(r.listing))):"")+'</td><td>'+esc(String(r.qty||""))+'</td><td>'+(r.price!=null&&r.price!==""?money(r.price):"")+'</td></tr>'; });
     h+='</tbody></table></div></div>';
@@ -1757,13 +1757,13 @@ function renderMedstock(m){
   if(!m||!m.inv||!m.inv.length) return '';
   const strong=m.inv.filter(x=>x._strong), soft=m.inv.filter(x=>!x._strong);
   const brands=[...new Set(m.pbi.map(b=>b.brand_label))];
-  function row(x){ const exp=x.exp_date?(' · exp '+esc(String(x.exp_date))):''; const q=(x.quantity!=null?(' · qty '+x.quantity):'');
+  function row(x){ const exp=x.exp_date?(' Â· exp '+esc(String(x.exp_date))):''; const q=(x.quantity!=null?(' Â· qty '+x.quantity):'');
     return '<tr><td>'+(x._strong?'<span style="background:#e8f5ec;color:#1d7a3f;border:1px solid #b7e0c4;border-radius:8px;padding:0 6px;font-size:10px;font-weight:700">EXACT MODEL</span> ':'')+esc(x.manufacturer||'')+'</td><td>'+esc(x.ref||'')+'</td><td>'+esc((x.description||'').slice(0,70))+'</td><td class="nowrap">'+esc(x.category||'')+q+exp+'</td></tr>'; }
   const uid='ms'+Math.random().toString(36).slice(2,8);
   let h='<div style="border:1px solid #cfe6e2;background:#f2fbf9;border-radius:10px;padding:10px 12px;margin:10px 0 12px">';
-  h+='<div class="sg-hdr" data-target="'+uid+'" style="font-size:13px;margin-bottom:4px;cursor:pointer;user-select:none">🎯 <span class="sgcx">▾</span> <b>Medstock matches</b> — current inventory from brands this customer has bought ('+m.inv.length+(strong.length?(', '+strong.length+' exact-model'):'')+')</div>';
+  h+='<div class="sg-hdr" data-target="'+uid+'" style="font-size:13px;margin-bottom:4px;cursor:pointer;user-select:none">ð¯ <span class="sgcx">â¾</span> <b>Medstock matches</b> â current inventory from brands this customer has bought ('+m.inv.length+(strong.length?(', '+strong.length+' exact-model'):'')+')</div>';
   h+='<div id="'+uid+'">';
-  h+='<div style="font-size:11px;color:#5a6b7b;margin-bottom:6px">Brands they buy that we stock: '+brands.slice(0,8).map(esc).join(', ')+(brands.length>8?' …':'')+'</div>';
+  h+='<div style="font-size:11px;color:#5a6b7b;margin-bottom:6px">Brands they buy that we stock: '+brands.slice(0,8).map(esc).join(', ')+(brands.length>8?' â¦':'')+'</div>';
   h+='<table class="phtab"><thead><tr><th>Brand</th><th>REF</th><th>Description</th><th>List</th></tr></thead><tbody>';
   (strong.concat(soft)).slice(0,40).forEach(x=>h+=row(x));
   h+='</tbody></table>';
@@ -1777,13 +1777,13 @@ async function injectMedstock(email, purchaseRows, mountEl){
 // Opportunities dashboard: current stock cross-referenced with past buyers
 async function openOpportunities(){
   const o=ensureOverlay(); o.style.display="flex";
-  o.innerHTML='<div class="modal wide"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>🎯 Opportunities — exact-item matches</h3><div class="msub">Items in stock that customers bought the exact model of before — in-date sources first</div></div><div class="mbody"><div style="margin-bottom:6px"><input id="oppSearch" placeholder="Filter by model / source…" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"></div><div id="oppBody"><div style="color:#9aa7b4;font-size:12px">Loading opportunities…</div></div></div></div>';
+  o.innerHTML='<div class="modal wide"><div class="mhead"><button class="mclose" id="mClose">Ã</button><h3>ð¯ Opportunities â exact-item matches</h3><div class="msub">Items in stock that customers bought the exact model of before â in-date sources first</div></div><div class="mbody"><div style="margin-bottom:6px"><input id="oppSearch" placeholder="Filter by model / sourceâ¦" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"></div><div id="oppBody"><div style="color:#9aa7b4;font-size:12px">Loading opportunitiesâ¦</div></div></div></div>';
   document.getElementById("mClose").onclick=closeDetail;
   const body=document.getElementById("oppBody");
   try{
     const { data:items } = await sb.from('opportunity_summary').select('*').order('in_date',{ascending:false}).order('buyers',{ascending:false}).limit(800);
     if(!items||!items.length){ body.innerHTML='<div style="color:#9aa7b4;font-size:12px">No exact-item matches yet.</div>'; return; }
-    function srcTag(x){ return (/SurgaMed/.test(x.sources)&&!/Medstock|ShortDated/.test(x.sources)) ? '<span style="color:#9a5b14">'+esc(x.sources)+' · expired</span>' : '<span style="color:#1d7a3f">'+esc(x.sources)+' · in-date</span>'; }
+    function srcTag(x){ return (/SurgaMed/.test(x.sources)&&!/Medstock|ShortDated/.test(x.sources)) ? '<span style="color:#9a5b14">'+esc(x.sources)+' Â· expired</span>' : '<span style="color:#1d7a3f">'+esc(x.sources)+' Â· in-date</span>'; }
     function render(list){
       let h='<div style="font-size:12px;color:#5a6b7b;margin-bottom:8px">'+list.length+' in-stock item(s) customers bought the exact model of before. Click an item to see who to call.</div>';
       h+='<table class="phtab"><thead><tr><th>Item (model)</th><th>Source</th><th>Past buyers</th><th>Last bought</th></tr></thead><tbody>';
@@ -1799,14 +1799,14 @@ async function openOpportunities(){
 }
 async function toggleOppItem(rk, rl, tr){
   if(tr.dataset.open==='1'){ tr.dataset.open='0'; tr.innerHTML=''; return; }
-  tr.dataset.open='1'; tr.innerHTML='<td colspan="4" style="background:#f7fbff;padding:8px 10px;color:#9aa7b4;font-size:12px">Loading…</td>';
+  tr.dataset.open='1'; tr.innerHTML='<td colspan="4" style="background:#f7fbff;padding:8px 10px;color:#9aa7b4;font-size:12px">Loadingâ¦</td>';
   try{
     const rb=await sb.from('opportunity_buyers').select('customer_email,customer_name,times_bought,last_date').eq('ref_key',rk).order('last_date',{ascending:false}).limit(400);
     const B=rb.data||[];
     let h='<td colspan="4" style="background:#f7fbff;padding:8px 12px">';
-    h+='<div style="font-weight:600;font-size:12px;margin:2px 0 4px">📞 '+B.length+' customer(s) who bought '+esc(rl)+' before — click a name to open full details & email</div>';
+    h+='<div style="font-weight:600;font-size:12px;margin:2px 0 4px">ð '+B.length+' customer(s) who bought '+esc(rl)+' before â click a name to open full details & email</div>';
     B.forEach(x=>{ const rid='ob'+Math.random().toString(36).slice(2,9);
-      h+='<div class="oppbuyer" data-email="'+esc(x.customer_email||'')+'" data-name="'+esc(x.customer_name||'')+'" data-rid="'+rid+'" style="cursor:pointer;padding:6px 8px;border-top:1px solid #eef2f6;display:flex;justify-content:space-between;gap:10px"><span><a href="#" style="color:#0b66c3;font-weight:600">'+esc(x.customer_name||x.customer_email||'(unknown)')+'</a> <span style="color:#9aa7b4;font-size:11px">'+esc(x.customer_email||'')+'</span></span><span style="color:#5a6b7b;font-size:11px;white-space:nowrap">'+x.times_bought+'× · '+esc(String(x.last_date||'').slice(0,10))+'</span></div><div id="'+rid+'" style="display:none;padding:4px 8px 10px"></div>'; });
+      h+='<div class="oppbuyer" data-email="'+esc(x.customer_email||'')+'" data-name="'+esc(x.customer_name||'')+'" data-rid="'+rid+'" style="cursor:pointer;padding:6px 8px;border-top:1px solid #eef2f6;display:flex;justify-content:space-between;gap:10px"><span><a href="#" style="color:#0b66c3;font-weight:600">'+esc(x.customer_name||x.customer_email||'(unknown)')+'</a> <span style="color:#9aa7b4;font-size:11px">'+esc(x.customer_email||'')+'</span></span><span style="color:#5a6b7b;font-size:11px;white-space:nowrap">'+x.times_bought+'Ã Â· '+esc(String(x.last_date||'').slice(0,10))+'</span></div><div id="'+rid+'" style="display:none;padding:4px 8px 10px"></div>'; });
     h+='</td>';
     tr.innerHTML=h;
     tr.querySelectorAll('.oppbuyer').forEach(function(el){ el.onclick=function(ev){ ev.preventDefault(); const d=document.getElementById(this.dataset.rid); if(!d) return; if(d.dataset.open==='1'){ d.dataset.open='0'; d.style.display='none'; d.innerHTML=''; return; } d.dataset.open='1'; d.style.display=''; showCustDetail(this.dataset.email, this.dataset.name, d, this.dataset.rid); }; });
@@ -1814,8 +1814,8 @@ async function toggleOppItem(rk, rl, tr){
 }
 async function reorderDraftInto(ns, email, name){
   const msg=document.getElementById(ns+'_msg'), bt=document.getElementById(ns+'_draft');
-  if(bt){ bt.disabled=true; bt.textContent='✨ Drafting…'; }
-  if(msg){ msg.style.color='#5a6b7b'; msg.textContent='Writing a reorder draft…'; }
+  if(bt){ bt.disabled=true; bt.textContent='â¨ Draftingâ¦'; }
+  if(msg){ msg.style.color='#5a6b7b'; msg.textContent='Writing a reorder draftâ¦'; }
   try{
     const repName = MY_REP ? repFull(MY_REP) : (ME||'');
     let exactM=[]; try{ const ek=String(email||'').toLowerCase(); exactM=(window.__EXACT&&window.__EXACT[ek])||[]; if(!exactM.length){ const _rowsE=(window.__ROWS4&&window.__ROWS4[ek])||[]; if(_rowsE.length){ exactM=(await exactMatchesFor(_rowsE, ek)).map(function(x){return {ref:x.ref,name:x.name,source:x.source,price:x.price,lastBought:x.lastBought};}); } } }catch(e){}
@@ -1825,9 +1825,9 @@ async function reorderDraftInto(ns, email, name){
     const subj=document.getElementById(ns+'_subj'), body=document.getElementById(ns+'_body');
     if(subj&&d.subject) subj.value=d.subject;
     if(body){ body.value=String(d.body||'').replace(/<br\s*\/?>(\s*)/gi,'\n').replace(/<\/p>\s*<p[^>]*>/gi,'\n\n').replace(/<[^>]+>/g,'').replace(/\n{3,}/g,'\n\n').trim(); try{var _rt=body;while(_rt&&!(_rt.querySelector&&_rt.querySelector('table.phtab')))_rt=_rt.parentElement;if(_rt&&window.__rrGrid){var _g=window.__rrGrid(_rt);if(_g)body.value=body.value.replace(/\s+$/,'')+'\n\n'+_g;}}catch(_e){} }
-    if(msg){ msg.style.color='#1d7a3f'; msg.textContent='Draft ready — review & send · '+(d.in_stock_count||0)+' in stock of '+(d.due_count||0)+' due'; }
+    if(msg){ msg.style.color='#1d7a3f'; msg.textContent='Draft ready â review & send Â· '+(d.in_stock_count||0)+' in stock of '+(d.due_count||0)+' due'; }
   }catch(e){ if(msg){ msg.style.color='#c0392b'; msg.textContent=String(e.message||e); } }
-  if(bt){ bt.disabled=false; bt.textContent='✨ AI reorder draft'; }
+  if(bt){ bt.disabled=false; bt.textContent='â¨ AI reorder draft'; }
 }
 async function openReorderRadar(presetRep){
   const o=ensureOverlay(); o.style.display='flex';
@@ -1836,11 +1836,11 @@ async function openReorderRadar(presetRep){
   const repPick=true
     ? '<select id="rrRep" style="padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><option value="">All reps</option><option>Mirian Alejo</option><option>Jennifer Lugo</option><option>Deysi Calvo</option><option>Tehila Cohen</option><option value="__none__">Unassigned pool</option></select> '
     : '';
-  o.innerHTML='<div class="modal wide"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>📡 Reorder Radar — reach out today</h3><div class="msub">Customers who look due to reorder, ranked by likelihood × value. Items we have in stock first — one click drafts the outreach.</div></div><div class="mbody"><div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+repPick+'<label style="font-size:12px;color:#5a6b7b"><input type="checkbox" id="rrInstock" checked> Only items we have in stock</label><span id="rrCount" style="font-size:12px;color:#9aa7b4"></span></div><div id="rrBody"><div style="color:#9aa7b4;font-size:12px">Loading…</div></div></div></div>';
+  o.innerHTML='<div class="modal wide"><div class="mhead"><button class="mclose" id="mClose">Ã</button><h3>ð¡ Reorder Radar â reach out today</h3><div class="msub">Customers who look due to reorder, ranked by likelihood Ã value. Items we have in stock first â one click drafts the outreach.</div></div><div class="mbody"><div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+repPick+'<label style="font-size:12px;color:#5a6b7b"><input type="checkbox" id="rrInstock" checked> Only items we have in stock</label><span id="rrCount" style="font-size:12px;color:#9aa7b4"></span></div><div id="rrBody"><div style="color:#9aa7b4;font-size:12px">Loadingâ¦</div></div></div></div>';
   document.getElementById('mClose').onclick=closeDetail;
   const body=document.getElementById('rrBody');
   async function run(){
-    body.innerHTML='<div style="color:#9aa7b4;font-size:12px">Loading…</div>';
+    body.innerHTML='<div style="color:#9aa7b4;font-size:12px">Loadingâ¦</div>';
     const repSel=(document.getElementById('rrRep')||{value:myFull}).value;
     const onlyStock=document.getElementById('rrInstock').checked;
     try{
@@ -1851,10 +1851,10 @@ async function openReorderRadar(presetRep){
       if(error) throw error;
       let list=(rows||[]); if(onlyStock) list=list.filter(x=>x.due_instock>0);
       const cc=document.getElementById('rrCount'); if(cc) cc.textContent=list.length+' customer(s)';
-      if(!list.length){ body.innerHTML='<div style="color:#1d7a3f;font-size:12px">Nobody’s due right now with these filters. 🎉</div>'; return; }
+      if(!list.length){ body.innerHTML='<div style="color:#1d7a3f;font-size:12px">Nobodyâs due right now with these filters. ð</div>'; return; }
       let h='<div style="font-size:12px;color:#5a6b7b;margin-bottom:8px">Click a name to see their due items, draft a reorder email, and view full history.</div>';
       h+='<table class="phtab"><thead><tr><th>Customer</th><th>Owner</th><th>Due</th><th>In&nbsp;stock</th><th>Next due</th></tr></thead><tbody>';
-      list.forEach((b,i)=>{ h+='<tr class="rrrow" data-email="'+esc(b.customer_email||'')+'" data-name="'+esc(b.customer_name||'')+'" data-i="'+i+'" style="cursor:pointer"><td><b>'+esc(b.customer_name||b.customer_email||'(unknown)')+'</b><div style="color:#9aa7b4;font-size:11px">'+esc(b.customer_email||'')+'</div></td><td style="font-size:11px">'+esc(b.owner_rep||'—')+'</td><td>'+b.due_items+'</td><td>'+(b.due_instock>0?('<span style="color:#1d7a3f;font-weight:700">'+b.due_instock+'</span>'):'0')+'</td><td class="nowrap" style="font-size:11px">'+esc(String(b.next_due||'').slice(0,10))+'</td></tr><tr id="rrd'+i+'"></tr>'; });
+      list.forEach((b,i)=>{ h+='<tr class="rrrow" data-email="'+esc(b.customer_email||'')+'" data-name="'+esc(b.customer_name||'')+'" data-i="'+i+'" style="cursor:pointer"><td><b>'+esc(b.customer_name||b.customer_email||'(unknown)')+'</b><div style="color:#9aa7b4;font-size:11px">'+esc(b.customer_email||'')+'</div></td><td style="font-size:11px">'+esc(b.owner_rep||'â')+'</td><td>'+b.due_items+'</td><td>'+(b.due_instock>0?('<span style="color:#1d7a3f;font-weight:700">'+b.due_instock+'</span>'):'0')+'</td><td class="nowrap" style="font-size:11px">'+esc(String(b.next_due||'').slice(0,10))+'</td></tr><tr id="rrd'+i+'"></tr>'; });
       h+='</tbody></table>';
       body.innerHTML=h;
       body.querySelectorAll('.rrrow').forEach(function(el){ el.onclick=function(){ const i=this.dataset.i, d=document.getElementById('rrd'+i); if(d.dataset.open==='1'){ d.dataset.open='0'; d.innerHTML=''; return; } d.dataset.open='1'; d.innerHTML='<td colspan="5" style="background:#f7fbff;padding:8px 12px"><div id="rrx'+i+'"></div></td>'; showCustDetail(this.dataset.email, this.dataset.name, document.getElementById('rrx'+i), 'rr'+i); }; });
@@ -1869,7 +1869,7 @@ async function loadCustHistory(l){
   const box=document.getElementById("custBox"); if(!box) return;
   let rows=[];
   try{ rows=await getPurchases(l.custEmail,l.display); box.innerHTML=renderPurchases(rows); wireSuggToggles(box); }
-  catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load history: '+esc(String(e.message||e))+'</div>'; }
+  catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldnât load history: '+esc(String(e.message||e))+'</div>'; }
   loadSuggestions(rows, l);
 }
 // Suggest live in-stock inventory based on what the customer has bought: reorders
@@ -1878,10 +1878,10 @@ function suggSrcRows(list){
   let s='<table class="phtab"><thead><tr><th>Item</th><th>Source</th><th>Category</th><th>Price</th><th></th></tr></thead><tbody>';
   list.forEach(r=>{
     const tag = r.source==='SurgaMed'
-      ? '<span style="color:#9a5b14;font-weight:600">SurgaMed</span> <span style="color:#9aa7b4">· expired, priced to sell</span>'
-      : '<span style="color:#1d7a3f;font-weight:600">'+esc(r.source)+'</span> <span style="color:#9aa7b4">· in-date</span>';
+      ? '<span style="color:#9a5b14;font-weight:600">SurgaMed</span> <span style="color:#9aa7b4">Â· expired, priced to sell</span>'
+      : '<span style="color:#1d7a3f;font-weight:600">'+esc(r.source)+'</span> <span style="color:#9aa7b4">Â· in-date</span>';
     const link = r.url? '<a href="'+esc(r.url)+'" target="_blank" rel="noopener">view</a>' : '';
-    s+='<tr><td>'+esc(r.name||'')+(r.ref?(' <span style="color:#9aa7b4">#'+esc(r.ref)+'</span>'):'')+(r.reason?(' <span style="color:#0f766e;font-size:11px">— '+esc(r.reason)+'</span>'):'')+'</td><td style="font-size:11px">'+tag+'</td><td>'+esc(r.category||'')+'</td><td>'+(r.price!=null&&r.price!==''?money(r.price):'')+'</td><td>'+link+'</td></tr>';
+    s+='<tr><td>'+esc(r.name||'')+(r.ref?(' <span style="color:#9aa7b4">#'+esc(r.ref)+'</span>'):'')+(r.reason?(' <span style="color:#0f766e;font-size:11px">â '+esc(r.reason)+'</span>'):'')+'</td><td style="font-size:11px">'+tag+'</td><td>'+esc(r.category||'')+'</td><td>'+(r.price!=null&&r.price!==''?money(r.price):'')+'</td><td>'+link+'</td></tr>';
   });
   return s+'</tbody></table>';
 }
@@ -1890,17 +1890,17 @@ function simSectionHtml(sim, uid){
   if(!sim||!sim.length) return '';
   window.SIM_DATA=window.SIM_DATA||{}; window.SIM_DATA[uid]=sim;
   const head=sim.slice(0,5), rest=sim.slice(5);
-  let h='<div class="sg-hdr" data-target="'+uid+'_b" style="font-weight:600;color:#0b66c3;margin-top:10px;cursor:pointer;user-select:none"><span class="sgcx">▾</span> ✨ AI-suggested similar items in stock — SurgaMed · ShortDated · Medstock ('+sim.length+')<a href="#" class="sg-xl" data-sim="'+uid+'" title="Download this AI list to Excel" style="float:right;color:#1d7a3f;font-size:12px;text-decoration:none;font-weight:700;margin-left:12px">⬇ Excel</a></div>';
+  let h='<div class="sg-hdr" data-target="'+uid+'_b" style="font-weight:600;color:#0b66c3;margin-top:10px;cursor:pointer;user-select:none"><span class="sgcx">â¾</span> â¨ AI-suggested similar items in stock â SurgaMed Â· ShortDated Â· Medstock ('+sim.length+')<a href="#" class="sg-xl" data-sim="'+uid+'" title="Download this AI list to Excel" style="float:right;color:#1d7a3f;font-size:12px;text-decoration:none;font-weight:700;margin-left:12px">â¬ Excel</a></div>';
   h+='<div id="'+uid+'_b">'+suggSrcRows(head);
-  if(rest.length){ h+='<div id="'+uid+'_m" style="display:none">'+suggSrcRows(rest)+'</div>'; h+='<div style="margin:4px 0 2px"><a href="#" class="sg-more" data-target="'+uid+'_m" data-n="'+rest.length+'" style="color:#0b66c3;font-size:12px;text-decoration:none">▾ Click here for '+rest.length+' more AI suggestion'+(rest.length===1?'':'s')+'</a></div>'; }
+  if(rest.length){ h+='<div id="'+uid+'_m" style="display:none">'+suggSrcRows(rest)+'</div>'; h+='<div style="margin:4px 0 2px"><a href="#" class="sg-more" data-target="'+uid+'_m" data-n="'+rest.length+'" style="color:#0b66c3;font-size:12px;text-decoration:none">â¾ Click here for '+rest.length+' more AI suggestion'+(rest.length===1?'':'s')+'</a></div>'; }
   h+='</div>';
   return h;
 }
 // Wire minimize (.sg-hdr) and show-more (.sg-more) toggles inside a container.
 function wireSuggToggles(root){
   if(!root) return;
-  root.querySelectorAll('.sg-hdr').forEach(function(hd){ if(hd._wired) return; hd._wired=1; hd.onclick=function(ev){ if(ev&&ev.target&&ev.target.closest&&ev.target.closest('.sg-xl'))return; const el=document.getElementById(this.getAttribute('data-target')); if(!el)return; const show=(el.style.display==='none'); el.style.display=show?'':'none'; const cx=this.querySelector('.sgcx'); if(cx)cx.textContent=show?'▾':'▸'; }; });
-  root.querySelectorAll('.sg-more').forEach(function(a){ if(a._wired) return; a._wired=1; a.onclick=function(ev){ ev.preventDefault(); const el=document.getElementById(this.getAttribute('data-target')); if(!el)return false; const sh=(el.style.display==='none'); el.style.display=sh?'':'none'; const n=this.getAttribute('data-n'); this.innerHTML=sh?'▴ Show fewer':('▾ Click here for '+n+' more AI suggestion'+(n==='1'?'':'s')); return false; }; });
+  root.querySelectorAll('.sg-hdr').forEach(function(hd){ if(hd._wired) return; hd._wired=1; hd.onclick=function(ev){ if(ev&&ev.target&&ev.target.closest&&ev.target.closest('.sg-xl'))return; const el=document.getElementById(this.getAttribute('data-target')); if(!el)return; const show=(el.style.display==='none'); el.style.display=show?'':'none'; const cx=this.querySelector('.sgcx'); if(cx)cx.textContent=show?'â¾':'â¸'; }; });
+  root.querySelectorAll('.sg-more').forEach(function(a){ if(a._wired) return; a._wired=1; a.onclick=function(ev){ ev.preventDefault(); const el=document.getElementById(this.getAttribute('data-target')); if(!el)return false; const sh=(el.style.display==='none'); el.style.display=sh?'':'none'; const n=this.getAttribute('data-n'); this.innerHTML=sh?'â´ Show fewer':('â¾ Click here for '+n+' more AI suggestion'+(n==='1'?'':'s')); return false; }; });
   root.querySelectorAll('.sg-xl').forEach(function(a){ if(a._wired) return; a._wired=1; a.onclick=function(ev){ ev.preventDefault(); ev.stopPropagation(); exportSimXlsx(this.getAttribute('data-sim')); return false; }; });
 }
 // Export an AI-suggested list to a real Excel file (SheetJS loaded on first use).
@@ -1943,7 +1943,7 @@ async function aiSimilarFor(rows, email, excludeRefs){
   if(pool.length){ try{ const _bn=(rows||[]).map(r=>r.item).filter(Boolean).slice(0,25); const _rr=await fetch(SB_URL+'/functions/v1/similar-items',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(await freshToken())},body:JSON.stringify({bought:_bn,candidates:pool.map(x=>({ref:x.ref,name:x.name,category:x.category,source:x.source}))})}); if(_rr.ok){ const _dd=await _rr.json(); if(_dd.items&&_dd.items.length){ const _br={}; pool.forEach(x=>_br[String(x.ref)]=x); similar=_dd.items.map(p=>Object.assign({},_br[String(p.ref)]||{},{reason:p.reason})).filter(x=>x.ref); } } }catch(e){} }
   return similar;
 }
-// EXACT matches to past orders — in-stock items (SurgaMed + ShortDated + Medstock) whose
+// EXACT matches to past orders â in-stock items (SurgaMed + ShortDated + Medstock) whose
 // model/REF the customer has bought before, annotated with when they last bought it.
 async function exactMatchesFor(rows, email){
   const NK=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -1971,15 +1971,15 @@ async function exactMatchesFor(rows, email){
 }
 function exactRowsHtml(exact){
   let h='<table class="phtab"><thead><tr><th>Source</th><th>Item</th><th>REF / Model</th><th>Qty</th><th>Price</th><th>Last bought</th></tr></thead><tbody>';
-  (exact||[]).forEach(x=>{ const src = x.source==='SurgaMed' ? '<span style="color:#9a5b14">SurgaMed · expired</span>' : (x.source==='Medstock' ? '<span style="color:#1d7a3f">Medstock · in-date</span>' : '<span style="color:#1d7a3f">'+esc(x.source)+' · in-date</span>');
-    h+='<tr><td style="font-size:11px;white-space:nowrap">'+src+'</td><td>'+esc(x.name||'')+'</td><td>'+esc(x.ref||'')+'</td><td class="nowrap"><b>'+(x.qty!=null?esc(String(x.qty)):'-')+'</b></td><td>'+(x.price!=null&&x.price!==''?money(x.price):'')+'</td><td class="nowrap">'+(x.lastBought?esc(x.lastBought):'—')+'</td></tr>'; });
+  (exact||[]).forEach(x=>{ const src = x.source==='SurgaMed' ? '<span style="color:#9a5b14">SurgaMed Â· expired</span>' : (x.source==='Medstock' ? '<span style="color:#1d7a3f">Medstock Â· in-date</span>' : '<span style="color:#1d7a3f">'+esc(x.source)+' Â· in-date</span>');
+    h+='<tr><td style="font-size:11px;white-space:nowrap">'+src+'</td><td>'+esc(x.name||'')+'</td><td>'+esc(x.ref||'')+'</td><td class="nowrap"><b>'+(x.qty!=null?esc(String(x.qty)):'-')+'</b></td><td>'+(x.price!=null&&x.price!==''?money(x.price):'')+'</td><td class="nowrap">'+(x.lastBought?esc(x.lastBought):'â')+'</td></tr>'; });
   return h+'</tbody></table>';
 }
 function renderExactMatches(exact){
   if(!exact||!exact.length) return '';
   const uid='ex'+Math.random().toString(36).slice(2,8);
   let h='<div style="border:1px solid #cfe6e2;background:#f2fbf9;border-radius:10px;padding:10px 12px;margin:10px 0 12px">';
-  h+='<div class="sg-hdr" data-target="'+uid+'" style="font-size:13px;margin-bottom:4px;cursor:pointer;user-select:none">🎯 <span class="sgcx">▾</span> <b>Exact matches to past orders</b> — in stock now across SurgaMed · ShortDated · Medstock ('+exact.length+')</div>';
+  h+='<div class="sg-hdr" data-target="'+uid+'" style="font-size:13px;margin-bottom:4px;cursor:pointer;user-select:none">ð¯ <span class="sgcx">â¾</span> <b>Exact matches to past orders</b> â in stock now across SurgaMed Â· ShortDated Â· Medstock ('+exact.length+')</div>';
   h+='<div id="'+uid+'">'+exactRowsHtml(exact)+'</div></div>';
   return h;
 }
@@ -1998,8 +1998,8 @@ async function loadSuggestions(rows, l){
     try{ similar=await aiSimilarFor(rows, email, exactRefs); }catch(e){}
     let h='';
     if(exact.length){
-      h+='<div class="phsum" style="font-weight:600;color:#1d7a3f">🎯 Exact matches to past orders — in stock now across SurgaMed · ShortDated · Medstock ('+exact.length+')</div>'+exactRowsHtml(exact);
-      h+='<div style="margin:6px 0 14px"><button id="reorderBtn" class="custbtn" style="background:#1d7a3f;border-color:#1d7a3f;padding:6px 12px">📣 Email customer: these are in stock</button> <span id="reorderMsg" style="font-size:12px;color:#5a6b7b"></span></div>';
+      h+='<div class="phsum" style="font-weight:600;color:#1d7a3f">ð¯ Exact matches to past orders â in stock now across SurgaMed Â· ShortDated Â· Medstock ('+exact.length+')</div>'+exactRowsHtml(exact);
+      h+='<div style="margin:6px 0 14px"><button id="reorderBtn" class="custbtn" style="background:#1d7a3f;border-color:#1d7a3f;padding:6px 12px">ð£ Email customer: these are in stock</button> <span id="reorderMsg" style="font-size:12px;color:#5a6b7b"></span></div>';
     } else {
       h+='<div style="color:#9aa7b4;font-size:12px">No exact in-stock matches from prior purchases.</div>';
     }
@@ -2007,7 +2007,7 @@ async function loadSuggestions(rows, l){
     box.innerHTML=h;
     wireSuggToggles(box);
     if(exact.length && l){ const rb=document.getElementById("reorderBtn"); if(rb) rb.onclick=()=>sendReorderAlert(l, exact); }
-  }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load suggestions: '+esc(String(e.message||e))+'</div>'; }
+  }catch(e){ box.innerHTML='<div style="color:#c0392b;font-size:12px">Couldnât load suggestions: '+esc(String(e.message||e))+'</div>'; }
 }
 // One-click: email the customer (from the rep's own address + signature) that their
 // previously-purchased items are back in stock, with a note to flag anything else they want.
@@ -2016,21 +2016,21 @@ async function sendReorderAlert(l, items){
   const to=(l.custEmail||"").trim();
   if(!to){ if(msg){ msg.style.color="#c0392b"; msg.textContent="No customer email on this lead."; } return; }
   const first=(titleCase(l.display||"").split(/[\s,]+/)[0])||"there";
-  const lines=(items||[]).map(r=>'• '+(r.name||r.mfg||'')+(r.price!=null?(' — '+money(r.price)):'')).join('\n');
-  const text="Hi "+first+",\n\nGood news — the following item(s) you've purchased from us in the past are currently in stock:\n\n"+lines+"\n\nIf you'd like to reorder any of these items, simply reply to this email and we'll be happy to assist.\n\nWe're always adding new inventory, so if there are any other products you're looking for, just let us know and we'll keep you in mind as new items arrive.\n\nThank you,";
+  const lines=(items||[]).map(r=>'â¢ '+(r.name||r.mfg||'')+(r.price!=null?(' â '+money(r.price)):'')).join('\n');
+  const text="Hi "+first+",\n\nGood news â the following item(s) you've purchased from us in the past are currently in stock:\n\n"+lines+"\n\nIf you'd like to reorder any of these items, simply reply to this email and we'll be happy to assist.\n\nWe're always adding new inventory, so if there are any other products you're looking for, just let us know and we'll keep you in mind as new items arrive.\n\nThank you,";
   if(!confirm("Email "+to+" about "+items.length+" in-stock item"+(items.length===1?'':'s')+"? It will send from your email with your signature.")) return;
-  if(btn) btn.disabled=true; if(msg){ msg.style.color="#5a6b7b"; msg.textContent="Sending…"; }
+  if(btn) btn.disabled=true; if(msg){ msg.style.color="#5a6b7b"; msg.textContent="Sendingâ¦"; }
   try{
     const rep=(REPS.includes(MY_REP)?MY_REP:effRep(l))||ME;
     const fromMbx=REPS.includes(MY_REP)?MY_EMAIL:"";
-    const payload={ action:"send", rep, to, subject:"Items you've ordered are back in stock — SurgaMed", text, signature:MY_SIG, html:MY_SIG_HTML, from:fromMbx, attachments:(window.__ATT_LIST||[]) };
+    const payload={ action:"send", rep, to, subject:"Items you've ordered are back in stock â SurgaMed", text, signature:MY_SIG, html:MY_SIG_HTML, from:fromMbx, attachments:(window.__ATT_LIST||[]) };
     const r=await fetch(FN_URL,{method:"POST",headers:{Authorization:"Bearer "+(await freshToken()),apikey:SB_KEY,"content-type":"application/json"},body:JSON.stringify(payload)});
     const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||("HTTP "+r.status));
     try{ await sb.from("contacts").insert({ customer_email:to.toLowerCase(), customer_name:l.display||null, rep, rep_email:MY_EMAIL||null, channel:"email", direction:"out", lead_id:l.id, listing:l.listing||null, subject:payload.subject, message_id:"reorder-"+Date.now() }); }catch(e){}
     await addHistory(l.id,"Sent in-stock reorder alert ("+items.length+" item"+(items.length===1?'':'s')+") by "+rep);
-    if(msg){ msg.style.color="#1d7a3f"; msg.textContent="Sent ✓"; }
+    if(msg){ msg.style.color="#1d7a3f"; msg.textContent="Sent â"; }
     setTimeout(()=>loadEmailThread(l),1200); renderHist(l.id);
-  }catch(e){ if(msg){ msg.style.color="#c0392b"; msg.textContent="Couldn’t send: "+String(e.message||e); } }
+  }catch(e){ if(msg){ msg.style.color="#c0392b"; msg.textContent="Couldnât send: "+String(e.message||e); } }
   if(btn) btn.disabled=false;
 }
 // Keep the purchase-history DB current: each time the board loads, scan the most
@@ -2050,20 +2050,20 @@ async function refreshPurchases(){
 }
 function openCustSearch(){
   const o=ensureOverlay(); o.style.display="flex";
-  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>Customer lookup</h3><div class="msub">Search all order history (SurgaMed + ShortDated) by email or name</div></div>'+
-    '<div class="mbody"><div style="display:flex;gap:6px;margin-bottom:14px"><input id="custQ" placeholder="Email (best match) or customer name…" style="flex:1;padding:8px 10px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><button id="custGo" class="custbtn" style="padding:8px 16px">Search</button></div>'+
+  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">Ã</button><h3>Customer lookup</h3><div class="msub">Search all order history (SurgaMed + ShortDated) by email or name</div></div>'+
+    '<div class="mbody"><div style="display:flex;gap:6px;margin-bottom:14px"><input id="custQ" placeholder="Email (best match) or customer nameâ¦" style="flex:1;padding:8px 10px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><button id="custGo" class="custbtn" style="padding:8px 16px">Search</button></div>'+
     '<div id="custResults"><div style="color:#9aa7b4;font-size:12px">Type an email (best) or a customer name and press Search.</div></div></div></div>';
   document.getElementById("mClose").onclick=closeDetail;
   const q=document.getElementById("custQ"), go=document.getElementById("custGo"), res=document.getElementById("custResults");
-  async function run(){ const v=q.value.trim(); if(!v)return; res.innerHTML='<div style="color:#9aa7b4;font-size:12px">Searching…</div>';
+  async function run(){ const v=q.value.trim(); if(!v)return; res.innerHTML='<div style="color:#9aa7b4;font-size:12px">Searchingâ¦</div>';
     try{
       const isEmail=/@/.test(v);
       const rows=await getPurchases(isEmail?v:"", isEmail?"":v);
       const custs=distinctCustomers(rows);
       let sec;
-      if(isEmail){ sec='<div class="bdhead" style="margin-top:16px">✉️ Email history · '+esc(v)+'</div><div id="custEmailBox"></div>'; }
-      else if(custs.length<=1){ const em1=(custs[0]&&custs[0].email)||topEmail(rows); sec='<div class="bdhead" style="margin-top:16px">✉️ Email history'+(em1?(' · '+esc(em1)):'')+'</div><div id="custEmailBox"></div>'; }
-      else { sec='<div class="bdhead" style="margin-top:16px">✉️ Email history — select a customer ('+custs.length+' matches)</div>'+renderCustPicker(custs)+'<div id="custEmailBox"><div style="color:#9aa7b4;font-size:12px;padding:6px 0">Pick a customer above to load their email history.</div></div>'; }
+      if(isEmail){ sec='<div class="bdhead" style="margin-top:16px">âï¸ Email history Â· '+esc(v)+'</div><div id="custEmailBox"></div>'; }
+      else if(custs.length<=1){ const em1=(custs[0]&&custs[0].email)||topEmail(rows); sec='<div class="bdhead" style="margin-top:16px">âï¸ Email history'+(em1?(' Â· '+esc(em1)):'')+'</div><div id="custEmailBox"></div>'; }
+      else { sec='<div class="bdhead" style="margin-top:16px">âï¸ Email history â select a customer ('+custs.length+' matches)</div>'+renderCustPicker(custs)+'<div id="custEmailBox"><div style="color:#9aa7b4;font-size:12px;padding:6px 0">Pick a customer above to load their email history.</div></div>'; }
       res.innerHTML=renderPurchases(rows)+sec;
       if(isEmail){ emailHistoryInto(v, document.getElementById("custEmailBox"), "cust"); }
       else if(custs.length<=1){ const em2=(custs[0]&&custs[0].email)||topEmail(rows); if(em2) emailHistoryInto(em2, document.getElementById("custEmailBox"), "cust"); }
@@ -2095,12 +2095,12 @@ async function getItemStock(q){
 }
 function renderItemStock(stock){
   const inStock=(stock||[]).filter(s=>s.in_stock);
-  if(!stock.length) return '<div class="fieldbox" style="background:#fbeaea">📦 No matching listings found in current inventory.</div>';
-  if(!inStock.length) return '<div class="fieldbox" style="background:#fbeaea">📦 Found '+stock.length+' matching listing'+(stock.length===1?'':'s')+', but <b>none in stock</b> right now.</div>';
+  if(!stock.length) return '<div class="fieldbox" style="background:#fbeaea">ð¦ No matching listings found in current inventory.</div>';
+  if(!inStock.length) return '<div class="fieldbox" style="background:#fbeaea">ð¦ Found '+stock.length+' matching listing'+(stock.length===1?'':'s')+', but <b>none in stock</b> right now.</div>';
   const g={}; let totQty=0, qtyKnown=false;
   inStock.forEach(s=>{ const a=s.account||"SurgaMed"; const q=Number(s.quantity)||0; if(s.quantity!=null&&s.quantity!=="")qtyKnown=true; g[a]=g[a]||{n:0,q:0}; g[a].n++; g[a].q+=q; totQty+=q; });
-  let h='<div class="fieldbox">📦 In stock now: <b>'+inStock.length+' listing'+(inStock.length===1?'':'s')+'</b>'+(qtyKnown?' · '+totQty+' unit'+(totQty===1?'':'s'):'');
-  h+='<div class="fieldsub">'+Object.keys(g).sort().map(a=>'<span style="color:'+(ACCT_COLOR[a]||"#5a6b7b")+'">'+esc(a)+': '+g[a].n+(qtyKnown?' ('+g[a].q+' units)':'')+'</span>').join(' &nbsp;·&nbsp; ')+'</div></div>';
+  let h='<div class="fieldbox">ð¦ In stock now: <b>'+inStock.length+' listing'+(inStock.length===1?'':'s')+'</b>'+(qtyKnown?' Â· '+totQty+' unit'+(totQty===1?'':'s'):'');
+  h+='<div class="fieldsub">'+Object.keys(g).sort().map(a=>'<span style="color:'+(ACCT_COLOR[a]||"#5a6b7b")+'">'+esc(a)+': '+g[a].n+(qtyKnown?' ('+g[a].q+' units)':'')+'</span>').join(' &nbsp;Â·&nbsp; ')+'</div></div>';
   h+='<table class="phtab"><thead><tr><th>Account</th><th>Item</th><th>Mfg</th><th>Qty</th><th>Price</th><th></th></tr></thead><tbody>';
   inStock.sort((a,b)=>(Number(b.quantity)||0)-(Number(a.quantity)||0)).slice(0,40).forEach(s=>{
     h+='<tr><td><span class="dot" style="background:'+(ACCT_COLOR[s.account]||"#5a6b7b")+'"></span>'+esc(s.account||"")+'</td><td>'+esc(s.name||s.model||"")+'</td><td>'+esc(s.mfg||"")+'</td><td>'+(s.quantity!=null&&s.quantity!==""?esc(String(s.quantity)):"")+'</td><td>'+(s.price!=null?money(s.price):"")+'</td><td><a href="'+esc(s.url||"#")+'" target="_blank" rel="noopener">view</a></td></tr>';
@@ -2119,12 +2119,12 @@ function renderItemBuyers(rows){
     if(!c.name&&r.customer_name)c.name=r.customer_name; if(!c.phone&&r.customer_phone)c.phone=r.customer_phone;
   });
   const list=Object.values(by).sort((a,b)=>(b.units-a.units)||(b.last>a.last?1:-1));
-  let h='<div class="phsum" style="font-weight:600;margin-top:6px">👥 '+list.length+' customer'+(list.length===1?'':'s')+' bought this · '+rows.length+' line item'+(rows.length===1?'':'s')+' total <span style="font-weight:400;color:#9aa7b4">— click a name for their full history</span></div>';
+  let h='<div class="phsum" style="font-weight:600;margin-top:6px">ð¥ '+list.length+' customer'+(list.length===1?'':'s')+' bought this Â· '+rows.length+' line item'+(rows.length===1?'':'s')+' total <span style="font-weight:400;color:#9aa7b4">â click a name for their full history</span></div>';
   h+='<table class="phtab"><thead><tr><th>Customer</th><th>Contact</th><th>Units</th><th>Orders</th><th>Last order</th><th>Account</th></tr></thead><tbody>';
   list.forEach((c,idx)=>{
     const contact=[c.email?'<a href="mailto:'+esc(c.email)+'">'+esc(c.email)+'</a>':'', c.phone?esc(c.phone):''].filter(Boolean).join('<br>');
     const accts=[...c.accts].map(a=>'<span style="color:'+(ACCT_COLOR[a]||"#5a6b7b")+'">'+esc(a)+'</span>').join(', ');
-    h+='<tr class="buyrow" id="br'+idx+'"><td><a href="#" class="buyname" data-bi="'+idx+'" data-email="'+esc(c.email||"")+'" data-name="'+esc(c.name||"")+'"><span class="bcaret">▸</span>'+esc(c.name||"(unknown)")+'</a></td><td>'+contact+'</td><td>'+c.units+'</td><td>'+c.orders+'</td><td>'+esc(c.last||"")+'</td><td>'+accts+'</td></tr>';
+    h+='<tr class="buyrow" id="br'+idx+'"><td><a href="#" class="buyname" data-bi="'+idx+'" data-email="'+esc(c.email||"")+'" data-name="'+esc(c.name||"")+'"><span class="bcaret">â¸</span>'+esc(c.name||"(unknown)")+'</a></td><td>'+contact+'</td><td>'+c.units+'</td><td>'+c.orders+'</td><td>'+esc(c.last||"")+'</td><td>'+accts+'</td></tr>';
     h+='<tr class="buydetail" id="bd'+idx+'" style="display:none"><td colspan="6"><div class="bdwrap" id="bdw'+idx+'"></div></td></tr>';
   });
   h+='</tbody></table>';
@@ -2135,28 +2135,28 @@ async function toggleBuyer(idx, email, name, link){
   const row=document.getElementById('br'+idx), detail=document.getElementById('bd'+idx), wrap=document.getElementById('bdw'+idx);
   if(!detail) return;
   const isOpen=detail.style.display!=='none';
-  if(isOpen){ detail.style.display='none'; row.classList.remove('open'); link.querySelector('.bcaret').textContent='▸'; return; }
-  detail.style.display=''; row.classList.add('open'); link.querySelector('.bcaret').textContent='▾';
+  if(isOpen){ detail.style.display='none'; row.classList.remove('open'); link.querySelector('.bcaret').textContent='â¸'; return; }
+  detail.style.display=''; row.classList.add('open'); link.querySelector('.bcaret').textContent='â¾';
   if(wrap.dataset.loaded) return;
-  wrap.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading full history…</div>';
+  wrap.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading full historyâ¦</div>';
   try{
     const rows=await getPurchases(email,name);
-    const hdr='<div class="bdhead">📇 <b>'+esc(name||"(unknown)")+'</b>'+(email?' · '+esc(email):'')+' — complete order history across both accounts</div>';
+    const hdr='<div class="bdhead">ð <b>'+esc(name||"(unknown)")+'</b>'+(email?' Â· '+esc(email):'')+' â complete order history across both accounts</div>';
     var _bem = email || (rows.find(function(r){return r.customer_email;})||{}).customer_email || "";
-    wrap.innerHTML=hdr+renderPurchases(rows)+'<div class="bdhead" style="margin-top:14px">✉️ Email history</div><div id="bemail'+idx+'"></div>';
+    wrap.innerHTML=hdr+renderPurchases(rows)+'<div class="bdhead" style="margin-top:14px">âï¸ Email history</div><div id="bemail'+idx+'"></div>';
     emailHistoryInto(_bem, document.getElementById('bemail'+idx), 'b'+idx);
     wrap.dataset.loaded='1';
-  }catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px;padding:6px 0">Couldn’t load history: '+esc(String(e.message||e))+'</div>'; }
+  }catch(e){ wrap.innerHTML='<div style="color:#c0392b;font-size:12px;padding:6px 0">Couldnât load history: '+esc(String(e.message||e))+'</div>'; }
 }
 function openItemSearch(){
   const o=ensureOverlay(); o.style.display="flex";
-  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>Item lookup</h3><div class="msub">Search an item to see everyone who bought it (SurgaMed + ShortDated) and how many are in stock now</div></div>'+
-    '<div class="mbody"><div style="display:flex;gap:6px;margin-bottom:14px"><input id="itemQ" placeholder="Item, manufacturer, model or SKU… (e.g. Merocel, Stryker, 5400-050)" style="flex:1;padding:8px 10px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><button id="itemGo" class="custbtn" style="padding:8px 16px;background:#0b66c3;border-color:#0b66c3">Search</button></div>'+
+  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">Ã</button><h3>Item lookup</h3><div class="msub">Search an item to see everyone who bought it (SurgaMed + ShortDated) and how many are in stock now</div></div>'+
+    '<div class="mbody"><div style="display:flex;gap:6px;margin-bottom:14px"><input id="itemQ" placeholder="Item, manufacturer, model or SKUâ¦ (e.g. Merocel, Stryker, 5400-050)" style="flex:1;padding:8px 10px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><button id="itemGo" class="custbtn" style="padding:8px 16px;background:#0b66c3;border-color:#0b66c3">Search</button></div>'+
     '<div id="itemResults"><div style="color:#9aa7b4;font-size:12px">Type part of an item name, brand, model or SKU and press Search.</div></div></div></div>';
   document.getElementById("mClose").onclick=closeDetail;
   const q=document.getElementById("itemQ"), go=document.getElementById("itemGo"), res=document.getElementById("itemResults");
   async function run(){ const v=q.value.trim(); if(v.length<2){ res.innerHTML='<div style="color:#9aa7b4;font-size:12px">Enter at least 2 characters.</div>'; return; }
-    res.innerHTML='<div style="color:#9aa7b4;font-size:12px">Searching inventory &amp; order history…</div>';
+    res.innerHTML='<div style="color:#9aa7b4;font-size:12px">Searching inventory &amp; order historyâ¦</div>';
     try{ const [stock,buyers]=await Promise.all([getItemStock(v),getItemBuyers(v)]); res.innerHTML=renderItemStock(stock)+renderItemBuyers(buyers); }
     catch(e){ res.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; } }
   res.onclick=function(e){ const a=e.target.closest(".buyname"); if(!a)return; e.preventDefault(); toggleBuyer(a.dataset.bi,a.dataset.email,a.dataset.name,a); };
@@ -2170,9 +2170,9 @@ async function sendCustEmail(ns, to, name){
   if(!body) return; const text=(body.value||'').trim();
   if(!text){ body.focus(); return; }
   if(!to){ if(msg){ msg.style.color='#c0392b'; msg.textContent='No email address on file for this customer.'; } return; }
-  const subj=((subjEl&&subjEl.value)||'').trim()||'SurgaMed — following up';
+  const subj=((subjEl&&subjEl.value)||'').trim()||'SurgaMed â following up';
   if(!confirm('Send this email to '+to+'?\nIt goes from your inbox ('+(MY_EMAIL||'orders@surgamed.com')+') with your signature.')) return;
-  if(btn) btn.disabled=true; if(msg){ msg.style.color='#5a6b7b'; msg.textContent='Sending…'; }
+  if(btn) btn.disabled=true; if(msg){ msg.style.color='#5a6b7b'; msg.textContent='Sendingâ¦'; }
   try{
     const rep=(REPS.includes(MY_REP)?MY_REP:ME);
     const fromMbx=REPS.includes(MY_REP)?MY_EMAIL:'';
@@ -2180,23 +2180,23 @@ async function sendCustEmail(ns, to, name){
     const r=await fetch(FN_URL,{method:'POST',headers:{Authorization:'Bearer '+(await freshToken()),apikey:SB_KEY,'content-type':'application/json'},body:JSON.stringify(payload)});
     const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||('HTTP '+r.status));
     try{ await sb.from('contacts').insert({ customer_email:to.toLowerCase()||null, customer_name:name||null, rep, rep_email:MY_EMAIL||null, channel:'email', direction:'out', subject:subj, message_id:'board-'+Date.now() }); }catch(e){}
-    body.value=''; if(msg){ msg.style.color='#1d7a3f'; msg.textContent='Sent ✓'; }
+    body.value=''; if(msg){ msg.style.color='#1d7a3f'; msg.textContent='Sent â'; }
     setTimeout(()=>{ const bx=document.getElementById(ns+'_box'); if(bx) emailHistoryInto(to, bx, ns); }, 1500);
-  }catch(e){ if(msg){ msg.style.color='#c0392b'; msg.textContent='Couldn’t send: '+String(e.message||e); } }
+  }catch(e){ if(msg){ msg.style.color='#c0392b'; msg.textContent='Couldnât send: '+String(e.message||e); } }
   if(btn) btn.disabled=false;
 }
 // Shared per-customer notes (email-keyed, visible to every rep).
 async function renderNotes(email, mountEl, ns){
   if(!mountEl||!email) return;
-  mountEl.innerHTML='<div class="bdhead" style="margin-top:12px">📝 Notes <span style="color:#9aa7b4;font-weight:400;font-size:11px">— shared with all reps</span></div>'+
-    '<div id="'+ns+'_nlist" style="font-size:12px;color:#5a6b7b">Loading…</div>'+
-    '<div style="margin-top:6px;display:flex;gap:6px"><input id="'+ns+'_ntext" placeholder="Add a note about this customer…" style="flex:1;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><button id="'+ns+'_nadd" class="custbtn" style="padding:7px 14px">Add note</button></div>';
+  mountEl.innerHTML='<div class="bdhead" style="margin-top:12px">ð Notes <span style="color:#9aa7b4;font-weight:400;font-size:11px">â shared with all reps</span></div>'+
+    '<div id="'+ns+'_nlist" style="font-size:12px;color:#5a6b7b">Loadingâ¦</div>'+
+    '<div style="margin-top:6px;display:flex;gap:6px"><input id="'+ns+'_ntext" placeholder="Add a note about this customerâ¦" style="flex:1;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><button id="'+ns+'_nadd" class="custbtn" style="padding:7px 14px">Add note</button></div>';
   async function load(){
     try{ const { data }=await sb.from('customer_notes').select('note,author,created_at').ilike('customer_email',email).order('created_at',{ascending:false}).limit(100);
       const list=document.getElementById(ns+'_nlist'); if(!list) return;
       if(!data||!data.length){ list.innerHTML='<span style="color:#9aa7b4">No notes yet.</span>'; return; }
-      list.innerHTML=data.map(n=>'<div style="border-bottom:1px solid #f0f3f6;padding:6px 0"><div style="white-space:pre-wrap">'+esc(n.note)+'</div><div style="color:#9aa7b4;font-size:11px">'+esc(n.author||'—')+' · '+esc(String(n.created_at||'').slice(0,16).replace('T',' '))+'</div></div>').join('');
-    }catch(e){ const list=document.getElementById(ns+'_nlist'); if(list) list.innerHTML='<span style="color:#c0392b">Couldn’t load notes.</span>'; }
+      list.innerHTML=data.map(n=>'<div style="border-bottom:1px solid #f0f3f6;padding:6px 0"><div style="white-space:pre-wrap">'+esc(n.note)+'</div><div style="color:#9aa7b4;font-size:11px">'+esc(n.author||'â')+' Â· '+esc(String(n.created_at||'').slice(0,16).replace('T',' '))+'</div></div>').join('');
+    }catch(e){ const list=document.getElementById(ns+'_nlist'); if(list) list.innerHTML='<span style="color:#c0392b">Couldnât load notes.</span>'; }
   }
   const addBtn=document.getElementById(ns+'_nadd');
   if(addBtn) addBtn.onclick=async()=>{
@@ -2281,25 +2281,25 @@ async function renderNotes(email, mountEl, ns){
 })();
 async function showCustDetail(email, name, mountEl, ns){
   if(!mountEl) return;
-  mountEl.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loading…</div>';
+  mountEl.innerHTML='<div style="color:#9aa7b4;font-size:12px;padding:6px 0">Loadingâ¦</div>';
   try{
     const rows=await getPurchases(email||"", name||"");
     const em=email||topEmail(rows);
-    const hdr='<div class="bdhead">📇 <b>'+esc(name||email||"(unknown)")+'</b>'+(em?(' · '+esc(em)):'')+' — order history</div>';
-    mountEl.innerHTML=hdr+renderPurchases(rows)+'<div id="'+ns+'_ms"></div><div id="'+ns+'_sim"></div><div id="'+ns+'_notes"></div><div class="bdhead" style="margin-top:12px">✉️ Email history</div><div id="'+ns+'_box"></div>'+'<div style="margin-top:8px;border-top:1px solid #eef2f6;padding-top:8px">'+'<input id="'+ns+'_subj" placeholder="Subject" value="SurgaMed — following up" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;margin-bottom:6px">'+'<textarea id="'+ns+'_body" placeholder="Write an email — sends from your inbox (' + esc(MY_EMAIL||'orders@surgamed.com') + ') with your signature" style="width:100%;box-sizing:border-box;min-height:60px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+'<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><button id="'+ns+'_draft" class="custbtn" style="padding:7px 14px;background:#b45309;border-color:#b45309">✨ AI reorder draft</button><button id="'+ns+'_send" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">✉️ Send email</button><span id="'+ns+'_msg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
+    const hdr='<div class="bdhead">ð <b>'+esc(name||email||"(unknown)")+'</b>'+(em?(' Â· '+esc(em)):'')+' â order history</div>';
+    mountEl.innerHTML=hdr+renderPurchases(rows)+'<div id="'+ns+'_ms"></div><div id="'+ns+'_sim"></div><div id="'+ns+'_notes"></div><div class="bdhead" style="margin-top:12px">âï¸ Email history</div><div id="'+ns+'_box"></div>'+'<div style="margin-top:8px;border-top:1px solid #eef2f6;padding-top:8px">'+'<input id="'+ns+'_subj" placeholder="Subject" value="SurgaMed â following up" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;margin-bottom:6px">'+'<textarea id="'+ns+'_body" placeholder="Write an email â sends from your inbox (' + esc(MY_EMAIL||'orders@surgamed.com') + ') with your signature" style="width:100%;box-sizing:border-box;min-height:60px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+'<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><button id="'+ns+'_draft" class="custbtn" style="padding:7px 14px;background:#b45309;border-color:#b45309">â¨ AI reorder draft</button><button id="'+ns+'_send" class="custbtn" style="padding:7px 14px;background:#1d7a3f;border-color:#1d7a3f">âï¸ Send email</button><span id="'+ns+'_msg" style="font-size:12px;color:#5a6b7b"></span></div></div>';
     wireSuggToggles(mountEl);
     injectMedstock(em, rows, document.getElementById(ns+'_ms'));
     (async()=>{ try{ const sim=await aiSimilarFor(rows, em, new Set()); const el=document.getElementById(ns+'_sim'); if(el&&sim&&sim.length){ el.innerHTML=simSectionHtml(sim, ns+'_sg'); wireSuggToggles(el); } }catch(e){} })();
     renderNotes(em, document.getElementById(ns+'_notes'), ns);
     emailHistoryInto(em, document.getElementById(ns+'_box'), ns);
     { const _sb=document.getElementById(ns+'_send'); if(_sb) _sb.onclick=()=>sendCustEmail(ns, em, name||em); }
-    { const _db=document.getElementById(ns+'_draft'); if(_db) _db.onclick=()=>reorderDraftInto(ns, em, name||em); if(window.SmartList&&_db&&!document.getElementById(ns+'_smartlist')){var _slb=document.createElement('button');_slb.id=ns+'_smartlist';_slb.type='button';_slb.textContent='📥 Smart List (Excel)';_slb.className=_db.className;_slb.style.marginLeft='6px';_slb.onclick=function(){window.SmartList.openCustomer(em,name||em);};_db.parentNode.insertBefore(_slb,_db.nextSibling);if(window.Holds){window.__MYREP=(typeof MY_REP!=='undefined'?MY_REP:'');window.__MYEMAIL=(typeof MY_EMAIL!=='undefined'?MY_EMAIL:'');var _lk=window.Holds.makeButton(em,name||em,_db.className);if(_lk)_slb.parentNode.insertBefore(_lk,_slb.nextSibling);}} }
+    { const _db=document.getElementById(ns+'_draft'); if(_db) _db.onclick=()=>reorderDraftInto(ns, em, name||em); if(window.SmartList&&_db&&!document.getElementById(ns+'_smartlist')){var _slb=document.createElement('button');_slb.id=ns+'_smartlist';_slb.type='button';_slb.textContent='ð¥ Smart List (Excel)';_slb.className=_db.className;_slb.style.marginLeft='6px';_slb.onclick=function(){window.SmartList.openCustomer(em,name||em);};_db.parentNode.insertBefore(_slb,_db.nextSibling);if(window.Holds){window.__MYREP=(typeof MY_REP!=='undefined'?MY_REP:'');window.__MYEMAIL=(typeof MY_EMAIL!=='undefined'?MY_EMAIL:'');var _lk=window.Holds.makeButton(em,name||em,_db.className);if(_lk)_slb.parentNode.insertBefore(_lk,_slb.nextSibling);}} }
   }catch(e){ mountEl.innerHTML='<div style="color:#c0392b;font-size:12px">'+esc(String(e.message||e))+'</div>'; }
 }
 function openLookup(){
   const o=ensureOverlay(); o.style.display="flex";
-  o.innerHTML='<div class="modal wide"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>Lookup</h3><div class="msub">Search a customer (email or name) or an item (name, brand, model, SKU) — SurgaMed + ShortDated</div></div>'+
-    '<div class="mbody"><div style="display:flex;gap:6px;margin-bottom:14px"><input id="lkQ" placeholder="Email, customer name, or item / brand / model / SKU…" style="flex:1;padding:8px 10px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><button id="lkGo" class="custbtn" style="padding:8px 16px">Search</button></div>'+
+  o.innerHTML='<div class="modal wide"><div class="mhead"><button class="mclose" id="mClose">Ã</button><h3>Lookup</h3><div class="msub">Search a customer (email or name) or an item (name, brand, model, SKU) â SurgaMed + ShortDated</div></div>'+
+    '<div class="mbody"><div style="display:flex;gap:6px;margin-bottom:14px"><input id="lkQ" placeholder="Email, customer name, or item / brand / model / SKUâ¦" style="flex:1;padding:8px 10px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><button id="lkGo" class="custbtn" style="padding:8px 16px">Search</button></div>'+
     '<div id="lkResults"><div style="color:#9aa7b4;font-size:12px">Type an email, a customer name, or an item and press Search.</div></div></div></div>';
   document.getElementById("mClose").onclick=closeDetail;
   const q=document.getElementById("lkQ"), go=document.getElementById("lkGo"), res=document.getElementById("lkResults");
@@ -2312,16 +2312,16 @@ function openLookup(){
   }
   async function run(){
     const v=q.value.trim(); if(v.length<2){ res.innerHTML='<div style="color:#9aa7b4;font-size:12px">Enter at least 2 characters.</div>'; return; }
-    res.innerHTML='<div style="color:#9aa7b4;font-size:12px">Searching…</div>';
+    res.innerHTML='<div style="color:#9aa7b4;font-size:12px">Searchingâ¦</div>';
     try{
       if(/@/.test(v)){ res.innerHTML='<div id="lkOne"></div>'; showCustDetail(v, "", document.getElementById("lkOne"), "lk1"); return; }
       const parts=await Promise.all([getItemStock(v),getItemBuyers(v),getPurchases("",v)]);
       const stock=parts[0], buyers=parts[1], custRows=parts[2];
       const custs=distinctCustomers(custRows);
       const custN=custs.length, itemN=distinctCustomers(buyers).length;
-      const custSec='<h3 style="font-size:13px;margin:6px 0 2px">👥 Customers matching “'+esc(v)+'” ('+custN+')</h3>'+
+      const custSec='<h3 style="font-size:13px;margin:6px 0 2px">ð¥ Customers matching â'+esc(v)+'â ('+custN+')</h3>'+
         (custN? (renderCustPicker(custs)+'<div id="lkCustDetail"><div style="color:#9aa7b4;font-size:12px;padding:4px 0">Pick a customer above to see their orders & email history.</div></div>') : '<div style="color:#9aa7b4;font-size:12px">No customers by that name.</div>');
-      const itemSec='<h3 style="font-size:13px;margin:16px 0 2px">📦 Items matching “'+esc(v)+'”</h3>'+renderItemStock(stock)+renderItemBuyers(buyers);
+      const itemSec='<h3 style="font-size:13px;margin:16px 0 2px">ð¦ Items matching â'+esc(v)+'â</h3>'+renderItemStock(stock)+renderItemBuyers(buyers);
       res.innerHTML=(custN>=itemN)?(custSec+itemSec):(itemSec+custSec);
       wireCustPicker();
       initCollapsibles(res, "h3");
@@ -2341,20 +2341,20 @@ async function loadMySignature(){
 }
 function openSignatureEditor(){
   const o=ensureOverlay(); o.style.display="flex";
-  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>My email signature</h3><div class="msub">Added to the bottom of every email you send from the board (you’re signed in as '+esc(MY_REP||ME)+')</div></div>'+
-    '<div class="mbody"><label style="font-size:12px;color:#5a6b7b;display:block;margin-bottom:6px"><input type="checkbox" id="sigHtml"'+(MY_SIG_HTML?' checked':'')+'> This signature is HTML (paste a rich/HTML signature — supports formatting, links &amp; a hosted logo image)</label>'+
-    '<textarea id="sigText" placeholder="e.g.&#10;Deysi Calvo&#10;SurgaMed&#10;305-555-1234 · sales@surgamed.com" style="width:100%;box-sizing:border-box;min-height:170px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
+  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">Ã</button><h3>My email signature</h3><div class="msub">Added to the bottom of every email you send from the board (youâre signed in as '+esc(MY_REP||ME)+')</div></div>'+
+    '<div class="mbody"><label style="font-size:12px;color:#5a6b7b;display:block;margin-bottom:6px"><input type="checkbox" id="sigHtml"'+(MY_SIG_HTML?' checked':'')+'> This signature is HTML (paste a rich/HTML signature â supports formatting, links &amp; a hosted logo image)</label>'+
+    '<textarea id="sigText" placeholder="e.g.&#10;Deysi Calvo&#10;SurgaMed&#10;305-555-1234 Â· sales@surgamed.com" style="width:100%;box-sizing:border-box;min-height:170px;padding:8px;border:1px solid #cdd6df;border-radius:8px;font-size:13px;font-family:inherit"></textarea>'+
     '<div style="margin-top:8px;display:flex;gap:8px;align-items:center"><button id="sigSave" class="custbtn" style="background:#1d7a3f;border-color:#1d7a3f">Save signature</button><span id="sigMsg" style="font-size:12px;color:#5a6b7b"></span></div>'+
-    '<div style="margin-top:12px;font-size:11px;color:#9aa7b4">For a logo, host the image at a public URL and include &lt;img src="https://…"&gt; in an HTML signature. Plain-text signatures are kept exactly as typed.</div></div></div>';
+    '<div style="margin-top:12px;font-size:11px;color:#9aa7b4">For a logo, host the image at a public URL and include &lt;img src="https://â¦"&gt; in an HTML signature. Plain-text signatures are kept exactly as typed.</div></div></div>';
   document.getElementById("mClose").onclick=closeDetail;
   document.getElementById("sigText").value=MY_SIG;
   document.getElementById("sigSave").onclick=async()=>{
     const v=document.getElementById("sigText").value; const ishtml=document.getElementById("sigHtml").checked;
-    const msg=document.getElementById("sigMsg"); msg.style.color="#5a6b7b"; msg.textContent="Saving…";
+    const msg=document.getElementById("sigMsg"); msg.style.color="#5a6b7b"; msg.textContent="Savingâ¦";
     try{
       await sb.from("rep_settings").upsert({ rep_email:MY_EMAIL, rep_name:(MY_REP||ME), signature:v, is_html:ishtml, updated_at:new Date().toISOString() });
-      MY_SIG=v; MY_SIG_HTML=ishtml; msg.style.color="#1d7a3f"; msg.textContent="Saved ✓ — it’ll be added to every email you send from the board.";
-    }catch(e){ msg.style.color="#c0392b"; msg.textContent="Couldn’t save: "+String(e.message||e); }
+      MY_SIG=v; MY_SIG_HTML=ishtml; msg.style.color="#1d7a3f"; msg.textContent="Saved â â itâll be added to every email you send from the board.";
+    }catch(e){ msg.style.color="#c0392b"; msg.textContent="Couldnât save: "+String(e.message||e); }
   };
 }
 { const sb_=document.getElementById("mySig"); if(sb_) sb_.onclick=openSignatureEditor; }
@@ -2368,7 +2368,7 @@ async function markPresence(u){
 function relTime(t){ const s=(Date.now()-t)/1000; if(s<60) return Math.max(0,Math.floor(s))+"s ago"; if(s<3600) return Math.floor(s/60)+"m ago"; if(s<86400) return Math.floor(s/3600)+"h ago"; return new Date(t).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); }
 async function openTeamActivity(){
   const o=ensureOverlay(); o.style.display="flex";
-  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>Team activity</h3><div class="msub">Who’s on the board and when each rep was last active — visible to you only</div></div><div class="mbody"><div id="taBody"><div style="color:#9aa7b4;font-size:12px">Loading…</div></div></div></div>';
+  o.innerHTML='<div class="modal"><div class="mhead"><button class="mclose" id="mClose">Ã</button><h3>Team activity</h3><div class="msub">Whoâs on the board and when each rep was last active â visible to you only</div></div><div class="mbody"><div id="taBody"><div style="color:#9aa7b4;font-size:12px">Loadingâ¦</div></div></div></div>';
   document.getElementById("mClose").onclick=closeDetail;
   try{
     const { data, error } = await sb.from("presence").select("*");
@@ -2377,16 +2377,16 @@ async function openTeamActivity(){
     const now=Date.now();
     let h='<table class="phtab"><thead><tr><th>Rep</th><th>Status</th><th>Last active</th></tr></thead><tbody>';
     TEAM.forEach(p=>{
-      const r=byEmail[p.email]; let status='<span style="color:#9aa7b4">— never signed in</span>', last='—';
+      const r=byEmail[p.email]; let status='<span style="color:#9aa7b4">â never signed in</span>', last='â';
       if(r && r.last_seen){ const t=new Date(r.last_seen).getTime(); const online=(now-t)/60000 < 3;
-        status = online ? '<span style="color:#1d7a3f;font-weight:700">● Online now</span>' : '<span style="color:#8794a1">○ Offline</span>';
+        status = online ? '<span style="color:#1d7a3f;font-weight:700">â Online now</span>' : '<span style="color:#8794a1">â Offline</span>';
         last = relTime(t);
       }
       h+='<tr><td>'+esc(p.name)+'<div style="color:#9aa7b4;font-size:11px">'+esc(p.email)+'</div></td><td>'+status+'</td><td>'+last+'</td></tr>';
     });
-    h+='</tbody></table><div style="color:#9aa7b4;font-size:11px;margin-top:8px">“Online” = active in the last 3 minutes. Updates while a rep has the board open.</div>';
+    h+='</tbody></table><div style="color:#9aa7b4;font-size:11px;margin-top:8px">âOnlineâ = active in the last 3 minutes. Updates while a rep has the board open.</div>';
     document.getElementById("taBody").innerHTML=h;
-  }catch(e){ document.getElementById("taBody").innerHTML='<div style="color:#c0392b;font-size:12px">Couldn’t load: '+esc(String(e.message||e))+'</div>'; }
+  }catch(e){ document.getElementById("taBody").innerHTML='<div style="color:#c0392b;font-size:12px">Couldnât load: '+esc(String(e.message||e))+'</div>'; }
 }
 
 document.getElementById("repFilter").onchange=renderBoard;
@@ -2433,8 +2433,8 @@ boot();
     var m=ov.querySelector('#sl_body');
     var isCust=ST.mode==='customer';
     var head='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
-      +(isCust?('<div style="font-weight:700;font-size:15px">🧠 Smart list for '+esc(ST.name||ST.email)+'</div>')
-              :('<div style="font-weight:700;font-size:15px">🧠 Smart List Builder — search all 3 inventories</div>'))
+      +(isCust?('<div style="font-weight:700;font-size:15px">ð§  Smart list for '+esc(ST.name||ST.email)+'</div>')
+              :('<div style="font-weight:700;font-size:15px">ð§  Smart List Builder â search all 3 inventories</div>'))
       +'</div>';
     var controls='';
     if(isCust){
@@ -2445,9 +2445,9 @@ boot();
         +'<input id="sl_field" placeholder="Optional: industry / specialty (e.g. general surgery)" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #cfd8e0;border-radius:6px;margin-top:6px">';
     }
     var btns='<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
-      +'<button id="sl_gen" style="padding:9px 16px;background:#1d3557;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">✨ Generate smart list</button>'
-      +'<button id="sl_dl" style="padding:9px 16px;background:#1d7a3f;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;display:none">⬇ Download AI picks (Excel)</button>'
-      +'<button id="sl_dlall" style="padding:9px 16px;background:#33506e;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;display:none">⬇ Download all matches</button>'
+      +'<button id="sl_gen" style="padding:9px 16px;background:#1d3557;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">â¨ Generate smart list</button>'
+      +'<button id="sl_dl" style="padding:9px 16px;background:#1d7a3f;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;display:none">â¬ Download AI picks (Excel)</button>'
+      +'<button id="sl_dlall" style="padding:9px 16px;background:#33506e;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;display:none">â¬ Download all matches</button>'
       +'</div>';
     m.innerHTML=head+'<div style="margin-top:8px">'+controls+'</div>'+btns+'<div id="sl_status" style="margin-top:10px;color:#5a6b7b;font-size:13px"></div><div id="sl_out" style="margin-top:8px"></div>';
     m.querySelector('#sl_gen').onclick=generate;
@@ -2461,14 +2461,14 @@ boot();
     if(isCust){ payload.customer_email=ST.email; if(field) payload.query=''; }
     else { var q=(ov.querySelector('#sl_q').value||'').trim(); if(!q){alert('Type what to search for.');return;} payload.query=q; ST.lastQuery=q; }
     var st=ov.querySelector('#sl_status'); var out=ov.querySelector('#sl_out');
-    var gen=ov.querySelector('#sl_gen'); gen.disabled=true; gen.textContent='Thinking…';
-    st.textContent='Deep-diving all 3 inventories with AI…'; out.innerHTML='';
+    var gen=ov.querySelector('#sl_gen'); gen.disabled=true; gen.textContent='Thinkingâ¦';
+    st.textContent='Deep-diving all 3 inventories with AIâ¦'; out.innerHTML='';
     fetch(FN,{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY},body:JSON.stringify(payload)})
       .then(function(r){return r.json();}).then(function(d){
-        gen.disabled=false; gen.textContent='✨ Regenerate';
+        gen.disabled=false; gen.textContent='â¨ Regenerate';
         if(d.error){ st.textContent='Error: '+d.error; return; }
         ST.items=d.items||[]; ST.pool=d.pool||[];
-        st.innerHTML='<b>'+ST.items.length+'</b> AI-picked items · <b>'+(ST.pool.length)+'</b> total in-stock matches across the 3 inventories.'+(d.ai_error?(' <span style="color:#c0392b">(AI note: '+esc(d.ai_error)+')</span>'):'');
+        st.innerHTML='<b>'+ST.items.length+'</b> AI-picked items Â· <b>'+(ST.pool.length)+'</b> total in-stock matches across the 3 inventories.'+(d.ai_error?(' <span style="color:#c0392b">(AI note: '+esc(d.ai_error)+')</span>'):'');
         ov.querySelector('#sl_dl').style.display=ST.items.length?'':'none';
         ov.querySelector('#sl_dlall').style.display=ST.pool.length?'':'none';
         var rows=ST.items.map(function(it){
@@ -2485,7 +2485,7 @@ boot();
         out.innerHTML='<div style="max-height:46vh;overflow:auto;border:1px solid #e3e9ee;border-radius:8px"><table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif"><thead><tr style="position:sticky;top:0;background:#f2f6fa">'
           +['Tier','Mfr','Item','REF#','Price','Source','Why relevant'].map(function(x){return '<th style="text-align:left;padding:6px 8px;font-size:11px;color:#33506e">'+x+'</th>';}).join('')
           +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
-      }).catch(function(e){ gen.disabled=false; gen.textContent='✨ Generate smart list'; st.textContent='Error: '+e; });
+      }).catch(function(e){ gen.disabled=false; gen.textContent='â¨ Generate smart list'; st.textContent='Error: '+e; });
   }
   function open(opts){
     ST={mode:opts.mode,email:opts.email,name:opts.name,items:[],pool:[]};
@@ -2494,7 +2494,7 @@ boot();
     ov.style.cssText='position:fixed;inset:0;background:rgba(15,25,35,.55);z-index:99999;display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto';
     var card=document.createElement('div');
     card.style.cssText='background:#fff;border-radius:14px;max-width:960px;width:100%;box-shadow:0 18px 60px rgba(0,0,0,.35);padding:18px 20px;position:relative';
-    card.innerHTML='<button id="sl_x" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:#889">×</button><div id="sl_body"></div>';
+    card.innerHTML='<button id="sl_x" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:#889">Ã</button><div id="sl_body"></div>';
     ov.appendChild(card); document.body.appendChild(ov);
     ov.addEventListener('click',function(e){ if(e.target===ov) close(); });
     card.querySelector('#sl_x').onclick=close;
@@ -2506,7 +2506,7 @@ boot();
     new MutationObserver(function(){
       var k=document.getElementById('wsRadarKpis');
       if(k && !document.getElementById('smartListLauncher')){
-        var b=document.createElement('button'); b.id='smartListLauncher'; b.type='button'; b.textContent='🧠 Smart List Builder';
+        var b=document.createElement('button'); b.id='smartListLauncher'; b.type='button'; b.textContent='ð§  Smart List Builder';
         b.style.cssText='margin:0 0 12px;padding:9px 16px;background:#1d3557;color:#fff;border:none;border-radius:9px;cursor:pointer;font-weight:600;font-size:14px';
         b.onclick=function(){ window.SmartList.openBuilder(); };
         k.parentNode.insertBefore(b,k);
@@ -2535,7 +2535,7 @@ boot();
     if(sendBtn.__attached) return; sendBtn.__attached=true;
     var wrap=document.createElement('span'); wrap.style.cssText='display:inline-flex;align-items:center;gap:6px;margin-right:8px;flex-wrap:wrap';
     var input=document.createElement('input'); input.type='file'; input.multiple=true; input.style.display='none';
-    var btn=document.createElement('button'); btn.type='button'; btn.textContent='📎 Attach'; btn.style.cssText='padding:7px 12px;background:#eef2f7;color:#33506e;border:1px solid #ccd6e0;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px';
+    var btn=document.createElement('button'); btn.type='button'; btn.textContent='ð Attach'; btn.style.cssText='padding:7px 12px;background:#eef2f7;color:#33506e;border:1px solid #ccd6e0;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px';
     var chips=document.createElement('span'); chips.style.cssText='display:inline-flex;gap:5px;flex-wrap:wrap';
     btn.onclick=function(){ input.click(); };
     function render(){
@@ -2543,7 +2543,7 @@ boot();
       (window.__ATT_LIST||[]).forEach(function(a,idx){
         var c=document.createElement('span'); c.style.cssText='background:#e8eef5;border-radius:10px;padding:2px 8px;font-size:11px;display:inline-flex;align-items:center;gap:4px';
         c.appendChild(document.createTextNode(a.name+' ('+fmtSize(a._size||0)+')'));
-        var x=document.createElement('span'); x.textContent='×'; x.style.cssText='cursor:pointer;font-weight:700;color:#c0392b'; x.onclick=function(){ window.__ATT_LIST.splice(idx,1); render(); };
+        var x=document.createElement('span'); x.textContent='Ã'; x.style.cssText='cursor:pointer;font-weight:700;color:#c0392b'; x.onclick=function(){ window.__ATT_LIST.splice(idx,1); render(); };
         c.appendChild(x); chips.appendChild(c);
       });
     }
@@ -2552,7 +2552,7 @@ boot();
       readAll(files, function(newAtts){
         window.__ATT_LIST=(window.__ATT_LIST||[]).concat(newAtts);
         var total=window.__ATT_LIST.reduce(function(s,a){return s+(a._size||0);},0);
-        if(total>MAXTOTAL){ alert('Attachments total '+fmtSize(total)+'. Large attachments (over ~4MB) may be rejected by the mail server — consider a download link instead.'); }
+        if(total>MAXTOTAL){ alert('Attachments total '+fmtSize(total)+'. Large attachments (over ~4MB) may be rejected by the mail server â consider a download link instead.'); }
         render(); input.value='';
       });
     };
@@ -2582,12 +2582,12 @@ boot();
   function fmt(d){ try{return new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});}catch(e){return '';} }
   function key(e){return String(e||'').trim().toLowerCase();}
   function isLocked(e){return !!STATE[key(e)];}
-  function updateBadge(){ var b=document.getElementById('lockedListBtn'); if(b) b.textContent='🔒 Locked ('+Object.keys(STATE).length+')'; }
+  function updateBadge(){ var b=document.getElementById('lockedListBtn'); if(b) b.textContent='ð Locked ('+Object.keys(STATE).length+')'; }
   function load(cb){ call({action:'list'}).then(function(r){ STATE={}; (r.holds||[]).forEach(function(h){STATE[key(h.customer_email)]=h;}); updateBadge(); if(cb)cb(); }).catch(function(){ if(cb)cb(); }); }
   function styleBtn(b,locked){ b.style.cssText='margin-left:6px;padding:7px 12px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;'+(locked?'background:#8a1c1c;color:#fff':'background:#b8860b;color:#fff'); }
   function makeButton(email,name,cls){
     var b=document.createElement('button'); b.type='button';
-    function render(){ var lk=isLocked(email); var h=STATE[key(email)]; b.textContent=lk?('🔓 Locked by '+((h&&h.held_by)||'?')+' — Release'):'🔒 Lock (permanent hold)'; styleBtn(b,lk); }
+    function render(){ var lk=isLocked(email); var h=STATE[key(email)]; b.textContent=lk?('ð Locked by '+((h&&h.held_by)||'?')+' â Release'):'ð Lock (permanent hold)'; styleBtn(b,lk); }
     render();
     b.onclick=function(){
       b.disabled=true;
@@ -2612,14 +2612,14 @@ boot();
         +'<td style="padding:6px 8px;border-bottom:1px solid #eef2f5;font-size:12px">'+esc(h.held_by||'')+'</td>'
         +'<td style="padding:6px 8px;border-bottom:1px solid #eef2f5;font-size:12px">'+fmt(h.created_at)+'</td>'
         +'<td style="padding:6px 8px;border-bottom:1px solid #eef2f5"><button data-em="'+esc(h.customer_email)+'" class="hrel" style="padding:4px 10px;background:#8a1c1c;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px">Release</button></td></tr>'; }).join('');
-      card.innerHTML='<button id="hx" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:#889">×</button>'
-        +'<div style="font-weight:700;font-size:16px;margin-bottom:4px">🔒 Locked customers ('+holds.length+')</div>'
+      card.innerHTML='<button id="hx" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:#889">Ã</button>'
+        +'<div style="font-weight:700;font-size:16px;margin-bottom:4px">ð Locked customers ('+holds.length+')</div>'
         +'<div style="color:#5a6b7b;font-size:12px;margin-bottom:10px">Permanent holds override the 90-day rotation. Anyone can release.</div>'
         +(holds.length?('<div style="max-height:60vh;overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr style="position:sticky;top:0;background:#f2f6fa">'+['Customer','Locked by','Locked on',''].map(function(x){return '<th style="text-align:left;padding:6px 8px;font-size:11px;color:#33506e">'+x+'</th>';}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div>'):'<div style="color:#889;padding:20px 0">No customers are locked yet.</div>');
       ov.appendChild(card); document.body.appendChild(ov);
       ov.addEventListener('click',function(e){ if(e.target===ov) closeModal(); });
       card.querySelector('#hx').onclick=closeModal;
-      [].forEach.call(card.querySelectorAll('.hrel'),function(btn){ btn.onclick=function(){ var em=btn.getAttribute('data-em'); btn.disabled=true; btn.textContent='…'; call({action:'release',customer_email:em}).then(function(r){ if(r&&r.ok){delete STATE[key(em)];} openList(); }); }; });
+      [].forEach.call(card.querySelectorAll('.hrel'),function(btn){ btn.onclick=function(){ var em=btn.getAttribute('data-em'); btn.disabled=true; btn.textContent='â¦'; call({action:'release',customer_email:em}).then(function(r){ if(r&&r.ok){delete STATE[key(em)];} openList(); }); }; });
     });
   }
   window.Holds={ makeButton:makeButton, openList:openList, isLocked:isLocked, reload:load, state:function(){return STATE;} };
@@ -2628,7 +2628,7 @@ boot();
     new MutationObserver(function(){
       var r=document.getElementById('radarBtn');
       if(r && !document.getElementById('lockedListBtn')){
-        var b=document.createElement('button'); b.id='lockedListBtn'; b.type='button'; b.textContent='🔒 Locked ('+Object.keys(STATE).length+')'; b.className=r.className; b.style.marginLeft='6px';
+        var b=document.createElement('button'); b.id='lockedListBtn'; b.type='button'; b.textContent='ð Locked ('+Object.keys(STATE).length+')'; b.className=r.className; b.style.marginLeft='6px';
         b.onclick=openList; r.parentNode.insertBefore(b,r.nextSibling);
       }
     }).observe(document.body,{childList:true,subtree:true});
@@ -2944,7 +2944,7 @@ new MutationObserver(add).observe(document.body,{childList:true,subtree:true});
     if(document.getElementById("smNav")) return;
     var n=document.createElement("div"); n.id="smNav";
     n.style.cssText="position:fixed;top:8px;right:10px;z-index:9999;display:flex;gap:6px;font:12px -apple-system,Segoe UI,Roboto,sans-serif";
-    n.innerHTML='<a href="whatsapp-crm.html" style="background:#185fa5;color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-weight:600">\ud83d\udcac CRM</a><a href="index.html" style="background:#fff;color:#185fa5;border:1px solid #c9d6e4;padding:4px 10px;border-radius:999px;text-decoration:none;font-weight:600">\ud83d\udcfa Wallboard</a><a href="recommendations.html" style="background:#0e7a3d;color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-weight:600">\ud83e\udd16 AI Recs</a><a href="winback.html" style="background:#0e7a3d;color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-weight:600">🔁 Win-Backs</a>';
+    n.innerHTML='<a href="whatsapp-crm.html" style="background:#185fa5;color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-weight:600">\ud83d\udcac CRM</a><a href="index.html" style="background:#fff;color:#185fa5;border:1px solid #c9d6e4;padding:4px 10px;border-radius:999px;text-decoration:none;font-weight:600">\ud83d\udcfa Wallboard</a><a href="recommendations.html" style="background:#0e7a3d;color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-weight:600">\ud83e\udd16 AI Recs</a><a href="winback.html" style="background:#0e7a3d;color:#fff;padding:4px 10px;border-radius:999px;text-decoration:none;font-weight:600">ð Win-Backs</a>';
     document.body.appendChild(n);
   }
   function decorate(){
@@ -3007,7 +3007,7 @@ function rpcMatch(phone,email,name){return fetch(U+"/rest/v1/rpc/match_lead_cust
 async function findCustomer(leadId,email,name){var phone=null;if(leadId){try{var ls=await rest("lead_state?id=eq."+encodeURIComponent(leadId)+"&select=phone");phone=(ls&&ls[0]&&ls[0].phone)||null;}catch(e){}}return await rpcMatch(phone,email,name);}
 function emailFromModal(o){var a=o.querySelector("a[href^=\"mailto:\"]");if(!a)return null;try{return decodeURIComponent((a.getAttribute("href")||"").replace(/^mailto:/,"").split("?")[0]);}catch(e){return null;}}
 function wireToggle(bar,panels){if(bar.__waWired)return;bar.__waWired=1;bar.addEventListener("click",function(e){var btn=e.target.closest(".rz-tbtn");if(!btn)return;var key=btn.textContent.replace(/[^a-z]/gi,"").toLowerCase();[].forEach.call(bar.querySelectorAll(".rz-tbtn"),function(x){x.classList.toggle("on",x===btn);});[].forEach.call(panels.querySelectorAll(".rz-tpanel"),function(pl){pl.style.display=(pl.getAttribute("data-tab")===key)?"block":"none";});},true);}
-function addTab(o){var bar=o.querySelector(".rz-tbar"),panels=o.querySelector(".rz-tpanels");if(!bar||!panels)return;var h3=o.querySelector(".mhead h3");var leadName=h3?h3.textContent.trim():"";var email=emailFromModal(o);var idKey=leadName+"|"+(email||"");var existing=bar.querySelector("[data-watab]");var wasActive=false;if(existing){if(existing.getAttribute("data-leadkey")===idKey)return;wasActive=existing.classList.contains("on");var oldP=panels.querySelector('.rz-tpanel[data-tab="whatsapp"]');if(oldP)oldP.remove();existing.remove();}var lid=lastLeadId;var b=document.createElement("button");b.className="rz-tbtn";b.setAttribute("data-watab","1");b.setAttribute("data-leadkey",idKey);b.textContent="💬 WhatsApp";var ovb=[].filter.call(bar.querySelectorAll(".rz-tbtn"),function(x){return /overview/i.test(x.textContent);})[0];if(ovb)ovb.parentNode.insertBefore(b,ovb.nextSibling);else bar.appendChild(b);var p=document.createElement("div");p.className="rz-tpanel";p.setAttribute("data-tab","whatsapp");p.style.display="none";p.innerHTML='<div style="font-size:12px;color:#64748b;padding:8px">Looking up…</div>';panels.appendChild(p);wireToggle(bar,panels);if(wasActive){b.click();}findCustomer(lid,email,leadName).then(function(cid){if(cid){p.innerHTML='<iframe src="whatsapp-crm.html?cb='+Date.now()+'#customer='+cid+'&chat=1" style="width:100%;height:560px;border:1px solid #e5e7eb;border-radius:10px;background:#fff" loading="lazy"></iframe>';}else{p.innerHTML='<div style="font-size:13px;color:#64748b;padding:14px">No WhatsApp conversation matched for this lead yet. Use the <b>WhatsApp</b> button to message them — once connected it appears here.</div>';}});}
+function addTab(o){var bar=o.querySelector(".rz-tbar"),panels=o.querySelector(".rz-tpanels");if(!bar||!panels)return;var h3=o.querySelector(".mhead h3");var leadName=h3?h3.textContent.trim():"";var email=emailFromModal(o);var idKey=leadName+"|"+(email||"");var existing=bar.querySelector("[data-watab]");var wasActive=false;if(existing){if(existing.getAttribute("data-leadkey")===idKey)return;wasActive=existing.classList.contains("on");var oldP=panels.querySelector('.rz-tpanel[data-tab="whatsapp"]');if(oldP)oldP.remove();existing.remove();}var lid=lastLeadId;var b=document.createElement("button");b.className="rz-tbtn";b.setAttribute("data-watab","1");b.setAttribute("data-leadkey",idKey);b.textContent="ð¬ WhatsApp";var ovb=[].filter.call(bar.querySelectorAll(".rz-tbtn"),function(x){return /overview/i.test(x.textContent);})[0];if(ovb)ovb.parentNode.insertBefore(b,ovb.nextSibling);else bar.appendChild(b);var p=document.createElement("div");p.className="rz-tpanel";p.setAttribute("data-tab","whatsapp");p.style.display="none";p.innerHTML='<div style="font-size:12px;color:#64748b;padding:8px">Looking upâ¦</div>';panels.appendChild(p);wireToggle(bar,panels);if(wasActive){b.click();}findCustomer(lid,email,leadName).then(function(cid){if(cid){p.innerHTML='<iframe src="whatsapp-crm.html?cb='+Date.now()+'#customer='+cid+'&chat=1" style="width:100%;height:560px;border:1px solid #e5e7eb;border-radius:10px;background:#fff" loading="lazy"></iframe>';}else{p.innerHTML='<div style="font-size:13px;color:#64748b;padding:14px">No WhatsApp conversation matched for this lead yet. Use the <b>WhatsApp</b> button to message them â once connected it appears here.</div>';}});}
 var t;function schedule(){clearTimeout(t);t=setTimeout(function(){var o=document.getElementById("detailOverlay");if(o&&o.style.display!=="none"&&o.querySelector(".rz-tbar"))addTab(o);},150);}
 function watch(){var o=document.getElementById("detailOverlay");if(o&&!o.__waW){o.__waW=1;new MutationObserver(schedule).observe(o,{childList:true,subtree:true});}}
 function start(){new MutationObserver(watch).observe(document.body,{childList:true});watch();}
@@ -3031,7 +3031,7 @@ function rpcMatch(phone,email,name){return fetch(U+"/rest/v1/rpc/match_lead_cust
 async function resolve(id){var ls=await loadLead(id);var list=[],seen={};if(ls.phone){var c=await custByPhone(ls.phone);if(c&&!seen[c.id]){seen[c.id]=1;list.push(c);}}var links=Array.isArray(ls.wa_links)?ls.wa_links:[];for(var i=0;i<links.length;i++){var cid=links[i]&&(links[i].customer_id||links[i]);if(cid&&!seen[cid]){var cc=await custById(cid);if(cc){seen[cc.id]=1;list.push(cc);}}}try{var mid=await rpcMatch(ls.phone,null,CUR.name);if(mid&&!seen[mid]){var mc=await custById(mid);if(mc){seen[mc.id]=1;list.unshift(mc);}}}catch(e){}return {phone:ls.phone||"",links:links,customers:list};}
 var CUR={id:null,sel:null,name:""};
 function ov(){var o=document.getElementById("waBtnOv");if(o)return o;o=document.createElement("div");o.id="waBtnOv";o.style.cssText="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99999;align-items:flex-start;justify-content:center;padding:24px";o.addEventListener("click",function(e){if(e.target===o)o.style.display="none";});document.body.appendChild(o);return o;}
-async function render(){var o=ov();var r=await resolve(CUR.id);if(!CUR.sel&&r.customers[0])CUR.sel=r.customers[0].id;if(!CUR.name&&r.customers[0])CUR.name=r.customers[0].name||"";var linkedIds={};(r.links||[]).forEach(function(x){var id=x&&(x.customer_id||x);if(id)linkedIds[id]=1;});var chips=r.customers.map(function(c){var btn='<button class="waov-chip" data-cid="'+c.id+'" style="border:1px solid '+(c.id===CUR.sel?"#185fa5":"#e5e7eb")+';background:'+(c.id===CUR.sel?"#e8f1fb":"#fff")+';color:#0f172a;border-radius:999px;padding:5px 12px;cursor:pointer;font-size:12px">'+esc(c.name||c.phone||("#"+c.id))+'</button>';var x=linkedIds[c.id]?'<a href="#" data-unlink="'+c.id+'" title="Unlink this number from the lead" style="color:#c02626;font-weight:700;text-decoration:none;font-size:14px;padding:0 3px">×</a>':"";return '<span style="display:inline-flex;align-items:center;gap:1px">'+btn+x+'</span>';}).join("");var conv=CUR.sel?'<iframe src="whatsapp-crm.html?cb='+Date.now()+'#customer='+CUR.sel+'&chat=1" style="width:100%;height:560px;border:1px solid #e5e7eb;border-radius:10px;background:#fff"></iframe>':'<div style="padding:30px;text-align:center;color:#64748b">No WhatsApp number linked yet. Enter a number below to link an existing conversation.</div>';o.innerHTML='<div style="background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)"><div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #eef2f7"><div style="font-weight:800;font-size:15px">\ud83d\udcac WhatsApp'+(CUR.name?" \u2014 "+esc(CUR.name):"")+'</div><button id="waovX" style="border:0;background:#f1f5f9;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:18px">\u00d7</button></div><div style="padding:12px 18px;border-bottom:1px solid #f1f5f9;display:flex;flex-wrap:wrap;gap:8px;align-items:center">'+(chips?'<span style="font-size:12px;color:#64748b">Linked:</span>'+chips:"")+'<input id="waovNum" placeholder="Link a WhatsApp number (with country code)" style="flex:1;min-width:220px;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:13px"><button id="waovLink" style="border:0;background:#185fa5;color:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600">Link</button><span id="waovMsg" style="font-size:12px;color:#64748b"></span></div><div style="padding:12px 18px">'+conv+'</div></div>';o.style.display="flex";o.querySelector("#waovX").onclick=function(){o.style.display="none";};[].forEach.call(o.querySelectorAll(".waov-chip"),function(b){b.onclick=function(){CUR.sel=Number(b.getAttribute("data-cid"));render();};});[].forEach.call(o.querySelectorAll("[data-unlink]"),function(a){a.onclick=async function(e){e.preventDefault();e.stopPropagation();var rid=Number(a.getAttribute("data-unlink"));var ld=await loadLead(CUR.id);var lnks=Array.isArray(ld.wa_links)?ld.wa_links:[];var nl=lnks.filter(function(x){return (x&&(x.customer_id||x))!==rid;});await saveLead(CUR.id,{wa_links:nl});if(CUR.sel===rid)CUR.sel=null;render();};});o.querySelector("#waovLink").onclick=async function(){var v=o.querySelector("#waovNum").value.trim();if(!v)return;var msg=o.querySelector("#waovMsg");msg.textContent="Checking\u2026";var c=await custByPhone(v);var ls=await loadLead(CUR.id);var links=Array.isArray(ls.wa_links)?ls.wa_links:[];if(c){if(!links.some(function(x){return (x.customer_id||x)===c.id;})){links.push({customer_id:c.id,phone:v});await saveLead(CUR.id,{wa_links:links,phone:ls.phone||v});}CUR.sel=c.id;render();}else{await saveLead(CUR.id,{phone:v});msg.textContent="Saved. No WhatsApp conversation for that number yet \u2014 it will appear once they message.";}};}
+async function render(){var o=ov();var r=await resolve(CUR.id);if(!CUR.sel&&r.customers[0])CUR.sel=r.customers[0].id;if(!CUR.name&&r.customers[0])CUR.name=r.customers[0].name||"";var linkedIds={};(r.links||[]).forEach(function(x){var id=x&&(x.customer_id||x);if(id)linkedIds[id]=1;});var chips=r.customers.map(function(c){var btn='<button class="waov-chip" data-cid="'+c.id+'" style="border:1px solid '+(c.id===CUR.sel?"#185fa5":"#e5e7eb")+';background:'+(c.id===CUR.sel?"#e8f1fb":"#fff")+';color:#0f172a;border-radius:999px;padding:5px 12px;cursor:pointer;font-size:12px">'+esc(c.name||c.phone||("#"+c.id))+'</button>';var x=linkedIds[c.id]?'<a href="#" data-unlink="'+c.id+'" title="Unlink this number from the lead" style="color:#c02626;font-weight:700;text-decoration:none;font-size:14px;padding:0 3px">Ã</a>':"";return '<span style="display:inline-flex;align-items:center;gap:1px">'+btn+x+'</span>';}).join("");var conv=CUR.sel?'<iframe src="whatsapp-crm.html?cb='+Date.now()+'#customer='+CUR.sel+'&chat=1" style="width:100%;height:560px;border:1px solid #e5e7eb;border-radius:10px;background:#fff"></iframe>':'<div style="padding:30px;text-align:center;color:#64748b">No WhatsApp number linked yet. Enter a number below to link an existing conversation.</div>';o.innerHTML='<div style="background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)"><div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #eef2f7"><div style="font-weight:800;font-size:15px">\ud83d\udcac WhatsApp'+(CUR.name?" \u2014 "+esc(CUR.name):"")+'</div><button id="waovX" style="border:0;background:#f1f5f9;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:18px">\u00d7</button></div><div style="padding:12px 18px;border-bottom:1px solid #f1f5f9;display:flex;flex-wrap:wrap;gap:8px;align-items:center">'+(chips?'<span style="font-size:12px;color:#64748b">Linked:</span>'+chips:"")+'<input id="waovNum" placeholder="Link a WhatsApp number (with country code)" style="flex:1;min-width:220px;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:13px"><button id="waovLink" style="border:0;background:#185fa5;color:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600">Link</button><span id="waovMsg" style="font-size:12px;color:#64748b"></span></div><div style="padding:12px 18px">'+conv+'</div></div>';o.style.display="flex";o.querySelector("#waovX").onclick=function(){o.style.display="none";};[].forEach.call(o.querySelectorAll(".waov-chip"),function(b){b.onclick=function(){CUR.sel=Number(b.getAttribute("data-cid"));render();};});[].forEach.call(o.querySelectorAll("[data-unlink]"),function(a){a.onclick=async function(e){e.preventDefault();e.stopPropagation();var rid=Number(a.getAttribute("data-unlink"));var ld=await loadLead(CUR.id);var lnks=Array.isArray(ld.wa_links)?ld.wa_links:[];var nl=lnks.filter(function(x){return (x&&(x.customer_id||x))!==rid;});await saveLead(CUR.id,{wa_links:nl});if(CUR.sel===rid)CUR.sel=null;render();};});o.querySelector("#waovLink").onclick=async function(){var v=o.querySelector("#waovNum").value.trim();if(!v)return;var msg=o.querySelector("#waovMsg");msg.textContent="Checking\u2026";var c=await custByPhone(v);var ls=await loadLead(CUR.id);var links=Array.isArray(ls.wa_links)?ls.wa_links:[];if(c){if(!links.some(function(x){return (x.customer_id||x)===c.id;})){links.push({customer_id:c.id,phone:v});await saveLead(CUR.id,{wa_links:links,phone:ls.phone||v});}CUR.sel=c.id;render();}else{await saveLead(CUR.id,{phone:v});msg.textContent="Saved. No WhatsApp conversation for that number yet \u2014 it will appear once they message.";}};}
 document.addEventListener("click",function(e){var btn=e.target.closest&&e.target.closest('[data-act="wa"]');if(!btn)return;e.preventDefault();e.stopImmediatePropagation();var id=btn.getAttribute("data-id");if(!id)return;var card=btn.closest("[data-id]");var nm=card?((card.querySelector("a,b,strong,h3,h4")||{}).textContent||"").trim():"";CUR.id=id;CUR.sel=null;CUR.name=nm;render();},true);
 })();
 </script>
@@ -3062,7 +3062,7 @@ function add(){
  var wb=all.filter(function(a){return /wallboard/i.test(a.textContent||"");})[0];
  var host=wb?wb.parentNode:null;
  if(!host||document.getElementById("waTabBtn"))return;
- var a=document.createElement("a");a.id="waTabBtn";a.href="chat.html";a.textContent="💬 WhatsApp";
+ var a=document.createElement("a");a.id="waTabBtn";a.href="chat.html";a.textContent="ð¬ WhatsApp";
  a.style.cssText="margin-right:6px;background:#00a884;color:#fff;border-radius:9px;padding:6px 12px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;vertical-align:middle";
  host.insertBefore(a,wb);
 }
