@@ -365,7 +365,7 @@ const FN_URL = SB_URL + "/functions/v1/leads";
 const sb = createClient(SB_URL, SB_KEY);
 const BUILD = "ship-badges-1"; // feature marker
 
-const REPS = ["Deysi","Mirian","Jennifer","Tehila"];
+const REPS = ["Deysi","Mirian","Jennifer","Tehila","Jay"];
 const CATS = [
   {key:"orders",    label:"Orders / Congrats", folder:"orders placed"},
   {key:"inquiries", label:"Inquiries",         folder:"Inbox (filtered)"},
@@ -436,7 +436,7 @@ async function showApp(session){
   ME = (u.user_metadata && (u.user_metadata.name || u.user_metadata.full_name)) || u.email || "unknown";
   document.getElementById("whoami").innerHTML = "Signed in as <b>"+esc(ME)+"</b>";
   // Default each rep's view to their own leads; they can switch to Everyone or anyone specific.
-  const REP_EMAILS = { "dcalvo@surgamed.com":"Deysi", "malejo@surgamed.com":"Mirian", "jlugo@surgamed.com":"Jennifer", "tcohen@surgamed.com":"Tehila" };
+  const REP_EMAILS = { "dcalvo@surgamed.com":"Deysi", "malejo@surgamed.com":"Mirian", "jlugo@surgamed.com":"Jennifer", "tcohen@surgamed.com":"Tehila", "jfish@surgamed.com":"Jay" };
   const idStr = (ME+" "+(u.email||"")).toLowerCase();
   const myRep = REP_EMAILS[(u.email||"").toLowerCase()] || REPS.find(r => idStr.includes(r.toLowerCase()));
   MY_REP = myRep || "";
@@ -1834,7 +1834,7 @@ async function openReorderRadar(presetRep){
   const isAdmin=ADMINS.includes(MY_EMAIL);
   const myFull=MY_REP?repFull(MY_REP):'';
   const repPick=true
-    ? '<select id="rrRep" style="padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><option value="">All reps</option><option>Mirian Alejo</option><option>Jennifer Lugo</option><option>Deysi Calvo</option><option>Tehila Cohen</option><option value="__none__">Unassigned pool</option></select> '
+    ? '<select id="rrRep" style="padding:7px 9px;border:1px solid #cdd6df;border-radius:8px;font-size:13px"><option value="">All reps</option><option>Mirian Alejo</option><option>Jennifer Lugo</option><option>Deysi Calvo</option><option>Tehila Cohen</option><option>Jay Fish</option><option value="__none__">Unassigned pool</option></select> '
     : '';
   o.innerHTML='<div class="modal wide"><div class="mhead"><button class="mclose" id="mClose">×</button><h3>📡 Reorder Radar — reach out today</h3><div class="msub">Customers who look due to reorder, ranked by likelihood × value. Items we have in stock first — one click drafts the outreach.</div></div><div class="mbody"><div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+repPick+'<label style="font-size:12px;color:#5a6b7b"><input type="checkbox" id="rrInstock" checked> Only items we have in stock</label><span id="rrCount" style="font-size:12px;color:#9aa7b4"></span></div><div id="rrBody"><div style="color:#9aa7b4;font-size:12px">Loading…</div></div></div></div>';
   document.getElementById('mClose').onclick=closeDetail;
@@ -2361,7 +2361,7 @@ function openSignatureEditor(){
 
 // ---- Presence / Team activity (admin-only) ----
 const ADMINS=["mweinreb@surgamed.com","sgluck@surgamed.com"];
-const TEAM=[ {email:"dcalvo@surgamed.com",name:"Deysi"}, {email:"malejo@surgamed.com",name:"Mirian"}, {email:"jlugo@surgamed.com",name:"Jennifer"}, {email:"tcohen@surgamed.com",name:"Tehila"} ];
+const TEAM=[ {email:"dcalvo@surgamed.com",name:"Deysi"}, {email:"malejo@surgamed.com",name:"Mirian"}, {email:"jlugo@surgamed.com",name:"Jennifer"}, {email:"tcohen@surgamed.com",name:"Tehila"}, {email:"jfish@surgamed.com",name:"Jay"} ];
 async function markPresence(u){
   try{ await sb.from("presence").upsert({ id:u.id, email:(u.email||"").toLowerCase(), name:ME, last_seen:new Date().toISOString() }); }catch(e){}
 }
@@ -2820,7 +2820,7 @@ new MutationObserver(wireLink).observe(document.body,{childList:true,subtree:tru
 if(window.__rzPipeInit)return;window.__rzPipeInit=1;
 var SB="https://ecjemcrpbzeocoiwslcu.supabase.co";
 var KEY="sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
-var REPS=["Mirian Alejo","Jennifer Lugo","Deysi Calvo","Tehila Cohen"];
+var REPS=["Mirian Alejo","Jennifer Lugo","Deysi Calvo","Tehila Cohen","Jay Fish"];
 var STAGES=[["new","New"],["working","Working"],["quote_sent","Quote sent"],["won","Won"],["lost","Lost"]];
 function jwt(){try{return JSON.parse(localStorage.getItem("sb-ecjemcrpbzeocoiwslcu-auth-token")).access_token;}catch(e){return KEY;}}
 function myEmail(){try{var p=JSON.parse(atob(jwt().split(".")[1]));return (p.email||"").toLowerCase();}catch(e){return "";}}
