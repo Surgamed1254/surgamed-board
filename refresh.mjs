@@ -81,7 +81,9 @@ for(const R of REPS){
   catch(e){ console.error(R.rep, e.message); files.push([R.rep,false]); }
 }
 const now=new Date();
-const todayUTC=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()));
+// Business day = America/New_York (the job runs on GitHub in UTC; without this the board rolled to the next month at 8 PM ET).
+const _et=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).reduce((o,p)=>(o[p.type]=p.value,o),{});
+const todayUTC=new Date(Date.UTC(Number(_et.year),Number(_et.month)-1,Number(_et.day)));
 const monthStart=new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), 1));
 const monthRows=all.filter(o=>o.date>=monthStart && o.date<=todayUTC);
 const byRep={};
