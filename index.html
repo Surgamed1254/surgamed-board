@@ -154,17 +154,19 @@ const money = n => '$'+Math.round(n).toLocaleString('en-US');
 const MON = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DOT = ' \u00b7 ';
 
-function tick(){ document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
+const TZ='America/New_York'; // the floor runs on Eastern time no matter where the screen is
+function tick(){ document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:TZ}); }
 tick(); setInterval(tick,10000);
-document.getElementById('upd').textContent=new Date(S.asOf).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+document.getElementById('upd').textContent=new Date(S.asOf).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:TZ});
 document.getElementById('periodLbl').textContent=(S.monthName||'')+' '+String(S.today||'').slice(0,4);
 
-const now=new Date();
-const endMonth=new Date(now.getFullYear(), now.getMonth()+1, 0);
-const daysLeft=Math.max(0, Math.ceil((endMonth - now)/86400000));
+const _etp=new Intl.DateTimeFormat('en-US',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).reduce((o,p)=>(o[p.type]=p.value,o),{});
+const etY=Number(_etp.year), etM=Number(_etp.month)-1, etD=Number(_etp.day);
+const daysInMonth=new Date(Date.UTC(etY, etM+1, 0)).getUTCDate();
+const daysLeft=Math.max(0, daysInMonth-etD);
 document.getElementById('cdDays').textContent=daysLeft;
-document.getElementById('cdMon').textContent=MON[now.getMonth()];
-document.getElementById('goalDays').textContent=daysLeft+' days left in '+MON[now.getMonth()];
+document.getElementById('cdMon').textContent=MON[etM];
+document.getElementById('goalDays').textContent=daysLeft+' days left in '+MON[etM];
 
 function countUp(el,to,fmt,dur){ const t0=performance.now(); function f(t){ let p=Math.min(1,(t-t0)/dur); p=1-Math.pow(1-p,3); el.textContent=fmt(to*p); if(p<1)requestAnimationFrame(f);} requestAnimationFrame(f); }
 
