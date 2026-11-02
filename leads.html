@@ -1706,6 +1706,48 @@ function renderRepIntel(rows){
   return h;
 }
 // Most recent known ship-to location for this customer (from imported order shipping fields).
+// --- Contact card (11/2/26): every email / phone / WhatsApp / company we know for this customer, from the order history
+// (synchronous) plus contact_rolodex + customers (async fill-in). Shown at the top of the Overview tab.
+function renderContactCard(rows){
+  const uniq=a=>[...new Set(a.filter(Boolean).map(x=>String(x).trim()).filter(Boolean))];
+  const emails=uniq((rows||[]).map(r=>(r.customer_email||"").toLowerCase()));
+  const phones=uniq((rows||[]).map(r=>r.customer_phone));
+  const names=uniq((rows||[]).map(r=>r.customer_name));
+  const cos=uniq((rows||[]).map(r=>r.company));
+  const cid='cc'+Math.random().toString(36).slice(2,8);
+  const line=(lab,vals,fmt)=>vals.length?('<div><span style="color:#5a6b7b;display:inline-block;min-width:78px">'+lab+'</span>'+vals.map(fmt||esc).join(' <span style="color:#c3ccd6">·</span> ')+'</div>'):'';
+  const tel=p=>'<a href="tel:'+esc(String(p).replace(/[^+\d]/g,''))+'">'+esc(p)+'</a>';
+  const mail=e=>'<a href="mailto:'+esc(e)+'">'+esc(e)+'</a>';
+  let h='<div id="'+cid+'" style="border:1px solid #dbe6f0;background:#fff;border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:12.5px;line-height:1.7">';
+  h+='<div style="font-weight:700;margin-bottom:2px">📇 Contact <span style="color:#9aa7b4;font-weight:400;font-size:11px">(from orders'+(emails.length?', loading CRM…':'')+')</span></div>';
+  h+=line('Name',names)+line('Company',cos)+line('Email',emails,mail)+line('Phone',phones,tel);
+  if(!names.length&&!emails.length&&!phones.length) h+='<div style="color:#9aa7b4">No contact details on file yet.</div>';
+  h+='</div>';
+  if(emails.length){ setTimeout(async()=>{ try{
+      const el=document.getElementById(cid); if(!el) return;
+      const em=emails[0];
+      const { data:map }=await sb.from("customer_email_map").select("canon_email").eq("email",em).limit(1);
+      const canon=(map&&map[0]&&map[0].canon_email)||em;
+      const [{ data:rl },{ data:cu }]=await Promise.all([
+        sb.from("contact_rolodex").select("emails,phones,wa_numbers,names,companies").eq("canon_email",canon).limit(1),
+        sb.from("customers").select("name,phone,company,country,preferred_language").in("email",emails).is("deleted_at",null).limit(5)
+      ]);
+      const r=(rl&&rl[0])||{}; const cs=cu||[];
+      const allN=uniq([...names,...(r.names||[]),...cs.map(c=>c.name)]);
+      const allC=uniq([...cos,...(r.companies||[]),...cs.map(c=>c.company)]);
+      const allE=uniq([...emails,...(r.emails||[])]);
+      const allP=uniq([...phones,...(r.phones||[]),...cs.map(c=>c.phone)]);
+      const wa=uniq([...(r.wa_numbers||[]),...cs.filter(c=>c.phone).map(c=>c.phone)]);
+      const ctry=uniq(cs.map(c=>c.country)); const lang=uniq(cs.map(c=>c.preferred_language));
+      let hh='<div style="font-weight:700;margin-bottom:2px">📇 Contact</div>';
+      hh+=line('Name',allN)+line('Company',allC)+line('Email',allE,mail)+line('Phone',allP,tel);
+      hh+=line('WhatsApp',wa,p=>'<a href="https://wa.me/'+esc(String(p).replace(/\D/g,''))+'" target="_blank">'+esc(p)+'</a>');
+      hh+=line('Country',ctry)+line('Language',lang);
+      if(!allN.length&&!allE.length&&!allP.length) hh+='<div style="color:#9aa7b4">No contact details on file yet.</div>';
+      el.innerHTML=hh;
+    }catch(e){} },0); }
+  return h;
+}
 function renderShipTo(rows){
   const withLoc=(rows||[]).filter(r=>r.ship_city||r.ship_state||r.ship_postal);
   if(!withLoc.length) return '';
@@ -1723,7 +1765,7 @@ function renderPurchases(rows){
   if(!rows||!rows.length) return '<div style="color:#9aa7b4;font-size:12px">No prior orders found in the history.</div>';
   const groups={};
   rows.forEach(r=>{ const a=r.account||"SurgaMed"; (groups[a]=groups[a]||[]).push(r); });
-  let h=renderRepIntel(rows)+renderShipTo(rows)+renderFieldBanner(rows);
+  let h=renderContactCard(rows)+renderRepIntel(rows)+renderShipTo(rows)+renderFieldBanner(rows);
   Object.keys(groups).sort().forEach(acct=>{
     const list=groups[acct]; let total=0,units=0;
     // "price" from dotMed is already the line subtotal (unit price × qty), so sum it directly.
