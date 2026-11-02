@@ -100,7 +100,7 @@ async function redraft(){ const r=cur; const t=(r.seq.pending_touch||r.seq.touch
 async function draftOnly(){ const r=cur; const t=prompt("Which touch? 1 = check-in, 2 = concrete reason, 3 = easy exit, 4 = final","1"); if(!t)return; const res=await api("draft",{customer_id:r.id,touch:Number(t)}); document.getElementById("draftbox").innerHTML='<div class="meta" style="margin:8px 0 4px">Draft (touch '+t+', not tracked):</div><div class="draft">'+esc(res.text||res.error||"")+'</div>'; }
 function copyDraft(){ const ta=document.getElementById("draft"); ta.select(); document.execCommand("copy"); }
 async function boot(){
-  const sel=document.getElementById("rep"); for(const n of ["Jennifer Lugo","Mirian Alejo","Tehila Cohen","Deysi Calvo","Meir Weinreb","Steven Gluck","Ari Teitelbaum"]){const o=document.createElement("option");o.value=n;o.textContent=n;sel.appendChild(o);}
+  const sel=document.getElementById("rep"); for(const n of ["Jennifer Lugo","Mirian Alejo","Tehila Cohen","Deysi Calvo","Jay Fish","Jack Kushnir","Meir Weinreb","Steven Gluck","Ari Teitelbaum"]){const o=document.createElement("option");o.value=n;o.textContent=n;sel.appendChild(o);}
   const em=window.__SMREP||""; const mine=[...sel.options].find(o=>o.value.toLowerCase().startsWith(em.split("@")[0].replace(/^[a-z]/,"").slice(0,4)));
   sel.onchange=load; document.getElementById("seg").onchange=load; document.getElementById("q").oninput=render; document.getElementById("flt").onchange=render;
   await load();
