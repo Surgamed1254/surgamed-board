@@ -619,7 +619,7 @@ function extractLead(email,catKey){
   else gkey=catKey+":id:"+(email.id||Math.random());
   return {listing,custName,company,custEmail,phone,deal,item,display,title,gkey};
 }
-function acctLabel(email){ const r=(email.recipients&&email.recipients.join(" "))||""; return /shortdated/i.test(r)?{t:"ShortDated",sd:true}:{t:"SurgaMed",sd:false}; }
+function acctLabel(email){ const r=(email.recipients&&email.recipients.join(" "))||""; const s=(email.subject||"")+" "+(email.summary||""); const sd=/shortdated/i.test(r)||/^\s*\[ShortDated\]|Account:\s*ShortDated/i.test(s)||/short\s*dated\s*surgical/i.test(email.subject||""); return sd?{t:"ShortDated",sd:true}:{t:"SurgaMed",sd:false}; }
 
 async function loadState(){
   STATE = {};
