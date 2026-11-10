@@ -1,0 +1,164 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SurgaMed — Sales Pipeline</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<style>
+:root{--b:#1f4e78;--bg:#f4f6f9;--line:#e2e8f0;--mut:#64748b}
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+body{margin:0;background:var(--bg);color:#1a2330}
+header{background:var(--b);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:17px;margin:0}header a,header button{background:rgba(255,255,255,.16);color:#fff;border:0;padding:5px 11px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600;cursor:pointer}
+.ctl{display:flex;gap:8px;padding:10px 16px;flex-wrap:wrap;align-items:center;background:#fff;border-bottom:1px solid var(--line)}
+.ctl select,.ctl input{padding:7px 9px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px}
+.ctl label{font-size:12px;color:var(--mut);display:flex;gap:4px;align-items:center}
+.sum{font-size:12px;color:var(--mut);margin-left:auto}
+.board{display:flex;gap:10px;padding:12px 16px;overflow-x:auto;height:calc(100vh - 112px)}
+.col{flex:0 0 250px;background:#eaeef3;border-radius:10px;display:flex;flex-direction:column;max-height:100%}
+.col.over{outline:2px dashed var(--b)}
+.col h3{margin:0;padding:9px 11px;font-size:13px;display:flex;justify-content:space-between;border-bottom:3px solid var(--c)}
+.col h3 small{color:var(--mut);font-weight:400}
+.cards{overflow-y:auto;padding:8px;flex:1;min-height:60px}
+.card{background:#fff;border-radius:8px;padding:8px 9px;margin-bottom:7px;box-shadow:0 1px 2px rgba(0,0,0,.08);cursor:grab;font-size:12px;border-left:3px solid var(--c)}
+.card .nm{font-weight:700;font-size:13px}.card .co{color:var(--mut)}
+.card .ft{display:flex;justify-content:space-between;margin-top:5px;color:var(--mut);font-size:11px;gap:4px;flex-wrap:wrap}
+.tag{border-radius:9px;padding:1px 6px;font-size:10px;font-weight:700}
+.t-quiet{background:#fff4e5;color:#b45309}.t-due{background:#fde8e8;color:#b91c1c}.t-cust{background:#e7f6ee;color:#15803d}
+.more{text-align:center;font-size:12px;color:var(--b);cursor:pointer;padding:6px}
+.ov{position:fixed;inset:0;background:rgba(16,32,48,.4);display:flex;justify-content:flex-end;z-index:50}
+.drw{background:#fff;width:min(520px,100vw);height:100%;overflow:auto;padding:16px 18px}
+.drw h2{margin:0 0 4px;font-size:18px}.drw .mt{color:var(--mut);font-size:12px}
+.drw label{display:block;font-size:11px;font-weight:700;color:var(--mut);margin:10px 0 3px}
+.drw input,.drw select,.drw textarea{width:100%;padding:7px 9px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px}
+.row{display:flex;gap:10px}.row>div{flex:1}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.btn{padding:7px 13px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;font-weight:600;font-size:12px;cursor:pointer}
+.btn.pri{background:var(--b);color:#fff;border-color:var(--b)}
+.log{border-top:1px solid var(--line);margin-top:12px}
+.ev{display:flex;gap:9px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:12px}
+.ev .ic{width:20px;text-align:center}.ev .tm{color:var(--mut);font-size:11px;white-space:nowrap}
+.ev.in .bd{color:#15803d}.ev.stage .bd{font-weight:700}
+@media(max-width:700px){.col{flex-basis:80vw}.sum{margin-left:0}}
+</style></head><body>
+<header><h1>Sales Pipeline</h1><a href="import.html">Import leads from Excel</a><button id="newBtn">+ New lead</button><a href="leads.html">Lead Board</a><span id="who" style="font-size:12px;opacity:.85;margin-left:auto"></span></header>
+<div class="ctl">
+  <select id="rep"><option value="all">All reps</option><option value="me">My leads</option></select>
+  <select id="list"><option value="all">All lists</option></select>
+  <input id="q" placeholder="Search name, company, email, item" style="min-width:220px">
+  <label><input type="checkbox" id="quiet"> Gone quiet only</label>
+  <label><input type="checkbox" id="due"> Follow-up due only</label>
+  <label><input type="checkbox" id="closed"> Show Won / Lost from last 30 days</label>
+  <span class="sum" id="sum"></span>
+</div>
+<div class="board" id="board"></div>
+<script>
+const SB_URL="https://ecjemcrpbzeocoiwslcu.supabase.co";
+const SB_KEY="sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const STAGES=[["new","New","#94a3b8"],["contacted","Contacted","#2e86de"],["replied","Replied","#0ea5e9"],["quoted","Quoted","#8b5cf6"],["invoiced","Invoiced","#f59e0b"],["won","Won","#16a34a"],["lost","Lost","#b91c1c"]];
+const SN=Object.fromEntries(STAGES.map(s=>[s[0],s[1]]));
+const LOST_REASONS=["No reply","Price","Bought elsewhere","Item not available","Needs in-date only","Wrong contact","Not a buyer","Other"];
+const PAGE=60; let LEADS=[],REPS=[],ME=null,MYREP=null,SHOW={};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=n=>n==null||n===""?"":"$"+Number(n).toLocaleString(undefined,{maximumFractionDigits:0});
+const ago=t=>{if(!t)return"";const d=(Date.now()-new Date(t))/864e5;return d<1?"today":d<2?"1d":Math.floor(d)+"d";};
+function isAllowed(e){e=(e||"").toLowerCase().trim();return !!e&&e.endsWith("@surgamed.com");}
+
+async function loadAll(){
+  // open leads in full, closed ones from the last 30 days; paged past the 1000-row API limit
+  const since=new Date(Date.now()-30*864e5).toISOString(); let out=[],from=0;
+  while(true){const {data,error}=await sb.from("crm_pipeline_cards").select("*")
+      .or("stage.not.in.(won,lost),closed_at.gte."+since).order("updated_at",{ascending:false}).range(from,from+999);
+    if(error){alert(error.message);break;} out=out.concat(data); if(data.length<1000)break; from+=1000;}
+  LEADS=out;
+  const lists=[...new Set(LEADS.map(l=>l.list_name).filter(Boolean))].sort();
+  const ls=document.getElementById("list"),cur=ls.value; ls.innerHTML='<option value="all">All lists</option>'+lists.map(n=>`<option>${esc(n)}</option>`).join(""); ls.value=lists.includes(cur)?cur:"all";
+  render();
+}
+function filtered(){
+  const rep=document.getElementById("rep").value,list=document.getElementById("list").value,q=document.getElementById("q").value.toLowerCase().trim();
+  const quiet=document.getElementById("quiet").checked,due=document.getElementById("due").checked;
+  return LEADS.filter(l=>{
+    if(rep==="me"&&l.owner_rep_id!==MYREP?.id)return false; if(rep!=="all"&&rep!=="me"&&String(l.owner_rep_id)!==rep)return false;
+    if(list!=="all"&&l.list_name!==list)return false; if(quiet&&!l.gone_quiet)return false; if(due&&!l.followup_due)return false;
+    if(q&&![l.customer_name,l.company,l.customer_email,l.item_interest,l.phone].join(" ").toLowerCase().includes(q))return false; return true;});
+}
+function render(){
+  const showClosed=document.getElementById("closed").checked, rows=filtered(), b=document.getElementById("board"); b.innerHTML="";
+  let openN=0,openV=0;
+  for(const [k,label,c] of STAGES){
+    if(!showClosed&&(k==="won"||k==="lost"))continue;
+    const items=rows.filter(l=>l.stage===k).sort((a,b)=>(b.followup_due-a.followup_due)||(new Date(b.last_activity_at||b.created_at)-new Date(a.last_activity_at||a.created_at)));
+    const val=items.reduce((s,l)=>s+Number(k==="won"?l.won_amount||0:l.est_value||0),0); if(k!=="won"&&k!=="lost"){openN+=items.length;openV+=val;}
+    const col=document.createElement("div"); col.className="col"; col.style.setProperty("--c",c); col.dataset.stage=k;
+    const n=SHOW[k]||PAGE;
+    col.innerHTML=`<h3>${label} <small>${items.length}${val?" · "+money(val):""}</small></h3><div class="cards">${items.slice(0,n).map(card).join("")}${items.length>n?`<div class="more" data-more="${k}">Show ${Math.min(PAGE,items.length-n)} more</div>`:""}</div>`;
+    col.ondragover=e=>{e.preventDefault();col.classList.add("over");}; col.ondragleave=()=>col.classList.remove("over");
+    col.ondrop=e=>{e.preventDefault();col.classList.remove("over");moveTo(e.dataTransfer.getData("text/plain"),k);};
+    b.appendChild(col);
+  }
+  b.querySelectorAll(".card").forEach(el=>{el.ondragstart=e=>e.dataTransfer.setData("text/plain",el.dataset.id);el.onclick=()=>openLead(el.dataset.id);});
+  b.querySelectorAll("[data-more]").forEach(el=>el.onclick=()=>{SHOW[el.dataset.more]=(SHOW[el.dataset.more]||PAGE)+PAGE;render();});
+  document.getElementById("sum").textContent=`${openN} open leads${openV?" · "+money(openV)+" est.":""}`;
+}
+function card(l){
+  const c=(STAGES.find(s=>s[0]===l.stage)||[])[2];
+  const tags=[l.followup_due?'<span class="tag t-due">follow-up due</span>':"",l.gone_quiet?'<span class="tag t-quiet">gone quiet</span>':"",l.customer_id&&l.orders_count?`<span class="tag t-cust">customer · ${l.orders_count} orders</span>`:""].join(" ");
+  return `<div class="card" draggable="true" data-id="${l.id}" style="--c:${c}"><div class="nm">${esc(l.customer_name||l.customer_email||l.phone||"(no name)")}</div>
+  <div class="co">${esc(l.company||"")}${l.country?" · "+esc(l.country):""}</div>${l.item_interest?`<div>${esc(l.item_interest)}</div>`:""}
+  <div class="ft"><span>${esc((l.owner_name||"Unassigned").split(" ")[0])}</span><span>${l.est_value?money(l.est_value):""}</span><span>${l.last_activity_at?"active "+ago(l.last_activity_at):"no activity yet"}</span></div>${tags?`<div style="margin-top:4px">${tags}</div>`:""}</div>`;
+}
+async function moveTo(id,stage){
+  const l=LEADS.find(x=>x.id===id); if(!l||l.stage===stage)return; const patch={stage};
+  if(stage==="lost"){const r=prompt("Why was it lost?\n"+LOST_REASONS.map((x,i)=>(i+1)+". "+x).join("\n"),"1"); if(r===null)return; patch.lost_reason=LOST_REASONS[Number(r)-1]||r;}
+  const {error}=await sb.from("active_leads").update(patch).eq("id",id); if(error)return alert(error.message); await loadAll();
+}
+function repOptions(sel){return '<option value="">Unassigned</option>'+REPS.map(r=>`<option value="${r.id}" ${String(r.id)===String(sel)?"selected":""}>${esc(r.name)}</option>`).join("");}
+async function openLead(id){
+  const l=LEADS.find(x=>x.id===id)||{}; const isNew=!l.id; const ov=document.createElement("div"); ov.className="ov";
+  ov.innerHTML=`<div class="drw"><h2>${isNew?"New lead":esc(l.customer_name||l.customer_email||"Lead")}</h2>
+  <div class="mt">${isNew?"":`${esc(SN[l.stage])} since ${ago(l.stage_changed_at)} · from ${esc(l.list_name||l.source||"manual")}${l.customer_id?` · customer record #${l.customer_id}${l.customer_assigned_rep?" ("+esc(l.customer_assigned_rep)+")":""}`:""}`}</div>
+  <div class="row"><div><label>Name</label><input id="f_customer_name" value="${esc(l.customer_name)}"></div><div><label>Company</label><input id="f_company" value="${esc(l.company)}"></div></div>
+  <div class="row"><div><label>Email</label><input id="f_customer_email" value="${esc(l.customer_email)}"></div><div><label>Phone / WhatsApp</label><input id="f_phone" value="${esc(l.phone)}"></div></div>
+  <div class="row"><div><label>Country</label><input id="f_country" value="${esc(l.country)}"></div><div><label>Est. value ($)</label><input id="f_est_value" type="number" value="${esc(l.est_value)}"></div></div>
+  <label>Looking for</label><input id="f_item_interest" value="${esc(l.item_interest)}">
+  <div class="row"><div><label>Stage</label><select id="f_stage">${STAGES.map(s=>`<option value="${s[0]}" ${s[0]===(l.stage||"new")?"selected":""}>${s[1]}</option>`).join("")}</select></div>
+  <div><label>Owner</label><select id="f_owner_rep_id">${repOptions(isNew?MYREP?.id:l.owner_rep_id)}</select></div>
+  <div><label>Next follow-up</label><input id="f_next_followup" type="date" value="${esc(l.next_followup)}"></div></div>
+  <div id="lostRow" style="display:${l.stage==="lost"?"block":"none"}"><label>Lost reason</label><select id="f_lost_reason">${LOST_REASONS.map(r=>`<option ${r===l.lost_reason?"selected":""}>${r}</option>`).join("")}</select></div>
+  <label>Notes</label><textarea id="f_notes" rows="3">${esc(l.notes)}</textarea>
+  <div class="btns"><button class="btn pri" id="save">Save</button>${isNew?"":`<button class="btn" id="addNote">Add note</button><button class="btn" id="addCall">Log a call</button>`}<button class="btn" id="close">Close</button></div>
+  ${isNew?"":'<div class="log"><label>History</label><div id="log">Loading…</div></div>'}</div>`;
+  document.body.appendChild(ov); const $=s=>ov.querySelector(s);
+  $("#f_stage").onchange=e=>$("#lostRow").style.display=e.target.value==="lost"?"block":"none";
+  $("#close").onclick=()=>ov.remove(); ov.onclick=e=>{if(e.target===ov)ov.remove();};
+  $("#save").onclick=async()=>{
+    const d={}; ["customer_name","company","customer_email","phone","country","item_interest","notes","stage","next_followup","est_value","owner_rep_id","lost_reason"].forEach(k=>{const v=$("#f_"+k).value.trim();d[k]=v===""?null:v;});
+    if(d.stage!=="lost")d.lost_reason=null; if(!d.customer_name&&!d.customer_email&&!d.phone)return alert("Enter a name, email or phone.");
+    let r; if(isNew){d.source="manual";d.created_by=ME;r=await sb.from("active_leads").insert(d).select("id").single(); if(!r.error)await sb.from("active_lead_events").insert({lead_id:r.data.id,kind:"created",body:"Lead created by hand",rep:ME,source:"manual"});}
+    else r=await sb.from("active_leads").update(d).eq("id",l.id);
+    if(r.error)return alert(r.error.message.includes("open_email")||r.error.message.includes("open_phone")?"There is already an open lead with this email or phone.":r.error.message);
+    if(isNew)sb.rpc("crm_sync_now"); ov.remove(); loadAll();
+  };
+  if(isNew)return;
+  const note=async kind=>{const t=prompt(kind==="call"?"What happened on the call?":"Note"); if(!t)return; await sb.from("active_lead_events").insert({lead_id:l.id,kind,body:(kind==="call"?"Call: ":"")+t,rep:ME,source:"manual",rep_id:MYREP?.id||null}); loadLog();};
+  $("#addNote").onclick=()=>note("note"); $("#addCall").onclick=()=>note("call");
+  const IC={email:"✉️",whatsapp:"💬",invoice:"🧾",purchase:"💰",stage:"➡️",owner:"👤",note:"📝",call:"📞",imported:"📥",created:"✨"};
+  async function loadLog(){const {data}=await sb.from("active_lead_events").select("*").eq("lead_id",l.id).order("ts",{ascending:false}).limit(200);
+    $("#log").innerHTML=(data||[]).map(e=>`<div class="ev ${e.direction||""} ${e.kind}"><span class="ic">${IC[e.kind]||"•"}</span><span class="bd" style="flex:1">${esc(e.body)}<div class="tm">${esc(e.rep||"")}</div></span><span class="tm">${new Date(e.ts||e.created_at).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</span></div>`).join("")||"Nothing yet.";}
+  loadLog();
+}
+function showGate(msg){document.getElementById("board").innerHTML=`<div style="margin:auto;text-align:center;padding:40px"><p>${esc(msg||"Sign in with your SurgaMed Microsoft account to continue.")}</p><button class="btn pri" id="ms">Sign in with Microsoft</button></div>`;
+  document.getElementById("ms").onclick=()=>sb.auth.signInWithOAuth({provider:"azure",options:{scopes:"openid profile email",redirectTo:location.origin+location.pathname}});}
+async function start(){
+  const {data:{session}}=await sb.auth.getSession(); if(!session)return showGate();
+  ME=(session.user.email||"").toLowerCase(); if(!isAllowed(ME)){await sb.auth.signOut();return showGate("The account "+ME+" is not authorised for this page.");}
+  const {data:reps}=await sb.from("reps").select("id,name,email,role").is("deleted_at",null).order("name");
+  REPS=(reps||[]).filter(r=>r.email&&!/^(orders|ari\.inventory)@/.test(r.email)); MYREP=REPS.find(r=>(r.email||"").toLowerCase()===ME)||null;
+  document.getElementById("who").textContent=MYREP?MYREP.name:ME;
+  const rs=document.getElementById("rep"); REPS.forEach(r=>rs.insertAdjacentHTML("beforeend",`<option value="${r.id}">${esc(r.name)}</option>`));
+  if(MYREP&&MYREP.role!=="owner")rs.value="me";
+  ["rep","list","quiet","due","closed"].forEach(id=>document.getElementById(id).onchange=()=>{SHOW={};render();}); document.getElementById("q").oninput=render;
+  document.getElementById("newBtn").onclick=()=>openLead(null);
+  await loadAll(); setInterval(loadAll,120000);
+}
+start();
+</script><script>window.__SMFEAT="pipeline"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script></body></html>

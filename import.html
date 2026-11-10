@@ -1,0 +1,100 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SurgaMed — Import Leads</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--b:#1f4e78;--bg:#f4f6f9;--line:#e2e8f0;--mut:#64748b}
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}body{margin:0;background:var(--bg);color:#1a2330}
+header{background:var(--b);color:#fff;padding:10px 16px;display:flex;gap:12px;align-items:center}header h1{font-size:17px;margin:0}
+header a{background:rgba(255,255,255,.16);color:#fff;padding:5px 11px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600}
+main{max-width:1000px;margin:0 auto;padding:16px}
+.box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.box h2{margin:0 0 10px;font-size:15px}.mut{color:var(--mut);font-size:12px}
+select,input{padding:7px 9px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px}
+.map{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px 14px}.map label{font-size:11px;font-weight:700;color:var(--mut);display:block;margin-bottom:3px}.map select{width:100%}
+.btn{padding:8px 15px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;font-weight:600;font-size:13px;cursor:pointer}.btn.pri{background:var(--b);color:#fff;border-color:var(--b)}.btn:disabled{opacity:.5}
+table{border-collapse:collapse;width:100%;font-size:12px}th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left}th{background:#f8fafc}
+.k{border-radius:9px;padding:1px 7px;font-size:11px;font-weight:700}
+.k-new{background:#e0f2fe;color:#0369a1}.k-customer{background:#dcfce7;color:#15803d}.k-open_lead{background:#fef3c7;color:#b45309}.k-dup_in_file,.k-no_contact,.k-bad_email{background:#f1f5f9;color:#64748b}
+.chips span{display:inline-block;margin:0 8px 6px 0}.reps label{margin-right:14px;font-size:13px}
+</style></head><body>
+<header><h1>Import leads from Excel</h1><a href="pipeline.html">Back to pipeline</a></header>
+<main id="main">
+<div class="box"><h2>1. Pick the file</h2><input type="file" id="file" accept=".xlsx,.xls,.csv"> <select id="sheet" style="display:none"></select>
+ <div class="mut" style="margin-top:6px">The file is read in your browser. Nothing is saved until you press Check the list.</div></div>
+<div class="box" id="s2" style="display:none"><h2>2. Match the columns</h2>
+ <div class="mut" id="found"></div><div class="map" id="map" style="margin-top:10px"></div>
+ <div style="margin-top:12px"><label class="mut">List name (shown on every lead) </label><input id="listName" style="width:360px"></div>
+ <div style="margin-top:12px"><button class="btn pri" id="check">Check the list</button> <span class="mut" id="prog"></span></div></div>
+<div class="box" id="s3" style="display:none"><h2>3. Review</h2><div class="chips" id="chips"></div>
+ <div class="mut">New and existing-customer rows become leads. Repeats, rows already open in the pipeline and rows with no email or phone are left out. Untick or tick any row to change that.</div>
+ <div style="max-height:360px;overflow:auto;margin-top:10px"><table id="tbl"></table></div></div>
+<div class="box" id="s4" style="display:none"><h2>4. Who works them</h2>
+ <div class="reps" id="reps"></div>
+ <div style="margin-top:10px"><select id="mode"><option value="round_robin">Spread evenly across the ticked reps</option><option value="one">All to the first ticked rep</option><option value="customer_rep">Existing customers to their own rep, the rest spread evenly</option></select></div>
+ <div style="margin-top:8px"><label><input type="checkbox" id="skipOther" checked> Leave out customers who already belong to a rep who isn't ticked</label></div>
+ <div style="margin-top:12px"><button class="btn pri" id="commit">Create the leads</button> <button class="btn" id="cancel">Cancel this import</button> <span class="mut" id="done"></span></div></div>
+</main>
+<script>
+const SB_URL="https://ecjemcrpbzeocoiwslcu.supabase.co", SB_KEY="sb_publishable_GhYb1dkRQKdH5oimsnhaYA_A8QYT3Yq";
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const FIELDS=[["name","Contact name",/^(contact|name|full ?name|buyer|customer( name)?|first.*name)$/i],["company","Company / facility",/(company|facility|hospital|organi[sz]ation|account|clinic)/i],
+ ["email","Email",/e-?mail/i],["phone","Phone / WhatsApp",/(phone|mobile|cell|whats ?app|tel)/i],["country","Country",/(country|nation)/i],
+ ["item_interest","Looking for / item",/(item|product|interest|looking|want|ref|part)/i],["est_value","Est. value",/(value|amount|budget|revenue|spend)/i],["notes","Notes",/(note|comment|remark)/i]];
+const KL={new:"New",customer:"Existing customer",open_lead:"Already in pipeline",dup_in_file:"Repeat in this file",no_contact:"No email or phone",bad_email:"Bad email"};
+let WB=null,ROWS=[],HEAD=[],BATCH=null,ME="";
+function isAllowed(e){return !!e&&e.toLowerCase().endsWith("@surgamed.com");}
+document.getElementById("file").onchange=async e=>{const f=e.target.files[0]; if(!f)return; WB=XLSX.read(await f.arrayBuffer(),{type:"array"});
+  const s=document.getElementById("sheet"); s.innerHTML=WB.SheetNames.map(n=>`<option>${esc(n)}</option>`).join(""); s.style.display=WB.SheetNames.length>1?"inline-block":"none";
+  s.onchange=loadSheet; document.getElementById("listName").value=f.name.replace(/\.[^.]+$/,""); loadSheet();};
+function loadSheet(){
+  const ws=WB.Sheets[document.getElementById("sheet").value||WB.SheetNames[0]]; const grid=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:false});
+  // header row = first row (of the first 10) with the most filled text cells
+  let hi=0,best=-1; grid.slice(0,10).forEach((r,i)=>{const n=r.filter(c=>String(c).trim()&&isNaN(c)).length;if(n>best){best=n;hi=i;}});
+  HEAD=grid[hi].map((h,i)=>String(h).trim()||("Column "+(i+1))); ROWS=grid.slice(hi+1).map((r,i)=>({rn:hi+2+i,cells:r})).filter(r=>r.cells.some(c=>String(c).trim()));
+  document.getElementById("found").textContent=`${ROWS.length.toLocaleString()} rows, ${HEAD.length} columns (headers on row ${hi+1}).`;
+  const used=new Set(); document.getElementById("map").innerHTML=FIELDS.map(([k,label,re])=>{let g=HEAD.findIndex((h,i)=>!used.has(i)&&re.test(h)); if(g>=0)used.add(g);
+    return `<div><label>${label}</label><select data-f="${k}"><option value="-1">(not in this file)</option>${HEAD.map((h,i)=>`<option value="${i}" ${i===g?"selected":""}>${esc(h)}</option>`).join("")}</select></div>`;}).join("");
+  document.getElementById("s2").style.display="block";
+}
+document.getElementById("check").onclick=async()=>{
+  const btn=document.getElementById("check"),prog=document.getElementById("prog"),list=document.getElementById("listName").value.trim(); if(!list)return alert("Give the list a name.");
+  const map={}; document.querySelectorAll("#map select").forEach(s=>{if(s.value!=="-1")map[s.dataset.f]=Number(s.value);});
+  if(map.email==null&&map.phone==null)return alert("Match at least the Email or the Phone column.");
+  btn.disabled=true; prog.textContent="Saving rows…";
+  const cm={}; Object.entries(map).forEach(([k,i])=>cm[HEAD[i]]=k);
+  const {data:b,error}=await sb.from("crm_import_batches").insert({file_name:document.getElementById("file").files[0].name,sheet_name:document.getElementById("sheet").value||WB.SheetNames[0],list_name:list,column_map:cm,uploaded_by:ME}).select("id").single();
+  if(error){btn.disabled=false;return alert(error.message);} BATCH=b.id;
+  const num=v=>{const n=parseFloat(String(v).replace(/[^0-9.\-]/g,""));return isFinite(n)?n:null;};
+  const recs=ROWS.map(r=>{const o={batch_id:BATCH,rn:r.rn,raw:Object.fromEntries(HEAD.map((h,i)=>[h,r.cells[i]??""]))};
+    for(const [k,i] of Object.entries(map)){const v=String(r.cells[i]??"").trim();o[k]=k==="est_value"?num(v):(v||null);} if(o.email)o.email=o.email.split(/[;, ]+/)[0]; return o;});
+  for(let i=0;i<recs.length;i+=500){const {error}=await sb.from("crm_import_rows").insert(recs.slice(i,i+500)); if(error){btn.disabled=false;return alert(error.message);} prog.textContent=`Saved ${Math.min(i+500,recs.length)} of ${recs.length}…`;}
+  prog.textContent="Checking against customers and the pipeline…";
+  const {data:counts,error:e2}=await sb.rpc("crm_import_classify",{p_batch:BATCH}); if(e2){btn.disabled=false;return alert(e2.message);}
+  prog.textContent=""; document.getElementById("chips").innerHTML=counts.map(c=>`<span class="k k-${c.match_kind}">${KL[c.match_kind]||c.match_kind}: ${c.rows}</span>`).join("");
+  await showRows(); document.getElementById("s3").style.display=document.getElementById("s4").style.display="block";
+};
+async function showRows(){
+  const {data}=await sb.from("crm_import_rows").select("id,rn,name,company,email,phone,match_kind,decision,match_customer_rep_id").eq("batch_id",BATCH).order("rn").limit(1000);
+  document.getElementById("tbl").innerHTML="<tr><th>Use</th><th>Row</th><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Check</th></tr>"+data.map(r=>`<tr><td><input type="checkbox" data-id="${r.id}" ${r.decision==="create"?"checked":""} ${["no_contact","open_lead"].includes(r.match_kind)?"disabled":""}></td><td>${r.rn}</td><td>${esc(r.name)}</td><td>${esc(r.company)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td><span class="k k-${r.match_kind}">${KL[r.match_kind]||""}</span></td></tr>`).join("")+(data.length===1000?'<tr><td colspan="7" class="mut">Showing the first 1,000 rows; the rest follow the same rules.</td></tr>':"");
+  document.querySelectorAll("#tbl input[data-id]").forEach(c=>c.onchange=()=>sb.from("crm_import_rows").update({decision:c.checked?"create":"skip"}).eq("id",c.dataset.id).then(({error})=>error&&alert(error.message)));
+}
+document.getElementById("commit").onclick=async()=>{
+  const ids=[...document.querySelectorAll("#reps input:checked")].map(c=>Number(c.value)); if(!ids.length)return alert("Tick at least one rep.");
+  const btn=document.getElementById("commit"); btn.disabled=true; document.getElementById("done").textContent="Creating leads…";
+  const {data,error}=await sb.rpc("crm_import_commit",{p_batch:BATCH,p_assign:document.getElementById("mode").value,p_rep_ids:ids,p_skip_other_reps_customers:document.getElementById("skipOther").checked});
+  if(error){btn.disabled=false;document.getElementById("done").textContent="";return alert(error.message);}
+  sb.rpc("crm_sync_now");
+  document.getElementById("done").innerHTML=`Done: ${data.created} leads created, ${data.noted_on_open_leads} existing leads noted, ${data.skipped} left out. <a href="pipeline.html">Open the pipeline</a>`;
+};
+document.getElementById("cancel").onclick=async()=>{if(!BATCH||!confirm("Cancel this import? Nothing has been created yet."))return; await sb.from("crm_import_batches").update({status:"cancelled"}).eq("id",BATCH); location.reload();};
+async function start(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){document.getElementById("main").innerHTML='<div class="box">Sign in with your SurgaMed Microsoft account. <button class="btn pri" id="ms">Sign in</button></div>';document.getElementById("ms").onclick=()=>sb.auth.signInWithOAuth({provider:"azure",options:{scopes:"openid profile email",redirectTo:location.origin+location.pathname}});return;}
+  ME=(session.user.email||"").toLowerCase(); if(!isAllowed(ME)){await sb.auth.signOut();document.getElementById("main").textContent="This account is not authorised.";return;}
+  const {data:reps}=await sb.from("reps").select("id,name,email").is("deleted_at",null).order("name");
+  document.getElementById("reps").innerHTML=(reps||[]).filter(r=>r.email&&!/^(orders|ari\.inventory)@/.test(r.email)).map(r=>`<label><input type="checkbox" value="${r.id}" ${r.email.toLowerCase()===ME?"checked":""}> ${esc(r.name)}</label>`).join("");
+}
+start();
+</script><script>window.__SMFEAT="pipeline_import"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script></body></html>
