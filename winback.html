@@ -70,7 +70,7 @@ function render(){
 async function show(){
   const r=cur, m=document.getElementById("main"); const s=r.seq;
   let h='<div class="chdr"><h2>'+esc(r.name||"")+(r.company?' · '+esc(r.company):'')+' <span class="pill seg-'+r.segment+'">'+r.segment+'</span></h2><div class="meta">'+money(r.spend)+' lifetime · '+r.orders_count+' orders · last order '+esc(r.last_purchase_at||"")+' ('+r.days_quiet+' days) · their normal gap ⇒ dormant after '+r.dormant_after_days+'d · 📱 '+esc(r.phone||"")+(r.email?' · '+esc(r.email):'')+'<br>Usual items: '+esc(r.usual_items||"(unknown)")+(r.last_outbound?' · last rep message '+dt(r.last_outbound):'')+(r.last_inbound?' · last customer message '+dt(r.last_inbound):'')+'</div></div>';
-  h+='<div class="card"><div class="btns">';
+  h+='<div class="card"><div class="btns"><button class="ghost" onclick="smSendWinback()">➕ Send to pipeline</button>';
   if(!s||["stopped","parked","reactivated","replied","opted_out"].includes(s.status)) h+='<button onclick="act(\'start\')">▶ Start sequence (draft touch 1)</button>';
   if(s&&s.status==="active"){ h+='<button onclick="act(\'mark_sent\')">✅ I sent it (log touch '+(s.touch+1)+')</button><button class="ghost" onclick="redraft()">✍️ Re-draft</button><button class="ghost" onclick="act(\'not_now\')">⏰ Not now (check back 60d)</button><button class="ghost" onclick="act(\'mark_replied\')">💬 They replied</button><button class="warn" onclick="stopFlow(true)">✖ Stop / opted out</button>'; }
   if(s&&s.status==="not_now") h+='<button class="ghost" onclick="stopFlow(false)">✖ Stop</button>';
@@ -109,4 +109,9 @@ function showGate(msg){ const w=document.querySelector(".wrap"); if(!w)return; w
   document.getElementById("msBtn").onclick=async()=>{const {error}=await sb.auth.signInWithOAuth({provider:"azure",options:{scopes:"openid profile email",redirectTo:window.location.origin+window.location.pathname}});if(error)document.getElementById("gateErr").textContent=error.message;}; }
 async function start(){ let session=null; try{const r=await sb.auth.getSession();session=r.data.session;}catch(e){} if(!session){showGate();return;} const em=((session.user&&session.user.email)||"").toLowerCase(); if(!isAllowed(em)){await sb.auth.signOut();showGate("The account "+em+" is not authorised for this page.");return;} window.__SMREP=em; boot(); }
 start();
+</script><script src="crm-send.js"></script><script>
+/* Send to pipeline (2026-11-10) */
+function smSendWinback(){ var r=cur; if(!r||!window.SMCRM)return; var bits=[]; if(r.segment)bits.push(r.segment); if(r.days_quiet!=null)bits.push(r.days_quiet+" days quiet"); if(r.spend)bits.push("$"+Math.round(r.spend).toLocaleString()+" lifetime"); if(r.orders_count)bits.push(r.orders_count+" orders");
+ var items=Array.isArray(r.usual_items)?r.usual_items.slice(0,3).map(function(x){return typeof x==="string"?x:(x.model||x.description||x.name||"");}).filter(Boolean).join(", "):"";
+ SMCRM.send({source:"winback",source_ref:String(r.id||""),customer_id:r.id||null,name:r.name||"",company:r.company||"",email:r.email||"",phone:r.phone||"",item_interest:items,notes:"Win-Back: "+bits.join(", ")}); }
 </script><script>window.__SMFEAT="winback"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script></body></html>

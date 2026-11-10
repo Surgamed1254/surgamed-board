@@ -1254,8 +1254,8 @@ function renderList(){
   const hideClosed=document.getElementById("hideClosed").checked;
   let rows=LEADS.filter(l=>{ const stt=effStatus(l), rep=effRep(l); if(hideClosed&&(stt==="closed"||stt==="upsell"))return false; if(statusF!=="all"&&stt!==statusF)return false; if(repF!=="all"&&rep!==repF)return false; return true; });
   rows.sort((a,b)=>new Date(b.date)-new Date(a.date));
-  let h='<table class="ltab"><thead><tr><th>Date</th><th>Type</th><th>Customer</th><th>Item / details</th><th>Acct</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
-  if(!rows.length) h+='<tr><td colspan="8"><div class="empty">No leads in window</div></td></tr>';
+  let h='<table class="ltab"><thead><tr><th><input type="checkbox" class="smckall" title="Select all"></th><th>Date</th><th>Type</th><th>Customer</th><th>Item / details</th><th>Acct</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+  if(!rows.length) h+='<tr><td colspan="9"><div class="empty">No leads in window</div></td></tr>';
   rows.forEach(l=>{ h+=leadRowHtml(l); });
   h+='</tbody></table>';
   document.getElementById("board").innerHTML=h;
@@ -1269,6 +1269,7 @@ function leadRowHtml(l){
   let statSel='<select data-id="'+l.id+'" data-k="status">'; STATUSES.forEach(s=>{ statSel+='<option value="'+s.key+'"'+(s.key===stt?' selected':'')+'>'+s.label+'</option>'; }); statSel+='</select>';
   const replyHref=l.custEmail?("mailto:"+encodeURIComponent(l.custEmail)+"?subject="+encodeURIComponent("Re: "+(l.title||"DOTmed"))):(l.webLink||"#");
   return '<tr>'+
+    '<td><input type="checkbox" class="smck" data-id="'+l.id+'"></td>'+
     '<td class="nowrap">'+fmtDate(l.date)+'</td>'+
     '<td><span class="tag" style="background:#eef1f5;color:#5a6b7b">'+esc(catLabel)+'</span></td>'+
     '<td class="lcust" data-detail="'+l.id+'"><b>'+esc(dispName(l))+'</b>'+(l.hasPhone?' ☎':'')+'<div class="lsub">'+esc(l.title)+'</div></td>'+
@@ -1353,7 +1354,7 @@ function renderWorkspace(){
     '<span class="ws-ppage">'+WS_PAGE+' / '+pages+'</span>'+
     '<button class="ws-pbtn" data-wspage="next"'+(WS_PAGE>=pages?' disabled':'')+' aria-label="Next page">›</button></div>';
   html+='<div class="ws-leadbar"><div class="ws-secttl" style="margin:0">Active leads'+(statusF!=='all'?' · '+esc((STATUSES.find(s=>s.key===statusF)||{}).label||statusF):'')+(repF!=='all'?' · '+esc(repF):'')+'</div>'+pager+'</div>';
-  html+='<table class="ltab wsleadtab"><thead><tr><th>Date</th><th>Type</th><th>Customer</th><th>Item / details</th><th>Acct</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+  html+='<table class="ltab wsleadtab"><thead><tr><th><input type="checkbox" class="smckall" title="Select all"></th><th>Date</th><th>Type</th><th>Customer</th><th>Item / details</th><th>Acct</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
   if(!pageRows.length) html+='<tr><td colspan="8"><div class="empty">No leads match these filters</div></td></tr>';
   pageRows.forEach(l=>{ html+=leadRowHtml(l); });
   html+='</tbody></table>';
@@ -1394,6 +1395,8 @@ function cardHtml(l){
 function cleanName(s){ return String(s==null?'':s).replace(/&#x?[0-9a-fA-F]+;/g,'').replace(/[\u0000-\u001F]+/g,' ').replace(/\uFFFD+/g,'').replace(/\s+/g,' ').trim(); }
 function dispName(l){ const raw=cleanName(l&&l.display||''); if(raw) return titleCase(raw); const e=(l&&l.custEmail)||''; if(e) return titleCase(e.split('@')[0].replace(/[._-]+/g,' ')); const co=cleanName(l&&l.company||''); if(co) return titleCase(co); return 'dotMed lead'; }
 function findLead(id){ return LEADS.find(l=>l.id===id); }
+function leadToCrm(l){ if(!l) return null; return {source:"dotmed_lead", source_ref:l.id, name:dispName(l), company:l.company||"", email:l.custEmail||"", phone:(st(l.id).phone||""), item_interest:(l.item||l.title||""), notes:(l.msg?("DotMed message: "+l.msg):"")}; }
+window.__smLeadToCrm=function(id){ return leadToCrm(findLead(id)); };
 function wireCards(){
   document.querySelectorAll("#board select[data-id][data-k]").forEach(sel=>{
     sel.onchange=async function(){ const l=findLead(this.getAttribute("data-id")); if(!l)return;
@@ -1516,8 +1519,9 @@ function initCollapsibles(root, sel){
 }
 async function openDetail(id){
   const l=findLead(id); if(!l)return; const o=ensureOverlay(); o.style.display="flex";
-  o.innerHTML='<div class="modal"><div class="mhead" style="position:relative"><button class="mnav" id="mPrev" title="Previous" style="position:absolute;left:6px;top:10px;width:28px;height:28px;border:1px solid #cdd6df;border-radius:50%;background:#fff;cursor:pointer;font-size:16px;line-height:1;color:#33414f">‹</button><button class="mnav" id="mNext" title="Next" style="position:absolute;right:46px;top:10px;width:28px;height:28px;border:1px solid #cdd6df;border-radius:50%;background:#fff;cursor:pointer;font-size:16px;line-height:1;color:#33414f">›</button><button class="mclose" id="mClose">×</button><h3>'+esc(dispName(l))+'</h3><div class="msub">'+esc((CATS.find(c=>c.key===l.cat)||{}).label)+' · '+fmtDate(l.date)+' · '+l.acct.t+'</div></div><div class="mbody"><div class="loading">Loading full email…</div></div></div>';
+  o.innerHTML='<div class="modal"><div class="mhead" style="position:relative"><button class="mnav" id="mPrev" title="Previous" style="position:absolute;left:6px;top:10px;width:28px;height:28px;border:1px solid #cdd6df;border-radius:50%;background:#fff;cursor:pointer;font-size:16px;line-height:1;color:#33414f">‹</button><button class="mnav" id="mNext" title="Next" style="position:absolute;right:46px;top:10px;width:28px;height:28px;border:1px solid #cdd6df;border-radius:50%;background:#fff;cursor:pointer;font-size:16px;line-height:1;color:#33414f">›</button><button class="mclose" id="mClose">×</button><h3>'+esc(dispName(l))+'</h3><div class="msub">'+esc((CATS.find(c=>c.key===l.cat)||{}).label)+' · '+fmtDate(l.date)+' · '+l.acct.t+'</div><div id="smcrmHost"></div></div><div class="mbody"><div class="loading">Loading full email…</div></div></div>';
   document.getElementById("mClose").onclick=closeDetail;
+  if(window.SMCRM) SMCRM.button(document.getElementById("smcrmHost"),()=>leadToCrm(findLead(l.id)));
   (function(){ try{ var ids=[].slice.call(document.querySelectorAll('#board [data-detail]')).map(function(e){return e.getAttribute('data-detail');}); var idx=ids.indexOf(l.id); var pv=idx>0?ids[idx-1]:null, nx=(idx>=0&&idx<ids.length-1)?ids[idx+1]:null; var pb=document.getElementById('mPrev'), nb=document.getElementById('mNext'); if(pb){ if(pv){ pb.onclick=function(){openDetail(pv);}; } else { pb.disabled=true; pb.style.opacity=.3; pb.style.cursor='default'; } } if(nb){ if(nx){ nb.onclick=function(){openDetail(nx);}; } else { nb.disabled=true; nb.style.opacity=.3; nb.style.cursor='default'; } } }catch(e){} })();
   let msg=null,err=null;
   try{ msg=await fetchMessage(l.uri); if(msg.error) err=msg.error; }catch(e){ err=String(e.message||e); }
@@ -2958,7 +2962,7 @@ function openDetail(l){
  o.querySelector("#rzpDel").onclick=function(){if(!confirm("Delete this lead?"))return;api("active_leads?id=eq."+l.id,{method:"DELETE"}).then(function(){ovClose();loadAndRender();});};
  o.querySelector("#rzpSave").onclick=function(){var d=readForm();d.updated_at=new Date().toISOString();if((d.stage==="won"||d.stage==="lost")&&!l.closed_at)d.closed_at=new Date().toISOString();var stageChanged=d.stage!==l.stage;api("active_leads?id=eq."+l.id,{method:"PATCH",body:JSON.stringify(d)}).then(function(){if(stageChanged)logEvent(l.id,"stage","Moved to "+stageName(d.stage));ovClose();loadAndRender();});};
 }
-window.rzMakeLead=function(prefill){showPipe();setTimeout(function(){openNew(prefill||{});},60);};
+window.rzMakeLead=function(prefill){prefill=prefill||{};if(window.SMCRM){SMCRM.send({source:prefill.source||"reorder_radar",name:prefill.customer_name||"",email:prefill.customer_email||"",phone:prefill.phone||"",item_interest:prefill.item_interest||""});return;}location.href="pipeline.html";};
 function init(){ensureNav();}
 if(document.readyState!=="loading")init();else document.addEventListener("DOMContentLoaded",init);
 new MutationObserver(function(){if(!document.getElementById("rzpPill"))ensureNav();}).observe(document.body,{childList:true,subtree:true});
@@ -3115,6 +3119,19 @@ function add(){
 }
 if(document.readyState!=="loading")add();else document.addEventListener("DOMContentLoaded",add);
 setTimeout(add,1200);setTimeout(add,3000);
+})();
+</script>
+<script src="crm-send.js"></script>
+<script>
+/* Send to pipeline: bulk from list views (2026-11-10) */
+(function(){
+ function bar(){ document.querySelectorAll("table.ltab").forEach(function(t){ if(t.previousElementSibling&&t.previousElementSibling.classList&&t.previousElementSibling.classList.contains("smbulk"))return;
+   var d=document.createElement("div"); d.className="smbulk"; d.style.cssText="margin:4px 0 6px";
+   var b=document.createElement("button"); b.className="smcrm-btn"; b.textContent="\u2795 Send checked to pipeline"; d.appendChild(b);
+   b.onclick=function(){ var ids=[].map.call(t.querySelectorAll(".smck:checked"),function(c){return c.getAttribute("data-id");}); if(!ids.length){alert("Tick the leads to send first.");return;} SMCRM.send(ids.map(function(id){return window.__smLeadToCrm(id);}).filter(Boolean)); };
+   t.parentNode.insertBefore(d,t); }); }
+ document.addEventListener("change",function(e){ if(e.target.classList&&e.target.classList.contains("smckall")){ var t=e.target.closest("table"); t.querySelectorAll(".smck").forEach(function(c){c.checked=e.target.checked;}); } });
+ new MutationObserver(function(){ if(document.querySelector("table.ltab")) bar(); }).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
 <script>window.__SMFEAT="lead_board"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script></body>

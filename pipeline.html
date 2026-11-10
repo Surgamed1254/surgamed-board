@@ -21,7 +21,7 @@ header h1{font-size:17px;margin:0}header a,header button{background:rgba(255,255
 .card .nm{font-weight:700;font-size:13px}.card .co{color:var(--mut)}
 .card .ft{display:flex;justify-content:space-between;margin-top:5px;color:var(--mut);font-size:11px;gap:4px;flex-wrap:wrap}
 .tag{border-radius:9px;padding:1px 6px;font-size:10px;font-weight:700}
-.t-quiet{background:#fff4e5;color:#b45309}.t-due{background:#fde8e8;color:#b91c1c}.t-cust{background:#e7f6ee;color:#15803d}
+.t-quiet{background:#fff4e5;color:#b45309}.t-src{background:#eef4ff;color:#1d4ed8}.t-due{background:#fde8e8;color:#b91c1c}.t-cust{background:#e7f6ee;color:#15803d}
 .more{text-align:center;font-size:12px;color:var(--b);cursor:pointer;padding:6px}
 .ov{position:fixed;inset:0;background:rgba(16,32,48,.4);display:flex;justify-content:flex-end;z-index:50}
 .drw{background:#fff;width:min(520px,100vw);height:100%;overflow:auto;padding:16px 18px}
@@ -41,7 +41,7 @@ header h1{font-size:17px;margin:0}header a,header button{background:rgba(255,255
 <header><h1>Sales Pipeline</h1><a href="import.html">Import leads from Excel</a><button id="newBtn">+ New lead</button><a href="leads.html">Lead Board</a><span id="who" style="font-size:12px;opacity:.85;margin-left:auto"></span></header>
 <div class="ctl">
   <select id="rep"><option value="all">All reps</option><option value="me">My leads</option></select>
-  <select id="list"><option value="all">All lists</option></select>
+  <select id="list"><option value="all">All sources &amp; lists</option></select>
   <input id="q" placeholder="Search name, company, email, item" style="min-width:220px">
   <label><input type="checkbox" id="quiet"> Gone quiet only</label>
   <label><input type="checkbox" id="due"> Follow-up due only</label>
@@ -70,7 +70,8 @@ async function loadAll(){
     if(error){alert(error.message);break;} out=out.concat(data); if(data.length<1000)break; from+=1000;}
   LEADS=out;
   const lists=[...new Set(LEADS.map(l=>l.list_name).filter(Boolean))].sort();
-  const ls=document.getElementById("list"),cur=ls.value; ls.innerHTML='<option value="all">All lists</option>'+lists.map(n=>`<option>${esc(n)}</option>`).join(""); ls.value=lists.includes(cur)?cur:"all";
+  const srcs=[...new Set(LEADS.map(l=>l.source).filter(s=>SRC[s]))].sort();
+  const ls=document.getElementById("list"),cur=ls.value; ls.innerHTML='<option value="all">All sources &amp; lists</option>'+srcs.map(s=>`<option value="src:${esc(s)}">From ${esc(SRC[s])}</option>`).join("")+lists.map(n=>`<option>${esc(n)}</option>`).join(""); ls.value=(lists.includes(cur)||srcs.includes(cur.slice(4)))?cur:"all";
   render();
 }
 function filtered(){
@@ -78,7 +79,7 @@ function filtered(){
   const quiet=document.getElementById("quiet").checked,due=document.getElementById("due").checked;
   return LEADS.filter(l=>{
     if(rep==="me"&&l.owner_rep_id!==MYREP?.id)return false; if(rep!=="all"&&rep!=="me"&&String(l.owner_rep_id)!==rep)return false;
-    if(list!=="all"&&l.list_name!==list)return false; if(quiet&&!l.gone_quiet)return false; if(due&&!l.followup_due)return false;
+    if(list!=="all"&&(list.startsWith("src:")?l.source!==list.slice(4):l.list_name!==list))return false; if(quiet&&!l.gone_quiet)return false; if(due&&!l.followup_due)return false;
     if(q&&![l.customer_name,l.company,l.customer_email,l.item_interest,l.phone].join(" ").toLowerCase().includes(q))return false; return true;});
 }
 function render(){
@@ -99,9 +100,10 @@ function render(){
   b.querySelectorAll("[data-more]").forEach(el=>el.onclick=()=>{SHOW[el.dataset.more]=(SHOW[el.dataset.more]||PAGE)+PAGE;render();});
   document.getElementById("sum").textContent=`${openN} open leads${openV?" · "+money(openV)+" est.":""}`;
 }
+const SRC={dotmed_lead:"DotMed Lead Board",whatsapp_crm:"WhatsApp CRM",whatsapp_chat:"WhatsApp",ai_recs:"AI Recs",winback:"Win-Backs",blast:"New Arrival Blast",reorder_radar:"Reorder Radar"};
 function card(l){
   const c=(STAGES.find(s=>s[0]===l.stage)||[])[2];
-  const tags=[l.followup_due?'<span class="tag t-due">follow-up due</span>':"",l.gone_quiet?'<span class="tag t-quiet">gone quiet</span>':"",l.customer_id&&l.orders_count?`<span class="tag t-cust">customer · ${l.orders_count} orders</span>`:""].join(" ");
+  const tags=[SRC[l.source]?`<span class="tag t-src">from ${esc(SRC[l.source])}</span>`:"",l.followup_due?'<span class="tag t-due">follow-up due</span>':"",l.gone_quiet?'<span class="tag t-quiet">gone quiet</span>':"",l.customer_id&&l.orders_count?`<span class="tag t-cust">customer · ${l.orders_count} orders</span>`:""].join(" ");
   return `<div class="card" draggable="true" data-id="${l.id}" style="--c:${c}"><div class="nm">${esc(l.customer_name||l.customer_email||l.phone||"(no name)")}</div>
   <div class="co">${esc(l.company||"")}${l.country?" · "+esc(l.country):""}</div>${l.item_interest?`<div>${esc(l.item_interest)}</div>`:""}
   <div class="ft"><span>${esc((l.owner_name||"Unassigned").split(" ")[0])}</span><span>${l.est_value?money(l.est_value):""}</span><span>${l.last_activity_at?"active "+ago(l.last_activity_at):"no activity yet"}</span></div>${tags?`<div style="margin-top:4px">${tags}</div>`:""}</div>`;
@@ -115,7 +117,7 @@ function repOptions(sel){return '<option value="">Unassigned</option>'+REPS.map(
 async function openLead(id){
   const l=LEADS.find(x=>x.id===id)||{}; const isNew=!l.id; const ov=document.createElement("div"); ov.className="ov";
   ov.innerHTML=`<div class="drw"><h2>${isNew?"New lead":esc(l.customer_name||l.customer_email||"Lead")}</h2>
-  <div class="mt">${isNew?"":`${esc(SN[l.stage])} since ${ago(l.stage_changed_at)} · from ${esc(l.list_name||l.source||"manual")}${l.customer_id?` · customer record #${l.customer_id}${l.customer_assigned_rep?" ("+esc(l.customer_assigned_rep)+")":""}`:""}`}</div>
+  <div class="mt">${isNew?"":`${esc(SN[l.stage])} since ${ago(l.stage_changed_at)} · from ${esc(l.list_name||SRC[l.source]||l.source||"manual")}${l.customer_id?` · customer record #${l.customer_id}${l.customer_assigned_rep?" ("+esc(l.customer_assigned_rep)+")":""}`:""}`}</div>
   <div class="row"><div><label>Name</label><input id="f_customer_name" value="${esc(l.customer_name)}"></div><div><label>Company</label><input id="f_company" value="${esc(l.company)}"></div></div>
   <div class="row"><div><label>Email</label><input id="f_customer_email" value="${esc(l.customer_email)}"></div><div><label>Phone / WhatsApp</label><input id="f_phone" value="${esc(l.phone)}"></div></div>
   <div class="row"><div><label>Country</label><input id="f_country" value="${esc(l.country)}"></div><div><label>Est. value ($)</label><input id="f_est_value" type="number" value="${esc(l.est_value)}"></div></div>

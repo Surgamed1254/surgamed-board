@@ -157,5 +157,18 @@ document.getElementById('btnSend').onclick=async()=>{const rows=picked();if(!row
   catch(e){toast('Send failed: '+e.message);}finally{b.disabled=false;}};
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="crm-send.js"></script>
+<script>
+/* Send to pipeline: checked blast recipients (2026-11-10) */
+(function(){var x=document.getElementById('btnXlsx');if(!x||!window.SMCRM)return;
+ var b=SMCRM.button(x.parentNode,function(){
+   var item=[document.getElementById('iRef').value.trim(),document.getElementById('iDesc').value.trim()].filter(Boolean).join(' ');
+   var picks=[].filter.call(document.querySelectorAll('.ck'),function(c){return c.checked;}).map(function(c){return CAND[+c.getAttribute('data-ix')];}).filter(Boolean);
+   if(!picks.length){alert('Find buyers and tick the ones to send first.');return [];}
+   return picks.map(function(c){return {source:'blast',source_ref:String(c.customer_id||c.email||''),customer_id:c.customer_id||null,name:c.name||'',email:c.email||'',phone:c.phone||'',item_interest:item,notes:c.reason?('Blast match: '+c.reason):''};});
+ },'\u2795 Send checked to pipeline');
+ x.parentNode.insertBefore(b,x.nextSibling);
+})();
+</script>
 <script src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script>
 </body></html>

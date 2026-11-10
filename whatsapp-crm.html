@@ -845,6 +845,7 @@ async function openCustomer(cid,keep){
   (function(){ try{ var ids=[].slice.call(document.querySelectorAll(".row")).map(function(e){return Number(e.dataset.cid);}); var idx=ids.indexOf(cid); var pv=idx>0?ids[idx-1]:null, nx=(idx>=0&&idx<ids.length-1)?ids[idx+1]:null; var nav=document.createElement("div"); nav.style.cssText="display:flex;gap:8px;justify-content:space-between;margin-bottom:8px"; nav.innerHTML='<button class="btn ghost sm" id="cPrev">\u2039 Prev</button><button class="btn ghost sm" id="cNext">Next \u203a</button>'; var dt=$("detail"); dt.insertBefore(nav, dt.firstChild); var pb=document.getElementById("cPrev"), nb=document.getElementById("cNext"); if(pb){ if(pv){ pb.onclick=function(){openCustomer(pv);}; } else { pb.disabled=true; pb.style.opacity=.4; } } if(nb){ if(nx){ nb.onclick=function(){openCustomer(nx);}; } else { nb.disabled=true; nb.style.opacity=.4; } } }catch(e){} })();
   // load the heavy sections (email / shipping / orders)
   loadEmailThread(cu); loadShipping(cu); loadPurchases(cu); fillHdrPhones(cu);
+  try{ if(window.SMCRM){ const h=document.createElement("div"); h.className="smcrm-host"; $("detail").prepend(h); SMCRM.button(h,()=>({source:"whatsapp_crm",source_ref:String(cu.id),customer_id:cu.id,name:cu.name||"",company:cu.company||"",email:cu.email||"",phone:cu.phone||"",country:cu.country||""})); } }catch(e){}
 }
 function deepLink(){ const m=(location.hash||"").match(/customer=(\d+)/); return m?Number(m[1]):null; }
 
@@ -1309,5 +1310,5 @@ if(document.readyState!=="loading")add();else document.addEventListener("DOMCont
 setTimeout(add,1200);
 })();
 </script>
-<script>window.__SMFEAT="whatsapp_crm"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script></body>
+<script src="crm-send.js"></script><script>window.__SMFEAT="whatsapp_crm"</script><script defer src="https://ecjemcrpbzeocoiwslcu.supabase.co/functions/v1/usage-ping?js=1"></script></body>
 </html>
