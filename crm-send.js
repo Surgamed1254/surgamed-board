@@ -1,4 +1,4 @@
-/* SurgaMed board: "Send to pipeline" for every tool. NOT PUBLISHED; waits on Meir's yes.
+/* SurgaMed board: "Send to pipeline" for every tool. Live since 2026-11-10.
    Load with <script src="crm-send.js"></script>. Each page then calls, for one contact or many:
      SMCRM.button(hostEl, () => ({source:"winback", source_ref:id, name, company, email, phone, item_interest, notes, customer_id}))
      SMCRM.send([...items])   // bulk, e.g. checked rows
@@ -57,7 +57,9 @@
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.message || r.status); return j; }); })
         .then(function (res) {
           var c = res.filter(function (x) { return x.status === "created"; }).length;
+          var also = {}; res.forEach(function (x) { (x.also || []).forEach(function (n) { also[n] = 1; }); });
           var lines = [c ? "✅ " + c + " added to " + esc(res.filter(function (x) { return x.owner; })[0].owner) + "'s pipeline." : ""];
+          if (Object.keys(also).length) lines.push("👥 Also open with " + esc(Object.keys(also).join(", ")) + ", so it shows as multi-rep.");
           res.filter(function (x) { return x.status === "already_open"; }).forEach(function (x) { lines.push("Already open: " + esc(x.name || "") + (x.owner ? " is in " + esc(x.owner) + "'s pipeline (" + esc(x.stage || "") + "). Noted on that lead." : ".")); });
           var nc = res.filter(function (x) { return x.status === "no_contact"; }).length;
           if (nc) lines.push(nc + " left out: no email or phone.");

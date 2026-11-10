@@ -21,7 +21,7 @@ header h1{font-size:17px;margin:0}header a,header button{background:rgba(255,255
 .card .nm{font-weight:700;font-size:13px}.card .co{color:var(--mut)}
 .card .ft{display:flex;justify-content:space-between;margin-top:5px;color:var(--mut);font-size:11px;gap:4px;flex-wrap:wrap}
 .tag{border-radius:9px;padding:1px 6px;font-size:10px;font-weight:700}
-.t-quiet{background:#fff4e5;color:#b45309}.t-src{background:#eef4ff;color:#1d4ed8}.t-due{background:#fde8e8;color:#b91c1c}.t-cust{background:#e7f6ee;color:#15803d}
+.t-quiet{background:#fff4e5;color:#b45309}.t-src{background:#eef4ff;color:#1d4ed8}.t-due{background:#fde8e8;color:#b91c1c}.t-cust{background:#e7f6ee;color:#15803d}.t-mr{background:#f3e8ff;color:#7e22ce}
 .more{text-align:center;font-size:12px;color:var(--b);cursor:pointer;padding:6px}
 .ov{position:fixed;inset:0;background:rgba(16,32,48,.4);display:flex;justify-content:flex-end;z-index:50}
 .drw{background:#fff;width:min(520px,100vw);height:100%;overflow:auto;padding:16px 18px}
@@ -45,6 +45,7 @@ header h1{font-size:17px;margin:0}header a,header button{background:rgba(255,255
   <input id="q" placeholder="Search name, company, email, item" style="min-width:220px">
   <label><input type="checkbox" id="quiet"> Gone quiet only</label>
   <label><input type="checkbox" id="due"> Follow-up due only</label>
+  <label><input type="checkbox" id="mr"> 👥 Multi-rep only</label>
   <label><input type="checkbox" id="closed"> Show Won / Lost from last 30 days</label>
   <span class="sum" id="sum"></span>
 </div>
@@ -76,10 +77,10 @@ async function loadAll(){
 }
 function filtered(){
   const rep=document.getElementById("rep").value,list=document.getElementById("list").value,q=document.getElementById("q").value.toLowerCase().trim();
-  const quiet=document.getElementById("quiet").checked,due=document.getElementById("due").checked;
+  const quiet=document.getElementById("quiet").checked,due=document.getElementById("due").checked,mr=document.getElementById("mr").checked;
   return LEADS.filter(l=>{
     if(rep==="me"&&l.owner_rep_id!==MYREP?.id)return false; if(rep!=="all"&&rep!=="me"&&String(l.owner_rep_id)!==rep)return false;
-    if(list!=="all"&&(list.startsWith("src:")?l.source!==list.slice(4):l.list_name!==list))return false; if(quiet&&!l.gone_quiet)return false; if(due&&!l.followup_due)return false;
+    if(list!=="all"&&(list.startsWith("src:")?l.source!==list.slice(4):l.list_name!==list))return false; if(quiet&&!l.gone_quiet)return false; if(due&&!l.followup_due)return false; if(mr&&!l.multi_rep)return false;
     if(q&&![l.customer_name,l.company,l.customer_email,l.item_interest,l.phone].join(" ").toLowerCase().includes(q))return false; return true;});
 }
 function render(){
@@ -103,7 +104,7 @@ function render(){
 const SRC={dotmed_lead:"DotMed Lead Board",whatsapp_crm:"WhatsApp CRM",whatsapp_chat:"WhatsApp",ai_recs:"AI Recs",winback:"Win-Backs",blast:"New Arrival Blast",reorder_radar:"Reorder Radar"};
 function card(l){
   const c=(STAGES.find(s=>s[0]===l.stage)||[])[2];
-  const tags=[SRC[l.source]?`<span class="tag t-src">from ${esc(SRC[l.source])}</span>`:"",l.followup_due?'<span class="tag t-due">follow-up due</span>':"",l.gone_quiet?'<span class="tag t-quiet">gone quiet</span>':"",l.customer_id&&l.orders_count?`<span class="tag t-cust">customer · ${l.orders_count} orders</span>`:""].join(" ");
+  const tags=[l.multi_rep?`<span class="tag t-mr" title="Also in: ${esc((l.other_reps||[]).join(", "))}">👥 also ${esc((l.other_reps||[]).join(", "))}</span>`:"",SRC[l.source]?`<span class="tag t-src">from ${esc(SRC[l.source])}</span>`:"",l.followup_due?'<span class="tag t-due">follow-up due</span>':"",l.gone_quiet?'<span class="tag t-quiet">gone quiet</span>':"",l.customer_id&&l.orders_count?`<span class="tag t-cust">customer · ${l.orders_count} orders</span>`:""].join(" ");
   return `<div class="card" draggable="true" data-id="${l.id}" style="--c:${c}"><div class="nm">${esc(l.customer_name||l.customer_email||l.phone||"(no name)")}</div>
   <div class="co">${esc(l.company||"")}${l.country?" · "+esc(l.country):""}</div>${l.item_interest?`<div>${esc(l.item_interest)}</div>`:""}
   <div class="ft"><span>${esc((l.owner_name||"Unassigned").split(" ")[0])}</span><span>${l.est_value?money(l.est_value):""}</span><span>${l.last_activity_at?"active "+ago(l.last_activity_at):"no activity yet"}</span></div>${tags?`<div style="margin-top:4px">${tags}</div>`:""}</div>`;
@@ -158,7 +159,7 @@ async function start(){
   document.getElementById("who").textContent=MYREP?MYREP.name:ME;
   const rs=document.getElementById("rep"); REPS.forEach(r=>rs.insertAdjacentHTML("beforeend",`<option value="${r.id}">${esc(r.name)}</option>`));
   if(MYREP&&MYREP.role!=="owner")rs.value="me";
-  ["rep","list","quiet","due","closed"].forEach(id=>document.getElementById(id).onchange=()=>{SHOW={};render();}); document.getElementById("q").oninput=render;
+  ["rep","list","quiet","due","mr","closed"].forEach(id=>document.getElementById(id).onchange=()=>{SHOW={};render();}); document.getElementById("q").oninput=render;
   document.getElementById("newBtn").onclick=()=>openLead(null);
   await loadAll(); setInterval(loadAll,120000);
 }
