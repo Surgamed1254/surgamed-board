@@ -313,6 +313,7 @@ body{ background: radial-gradient(1100px 300px at 12% -90px, rgba(21,101,216,.10
         <option value="all">Everyone</option>
         <option value="Deysi">Deysi</option><option value="Mirian">Mirian</option>
         <option value="Jennifer">Jennifer</option><option value="Tehila">Tehila</option>
+        <option value="Jay">Jay</option>
       </select>
     </label>
     <label>Window:
@@ -390,7 +391,7 @@ let CONTACTS_BY_EMAIL = {}; // customer_email -> {rep, count} established-relati
 let SALE_OWNER = {};        // customer_email -> {rep, repFirst, date, open} from closed (rep-attributed) sales
 const OWNERSHIP_MONTHS = 3; // a customer is open to any rep once no rep has closed a sale in over this many months
 function repFirst(name){ return String(name||'').trim().split(/\s+/)[0]||''; }
-function repFull(first){ return ({Deysi:'Deysi Calvo',Mirian:'Mirian Alejo',Jennifer:'Jennifer Lugo',Tehila:'Tehila Cohen'})[first]||first; }
+function repFull(first){ return ({Deysi:'Deysi Calvo',Mirian:'Mirian Alejo',Jennifer:'Jennifer Lugo',Tehila:'Tehila Cohen',Jay:'Jay Fish'})[first]||first; }
 function monthsAgoISO(months){ const d=new Date(); d.setMonth(d.getMonth()-months); return d.toISOString().slice(0,10); }
 let SHIP_BY_EMAIL = {}; let SHIP_BY_LISTING = {}; // customer_email -> shipment summary from CRM shipments table
 let STATE = {};
@@ -1300,7 +1301,7 @@ async function loadRadarWorkspace(){
       kpiEl.innerHTML=kc('Customers due', totCust, 'amber')+kc('In stock &amp; due', totInstock, 'green')+kc('Items due', totDueItems)+kc('Value at stake', money(Math.round(totVal)), 'green');
     }
     if(boardEl){
-      const order=['Mirian Alejo','Jennifer Lugo','Deysi Calvo','Tehila Cohen','(unassigned)'];
+      const order=['Mirian Alejo','Jennifer Lugo','Deysi Calvo','Tehila Cohen','Jay Fish','(unassigned)'];
       const reps=Object.keys(byRep).sort((a,b)=>{ var oa=order.indexOf(a); var ob=order.indexOf(b); oa=oa<0?99:oa; ob=ob<0?99:ob; return oa-ob || byRep[b].val-byRep[a].val; });
       let h='<h3>📡 Reorder Radar — reach out today</h3><table class="ws-reptab"><thead><tr><th>Rep</th><th>To reach</th><th>In stock</th><th>Value at stake</th></tr></thead><tbody>';
       reps.forEach(r=>{ const d=byRep[r]; h+='<tr class="wsradarrep" data-rep="'+esc(r)+'" title="Open Reorder Radar for '+esc(r)+'" style="cursor:pointer"><td><b>'+esc(String(r).split(" ")[0])+'</b></td><td>'+d.cust+'</td><td style="color:#1d7a3f;font-weight:700">'+d.instock+'</td><td style="color:#0f7a4d">'+money(Math.round(d.val))+'</td></tr>'; });
